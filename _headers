@@ -1,0 +1,22 @@
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+
+/
+  Cache-Control: public, max-age=60, must-revalidate
+
+/index.html
+  Cache-Control: public, max-age=60, must-revalidate
+
+/games/catalog.json
+  Cache-Control: public, max-age=60, stale-while-revalidate=600
+  Access-Control-Allow-Origin: *
+  Access-Control-Allow-Methods: GET, HEAD
+  Timing-Allow-Origin: *
+
+/games/*
+  Cache-Control: public, max-age=300, stale-while-revalidate=86400
+
+/assets/fonts/*
+  Cache-Control: public, max-age=31536000, immutable

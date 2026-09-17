@@ -1,0 +1,16 @@
+<!doctype html>
+<!-- Phone-sized harness for headless screenshots: the iframe gives index.html
+     an exact 390x844 viewport regardless of the headless window size. -->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; background: #0d0d0d; }
+  body { display: grid; place-items: center; min-height: 100vh; }
+  iframe { width: 390px; height: 844px; border: 0; display: block; }
+</style>
+</head>
+<body>
+  <iframe src="../index.html"></iframe>
+</body>
+</html>

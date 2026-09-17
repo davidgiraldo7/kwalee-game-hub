@@ -1,0 +1,57 @@
+{
+  "featuredId": "star-tap",
+  "games": [
+    {
+      "id": "star-tap",
+      "title": "Star Tap",
+      "genre": "Reflex",
+      "heat": 99,
+      "tagline": "Pulled from the catalog. Mash the star for 10 seconds.",
+      "src": "example.html"
+    },
+    {
+      "id": "tap-rush",
+      "title": "Tap Rush",
+      "genre": "Reflex",
+      "heat": 98,
+      "tagline": "10 seconds. Hit the pad as hard as you can."
+    },
+    {
+      "id": "reaction-lab",
+      "title": "Reaction Lab",
+      "genre": "Timing",
+      "heat": 91,
+      "tagline": "Wait for green. Not a millisecond early.",
+      "lowerIsBetter": true,
+      "unit": "ms"
+    },
+    {
+      "id": "snake-sprint",
+      "title": "Snake Sprint",
+      "genre": "Arcade",
+      "heat": 87,
+      "tagline": "Classic snake with portrait controls."
+    },
+    {
+      "id": "bubble-pop",
+      "title": "Bubble Pop",
+      "genre": "Casual",
+      "heat": 84,
+      "tagline": "Clear rising bubbles before they escape."
+    },
+    {
+      "id": "memory-match",
+      "title": "Memory Match",
+      "genre": "Puzzle",
+      "heat": 76,
+      "tagline": "Flip eight pairs. Fewer moves score higher."
+    },
+    {
+      "id": "orbit-dodge",
+      "title": "Orbit Dodge",
+      "genre": "Action",
+      "heat": 72,
+      "tagline": "Drag to steer. Survive the falling orbit."
+    }
+  ]
+}
