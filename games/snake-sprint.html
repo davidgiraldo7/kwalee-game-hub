@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Snake Sprint</title>
+  <link rel="stylesheet" href="play.css">
+</head>
+<body>
+<script src="play.js"></script>
+<script>
+(function () {
+  var CELLS = 20;
+  var CELL = 16;
+  var el = Play.el;
+  var stage = Play.makeStage(CELLS * CELL, CELLS * CELL);
+  var snake, dir, queued, food, score, running, loop;
+  var stats = Play.statsStrip([
+    { key: "score", label: "Eaten", value: "0", tone: "info" },
+    { key: "state", label: "Status", value: "Ready" }
+  ]);
+
+  function spawnFood() {
+    var spot;
+    do {
+      spot = { x: Math.floor(Math.random() * CELLS), y: Math.floor(Math.random() * CELLS) };
+    } while (snake.some(function (p) { return p.x === spot.x && p.y === spot.y; }));
+    return spot;
+  }
+
+  function draw() {
+    stage.clear();
+    var ctx = stage.ctx;
+    ctx.fillStyle = "#ffcb05";
+    ctx.fillRect(food.x * CELL + 3, food.y * CELL + 3, CELL - 6, CELL - 6);
+    snake.forEach(function (part, i) {
+      ctx.fillStyle = i === 0 ? "#fbfbfb" : "#6e6e6e";
+      ctx.fillRect(part.x * CELL + 1, part.y * CELL + 1, CELL - 2, CELL - 2);
+    });
+  }
+
+  function die() {
+    running = false;
+    clearInterval(loop);
+    loop = null;
+    stats.set("state", "Crashed", "bad");
+    startBtn.disabled = false;
+    startBtn.textContent = "Play again";
+    Play.sendScore(score);
+  }
+
+  function step() {
+    dir = queued;
+    var head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
+    var hitWall = head.x < 0 || head.y < 0 || head.x >= CELLS || head.y >= CELLS;
+    var hitSelf = snake.some(function (p) { return p.x === head.x && p.y === head.y; });
+    if (hitWall || hitSelf) { die(); return; }
+    snake.unshift(head);
+    if (head.x === food.x && head.y === food.y) {
+      score += 1;
+      stats.set("score", String(score), "info");
+      food = spawnFood();
+    } else {
+      snake.pop();
+    }
+    draw();
+  }
+
+  function turn(x, y) {
+    if (!running) return;
+    if (dir.x + x === 0 && dir.y + y === 0) return;
+    queued = { x: x, y: y };
+  }
+
+  var startBtn = el("button", { className: "primary block", text: "Start" });
+  startBtn.addEventListener("click", function () {
+    snake = [{ x: 9, y: 10 }, { x: 8, y: 10 }];
+    dir = { x: 1, y: 0 };
+    queued = dir;
+    score = 0;
+    running = true;
+    food = spawnFood();
+    stats.set("score", "0", "info");
+    stats.set("state", "Live", "good");
+    startBtn.disabled = true;
+    clearInterval(loop);
+    loop = setInterval(step, 120);
+    draw();
+  });
+
+  var dpad = el("div", { className: "dpad" }, [
+    el("button", { className: "up", text: "\u2191", onClick: function () { turn(0, -1); } }),
+    el("button", { className: "left", text: "\u2190", onClick: function () { turn(-1, 0); } }),
+    el("button", { className: "down", text: "\u2193", onClick: function () { turn(0, 1); } }),
+    el("button", { className: "right", text: "\u2192", onClick: function () { turn(1, 0); } })
+  ]);
+
+  var swipeFrom = null;
+  stage.canvas.addEventListener("pointerdown", function (e) { swipeFrom = { x: e.clientX, y: e.clientY }; });
+  stage.canvas.addEventListener("pointerup", function (e) {
+    if (!swipeFrom) return;
+    var dx = e.clientX - swipeFrom.x;
+    var dy = e.clientY - swipeFrom.y;
+    swipeFrom = null;
+    if (Math.abs(dx) < 18 && Math.abs(dy) < 18) return;
+    if (Math.abs(dx) > Math.abs(dy)) turn(dx > 0 ? 1 : -1, 0);
+    else turn(0, dy > 0 ? 1 : -1);
+  });
+
+  snake = [{ x: 9, y: 10 }, { x: 8, y: 10 }];
+  dir = { x: 1, y: 0 };
+  queued = dir;
+  score = 0;
+  running = false;
+  food = { x: 13, y: 10 };
+  draw();
+
+  document.body.appendChild(stats.el);
+  document.body.appendChild(stage.canvas);
+  document.body.appendChild(dpad);
+  document.body.appendChild(startBtn);
+})();
+</script>
+</body>
+</html>

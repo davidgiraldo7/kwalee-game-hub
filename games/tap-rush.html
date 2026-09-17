@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Tap Rush</title>
+  <link rel="stylesheet" href="play.css">
+</head>
+<body>
+<script src="play.js"></script>
+<script>
+(function () {
+  var DURATION = 10;
+  var score = 0;
+  var left = DURATION;
+  var running = false;
+  var timer = null;
+  var el = Play.el;
+  var stats = Play.statsStrip([
+    { key: "score", label: "Taps", value: "0", tone: "info" },
+    { key: "time", label: "Time left", value: DURATION + "s" }
+  ]);
+  var pad = el("div", { className: "pad", style: { height: "230px" }, text: "Press start" });
+  var startBtn = el("button", { className: "primary block", text: "Start round" });
+  var note = el("p", { className: "note", text: "" });
+
+  function stop() {
+    running = false;
+    clearInterval(timer);
+    timer = null;
+    pad.className = "pad";
+    pad.textContent = "Time!";
+    startBtn.disabled = false;
+    startBtn.textContent = "Play again";
+    Play.sendScore(score);
+  }
+
+  pad.addEventListener("pointerdown", function () {
+    if (!running) return;
+    score += 1;
+    stats.set("score", String(score), "info");
+  });
+
+  startBtn.addEventListener("click", function () {
+    score = 0;
+    left = DURATION;
+    running = true;
+    startBtn.disabled = true;
+    pad.className = "pad live";
+    pad.textContent = "TAP";
+    stats.set("score", "0", "info");
+    stats.set("time", left + "s");
+    note.textContent = "";
+    timer = setInterval(function () {
+      left -= 1;
+      stats.set("time", Math.max(left, 0) + "s", left <= 3 ? "bad" : null);
+      if (left <= 0) stop();
+    }, 1000);
+  });
+
+  document.body.appendChild(stats.el);
+  document.body.appendChild(pad);
+  document.body.appendChild(startBtn);
+  document.body.appendChild(note);
+})();
+</script>
+</body>
+</html>

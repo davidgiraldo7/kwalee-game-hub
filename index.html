@@ -668,14 +668,15 @@
         title: String(raw.title),
         genre: raw.genre ? String(raw.genre) : "Arcade",
         heat: Number(raw.heat) || 0,
-        tagline: raw.tagline ? String(raw.tagline) : "",
+        tagline: String(raw.description || raw.tagline || ""),
         lowerIsBetter: !!raw.lowerIsBetter,
         unit: raw.unit ? String(raw.unit) : "",
         src: "",
         cover: ""
       };
       if (raw.src && isLiveAssetUrl(raw.src, base)) entry.src = new URL(raw.src, base).href;
-      if (raw.cover && isLiveAssetUrl(raw.cover, base)) entry.cover = new URL(raw.cover, base).href;
+      var art = raw.cover || raw.icon;
+      if (art && isLiveAssetUrl(art, base)) entry.cover = new URL(art, base).href;
       cleaned.push(entry);
     }
     if (!cleaned.length) return false;

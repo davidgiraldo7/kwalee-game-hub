@@ -6,52 +6,65 @@
       "title": "Star Tap",
       "genre": "Reflex",
       "heat": 99,
-      "tagline": "Pulled from the catalog. Mash the star for 10 seconds.",
-      "src": "example.html"
+      "description": "Pulled from the catalog. Mash the star for 10 seconds.",
+      "cover": "covers/star-tap.svg",
+      "src": "star-tap.html"
     },
     {
       "id": "tap-rush",
       "title": "Tap Rush",
       "genre": "Reflex",
       "heat": 98,
-      "tagline": "10 seconds. Hit the pad as hard as you can."
+      "description": "10 seconds. Hit the pad as hard as you can.",
+      "cover": "covers/tap-rush.svg",
+      "src": "tap-rush.html"
     },
     {
       "id": "reaction-lab",
       "title": "Reaction Lab",
       "genre": "Timing",
       "heat": 91,
-      "tagline": "Wait for green. Not a millisecond early.",
+      "description": "Wait for green. Not a millisecond early.",
       "lowerIsBetter": true,
-      "unit": "ms"
+      "unit": "ms",
+      "cover": "covers/reaction-lab.svg",
+      "src": "reaction-lab.html"
     },
     {
       "id": "snake-sprint",
       "title": "Snake Sprint",
       "genre": "Arcade",
       "heat": 87,
-      "tagline": "Classic snake with portrait controls."
+      "description": "Classic snake with portrait controls.",
+      "cover": "covers/snake-sprint.svg",
+      "src": "snake-sprint.html"
     },
     {
       "id": "bubble-pop",
       "title": "Bubble Pop",
       "genre": "Casual",
       "heat": 84,
-      "tagline": "Clear rising bubbles before they escape."
+      "description": "Clear rising bubbles before they escape.",
+      "cover": "covers/bubble-pop.svg",
+      "src": "bubble-pop.html"
     },
     {
       "id": "memory-match",
       "title": "Memory Match",
       "genre": "Puzzle",
       "heat": 76,
-      "tagline": "Flip eight pairs. Fewer moves score higher."
+      "description": "Flip eight pairs. Fewer moves score higher.",
+      "cover": "covers/memory-match.svg",
+      "src": "memory-match.html"
     },
     {
       "id": "orbit-dodge",
       "title": "Orbit Dodge",
       "genre": "Action",
       "heat": 72,
-      "tagline": "Drag to steer. Survive the falling orbit."
+      "description": "Drag to steer. Survive the falling orbit.",
+      "cover": "covers/orbit-dodge.svg",
+      "src": "orbit-dodge.html"
     }
   ]
 }

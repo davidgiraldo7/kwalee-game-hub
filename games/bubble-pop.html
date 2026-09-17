@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Bubble Pop</title>
+  <link rel="stylesheet" href="play.css">
+</head>
+<body>
+<script src="play.js"></script>
+<script>
+(function () {
+  var el = Play.el;
+  var stage = Play.makeStage(320, 420);
+  var bubbles = [];
+  var pops = 0;
+  var lives = 3;
+  var running = false;
+  var frame = null;
+  var last = 0;
+  var spawnClock = 0;
+  var stats = Play.statsStrip([
+    { key: "pops", label: "Pops", value: "0", tone: "info" },
+    { key: "lives", label: "Lives", value: "3" }
+  ]);
+  var startBtn = el("button", { className: "primary block", text: "Start" });
+
+  function draw() {
+    stage.clear();
+    var ctx = stage.ctx;
+    bubbles.forEach(function (b) {
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+      ctx.fillStyle = "#ffcb05";
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#1a1a1a";
+      ctx.stroke();
+    });
+  }
+
+  function end() {
+    running = false;
+    cancelAnimationFrame(frame);
+    frame = null;
+    startBtn.disabled = false;
+    startBtn.textContent = "Play again";
+    Play.sendScore(pops);
+  }
+
+  function tick(now) {
+    if (!running) return;
+    var dt = Math.min((now - last) / 16.67, 3);
+    last = now;
+    spawnClock += dt;
+    var interval = Math.max(14, 34 - pops * 0.4);
+    if (spawnClock >= interval) {
+      spawnClock = 0;
+      var r = 14 + Math.random() * 15;
+      bubbles.push({
+        x: r + Math.random() * (stage.w - r * 2),
+        y: stage.h + r,
+        r: r,
+        vy: 1.1 + Math.random() * 1.4
+      });
+    }
+    var kept = [];
+    for (var i = 0; i < bubbles.length; i++) {
+      var b = bubbles[i];
+      b.y -= b.vy * dt;
+      if (b.y + b.r < 0) {
+        lives -= 1;
+        stats.set("lives", String(Math.max(lives, 0)), lives <= 1 ? "bad" : null);
+      } else {
+        kept.push(b);
+      }
+    }
+    bubbles = kept;
+    draw();
+    if (lives <= 0) { end(); return; }
+    frame = requestAnimationFrame(tick);
+  }
+
+  stage.canvas.addEventListener("pointerdown", function (e) {
+    if (!running) return;
+    var p = stage.point(e.clientX, e.clientY);
+    var before = bubbles.length;
+    bubbles = bubbles.filter(function (b) {
+      var dx = b.x - p.x;
+      var dy = b.y - p.y;
+      return dx * dx + dy * dy > b.r * b.r;
+    });
+    var hit = before - bubbles.length;
+    if (hit > 0) {
+      pops += hit;
+      stats.set("pops", String(pops), "info");
+      draw();
+    }
+  });
+
+  startBtn.addEventListener("click", function () {
+    bubbles = [];
+    pops = 0;
+    lives = 3;
+    spawnClock = 999;
+    running = true;
+    startBtn.disabled = true;
+    stats.set("pops", "0", "info");
+    stats.set("lives", "3");
+    last = performance.now();
+    cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(tick);
+  });
+
+  stage.clear();
+  document.body.appendChild(stats.el);
+  document.body.appendChild(stage.canvas);
+  document.body.appendChild(startBtn);
+})();
+</script>
+</body>
+</html>

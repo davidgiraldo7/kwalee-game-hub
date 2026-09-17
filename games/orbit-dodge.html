@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Orbit Dodge</title>
+  <link rel="stylesheet" href="play.css">
+</head>
+<body>
+<script src="play.js"></script>
+<script>
+(function () {
+  var el = Play.el;
+  var stage = Play.makeStage(320, 420);
+  var PLAYER_R = 13;
+  var playerX = stage.w / 2;
+  var playerY = stage.h - 34;
+  var hazards = [];
+  var score = 0;
+  var running = false;
+  var frame = null;
+  var last = 0;
+  var spawnClock = 0;
+  var elapsed = 0;
+  var dragging = false;
+  var stats = Play.statsStrip([
+    { key: "score", label: "Survival", value: "0", tone: "info" },
+    { key: "state", label: "Status", value: "Ready" }
+  ]);
+  var startBtn = el("button", { className: "primary block", text: "Start" });
+  var note = el("p", { className: "note", text: "Drag anywhere on the board to steer." });
+
+  function draw() {
+    stage.clear();
+    var ctx = stage.ctx;
+    ctx.fillStyle = "#ffcb05";
+    hazards.forEach(function (h) {
+      ctx.beginPath();
+      ctx.arc(h.x, h.y, h.r, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.beginPath();
+    ctx.arc(playerX, playerY, PLAYER_R, 0, Math.PI * 2);
+    ctx.fillStyle = "#fbfbfb";
+    ctx.fill();
+  }
+
+  function end() {
+    running = false;
+    cancelAnimationFrame(frame);
+    frame = null;
+    stats.set("state", "Hit", "bad");
+    startBtn.disabled = false;
+    startBtn.textContent = "Play again";
+    Play.sendScore(score);
+  }
+
+  function tick(now) {
+    if (!running) return;
+    var dt = Math.min((now - last) / 16.67, 3);
+    elapsed += now - last;
+    last = now;
+    spawnClock += dt;
+    var difficulty = Math.min(elapsed / 12000, 1.6);
+    if (spawnClock >= Math.max(9, 26 - difficulty * 10)) {
+      spawnClock = 0;
+      var r = 9 + Math.random() * 14;
+      hazards.push({
+        x: r + Math.random() * (stage.w - r * 2),
+        y: -r,
+        r: r,
+        vy: 2 + Math.random() * 2 + difficulty * 1.6
+      });
+    }
+    var kept = [];
+    for (var i = 0; i < hazards.length; i++) {
+      var h = hazards[i];
+      h.y += h.vy * dt;
+      var dx = h.x - playerX;
+      var dy = h.y - playerY;
+      var reach = h.r + PLAYER_R;
+      if (dx * dx + dy * dy < reach * reach) { draw(); end(); return; }
+      if (h.y - h.r < stage.h + 40) kept.push(h);
+    }
+    hazards = kept;
+    score = Math.floor(elapsed / 100);
+    stats.set("score", String(score), "info");
+    draw();
+    frame = requestAnimationFrame(tick);
+  }
+
+  function steer(clientX) {
+    var p = stage.point(clientX, 0);
+    playerX = Math.max(PLAYER_R, Math.min(stage.w - PLAYER_R, p.x));
+    if (!running) draw();
+  }
+
+  stage.canvas.addEventListener("pointerdown", function (e) {
+    dragging = true;
+    if (stage.canvas.setPointerCapture) stage.canvas.setPointerCapture(e.pointerId);
+    steer(e.clientX);
+  });
+  stage.canvas.addEventListener("pointermove", function (e) {
+    if (!dragging) return;
+    e.preventDefault();
+    steer(e.clientX);
+  });
+  stage.canvas.addEventListener("pointerup", function () { dragging = false; });
+  stage.canvas.addEventListener("pointercancel", function () { dragging = false; });
+
+  startBtn.addEventListener("click", function () {
+    hazards = [];
+    score = 0;
+    elapsed = 0;
+    spawnClock = 999;
+    playerX = stage.w / 2;
+    running = true;
+    startBtn.disabled = true;
+    stats.set("score", "0", "info");
+    stats.set("state", "Orbiting", "good");
+    last = performance.now();
+    cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(tick);
+  });
+
+  draw();
+  document.body.appendChild(stats.el);
+  document.body.appendChild(stage.canvas);
+  document.body.appendChild(startBtn);
+  document.body.appendChild(note);
+})();
+</script>
+</body>
+</html>

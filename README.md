@@ -154,14 +154,21 @@ Reaction Lab is flagged `lowerIsBetter`, so its records compare in the opposite 
 
 ## Adding a game
 
-**Catalog (preferred).** Add an object to `games/catalog.json`. Built-in ids without
-`src` still use the in-page builders. New titles need either:
+Every live title is a row in `games/catalog.json`. The hub reads **icon**,
+**description**, and **HTML** from that file on GitHub Pages:
 
-- `src`: a same-origin or `http(s)` HTML file that posts `kwalee.score`, or
-- a builder in `index.html` if you want it baked in.
+- `cover` or `icon` — image shown on the hub cards (`games/covers/…`)
+- `description` — copy under the title (`tagline` still works)
+- `src` — the playable HTML file (`games/your-game.html`)
 
-Optional fields: `cover` (image URL), `lowerIsBetter`, `unit`, and top-level `featuredId`.
+The HTML should post a score with:
 
-**Baked in.** Add an entry to `BUILTIN_GAMES`, register `BUILDERS["your-id"]`, and call
-`api.submit(score)` when a run ends. Return a cleanup function that clears timers or
-animation frames. This is the fallback when the catalog cannot be fetched.
+```js
+parent.postMessage({ type: "kwalee.score", score: 12, streak: 0 }, "*");
+```
+
+Shared chrome is `games/play.css` and `games/play.js`. Optional fields:
+`lowerIsBetter`, `unit`, and top-level `featuredId`.
+
+Builtin builders in `index.html` are only the offline fallback if the catalog
+cannot be fetched.

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Memory Match</title>
+  <link rel="stylesheet" href="play.css">
+</head>
+<body>
+<script src="play.js"></script>
+<script>
+(function () {
+  var SYMBOLS = ["A", "B", "C", "D", "E", "F", "G", "H"];
+  var el = Play.el;
+  var deck = [];
+  var flipped = [];
+  var matched = [];
+  var moves = 0;
+  var started = false;
+  var locked = false;
+  var flipTimer = null;
+  var stats = Play.statsStrip([
+    { key: "moves", label: "Moves", value: "0" },
+    { key: "pairs", label: "Pairs", value: "0/8", tone: "info" }
+  ]);
+  var grid = el("div", { className: "memory" });
+  var buttons = [];
+  var dealBtn = el("button", { className: "primary block", text: "Deal" });
+  var note = el("p", { className: "note", text: "Fewer moves means a higher score." });
+
+  function paint() {
+    buttons.forEach(function (btn, i) {
+      var isMatched = matched.indexOf(i) !== -1;
+      var isOpen = isMatched || flipped.indexOf(i) !== -1;
+      btn.textContent = started && isOpen ? deck[i] : "";
+      btn.className = isMatched ? "done" : (isOpen ? "open" : "");
+      btn.disabled = !started || isMatched;
+    });
+  }
+
+  function pick(i) {
+    if (!started || locked) return;
+    if (flipped.indexOf(i) !== -1 || matched.indexOf(i) !== -1) return;
+    flipped.push(i);
+    paint();
+    if (flipped.length < 2) return;
+    moves += 1;
+    stats.set("moves", String(moves));
+    var a = flipped[0];
+    var b = flipped[1];
+    if (deck[a] === deck[b]) {
+      matched.push(a, b);
+      flipped = [];
+      stats.set("pairs", (matched.length / 2) + "/8", "info");
+      paint();
+      if (matched.length === deck.length) {
+        started = false;
+        Play.sendScore(Math.max(1, 100 - moves * 2));
+        dealBtn.textContent = "New deal";
+      }
+      return;
+    }
+    locked = true;
+    flipTimer = setTimeout(function () {
+      flipped = [];
+      locked = false;
+      paint();
+    }, 620);
+  }
+
+  for (var i = 0; i < 16; i++) {
+    (function (index) {
+      var btn = el("button", { attrs: { type: "button" } });
+      btn.addEventListener("click", function () { pick(index); });
+      buttons.push(btn);
+      grid.appendChild(btn);
+    })(i);
+  }
+
+  dealBtn.addEventListener("click", function () {
+    clearTimeout(flipTimer);
+    deck = SYMBOLS.concat(SYMBOLS).sort(function () { return Math.random() - 0.5; });
+    flipped = [];
+    matched = [];
+    moves = 0;
+    started = true;
+    locked = false;
+    stats.set("moves", "0");
+    stats.set("pairs", "0/8", "info");
+    paint();
+  });
+
+  paint();
+  document.body.appendChild(stats.el);
+  document.body.appendChild(grid);
+  document.body.appendChild(dealBtn);
+  document.body.appendChild(note);
+})();
+</script>
+</body>
+</html>

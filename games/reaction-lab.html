@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Reaction Lab</title>
+  <link rel="stylesheet" href="play.css">
+</head>
+<body>
+<script src="play.js"></script>
+<script>
+(function () {
+  var phase = "idle";
+  var armTimer = null;
+  var greenAt = 0;
+  var best = 0;
+  var el = Play.el;
+  var stats = Play.statsStrip([
+    { key: "last", label: "Last", value: "—" },
+    { key: "best", label: "Best", value: "—" }
+  ]);
+  var pad = el("div", { className: "pad", style: { height: "250px" }, text: "Arm the timer" });
+  var armBtn = el("button", { className: "primary block", text: "Arm timer" });
+  var note = el("p", { className: "note", text: "" });
+
+  function arm() {
+    clearTimeout(armTimer);
+    phase = "wait";
+    pad.className = "pad";
+    pad.textContent = "Wait for green\u2026";
+    armBtn.disabled = true;
+    note.textContent = "";
+    armTimer = setTimeout(function () {
+      phase = "go";
+      greenAt = performance.now();
+      pad.className = "pad live";
+      pad.textContent = "TAP NOW";
+    }, 1200 + Math.random() * 2800);
+  }
+
+  pad.addEventListener("pointerdown", function () {
+    if (phase === "wait") {
+      clearTimeout(armTimer);
+      phase = "done";
+      pad.className = "pad warn";
+      pad.textContent = "Too early";
+      armBtn.disabled = false;
+      armBtn.textContent = "Try again";
+      note.textContent = "Early tap — run voided.";
+      return;
+    }
+    if (phase !== "go") return;
+    var ms = Math.round(performance.now() - greenAt);
+    phase = "done";
+    pad.className = "pad";
+    pad.textContent = ms + " ms";
+    stats.set("last", ms + " ms", "info");
+    if (!best || ms < best) best = ms;
+    stats.set("best", best + " ms", "good");
+    armBtn.disabled = false;
+    armBtn.textContent = "Go again";
+    Play.sendScore(ms);
+  });
+
+  armBtn.addEventListener("click", arm);
+  document.body.appendChild(stats.el);
+  document.body.appendChild(pad);
+  document.body.appendChild(armBtn);
+  document.body.appendChild(note);
+})();
+</script>
+</body>
+</html>
