@@ -7,9 +7,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <title>Kwalee Game Hub</title>
 <meta name="referrer" content="strict-origin-when-cross-origin" />
-<!-- Same-origin catalog + fonts so a global CDN can serve every region
-     without Google Fonts (blocked or slow in many networks). -->
-<link rel="preload" href="games/catalog.json" as="fetch" crossorigin />
+<!-- Hub UI is hosted on GameVault. Mini games + catalog live on GitHub Pages. -->
+<link rel="preload" href="https://davidgiraldo7.github.io/kwalee-game-hub/games/catalog.json" as="fetch" crossorigin />
 <link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin />
 <link rel="preload" href="assets/fonts/unbounded-latin.woff2" as="font" type="font/woff2" crossorigin />
 <style>
@@ -592,6 +591,13 @@
   }
 
   var CATALOG_TIMEOUT_MS = 8000;
+  var GAMES_ORIGIN = "https://davidgiraldo7.github.io/kwalee-game-hub";
+  var GAMES_CATALOG_URL = GAMES_ORIGIN + "/games/catalog.json";
+
+  function isLocalDevHost() {
+    var host = location.hostname;
+    return host === "localhost" || host === "127.0.0.1" || host === "[::1]";
+  }
 
   function isLiveAssetUrl(url, base) {
     try {
@@ -603,36 +609,56 @@
     }
   }
 
-  function defaultCatalogUrl() {
-    if (location.protocol !== "http:" && location.protocol !== "https:") return null;
-    try { return new URL("games/catalog.json", location.href).href; } catch (err) { return "games/catalog.json"; }
+  function isAllowedCatalogUrl(url) {
+    try {
+      var abs = new URL(url, location.href);
+      if (!isLiveAssetUrl(abs.href, location.href)) return false;
+      if (abs.origin === location.origin) return true;
+      if (abs.origin === "https://davidgiraldo7.github.io") return true;
+      if (abs.origin === "https://cdn.jsdelivr.net") return true;
+      return false;
+    } catch (err) {
+      return false;
+    }
   }
 
-  function catalogUrl() {
-    var local = defaultCatalogUrl();
-    if (!local) return null;
+  function catalogCandidates() {
+    var urls = [];
+    var seen = {};
+    function add(url) {
+      if (!url || seen[url] || !isAllowedCatalogUrl(url)) return;
+      seen[url] = true;
+      urls.push(url);
+    }
 
     var deployOverride = typeof window.KWALEE_CATALOG_URL === "string" ? window.KWALEE_CATALOG_URL : "";
-    var queryOverride = "";
-    try { queryOverride = new URLSearchParams(location.search).get("catalog") || ""; } catch (err) { /* ignore */ }
+    if (deployOverride) add(deployOverride);
 
-    var override = deployOverride || queryOverride;
-    if (!override) return local;
     try {
-      var abs = new URL(override, location.href);
-      if (!isLiveAssetUrl(abs.href, location.href)) return local;
-      if (deployOverride) return abs.href;
-      if (abs.origin === location.origin) return abs.href;
-      return local;
-    } catch (err) {
-      return local;
+      var query = new URLSearchParams(location.search).get("catalog");
+      if (query) add(query);
+    } catch (err) { /* ignore */ }
+
+    if (isLocalDevHost()) {
+      try { add(new URL("games/catalog.json", location.href).href); } catch (err) { add("games/catalog.json"); }
     }
+
+    if (location.protocol === "http:" || location.protocol === "https:") add(GAMES_CATALOG_URL);
+    return urls;
+  }
+
+  function catalogAssetBase(fetchedFrom) {
+    try {
+      var u = new URL(fetchedFrom);
+      if (u.origin === location.origin && isLocalDevHost()) return u.href;
+    } catch (err) { /* ignore */ }
+    return GAMES_CATALOG_URL;
   }
 
   function applyCatalog(data, baseUrl) {
     var list = Array.isArray(data) ? data : (data && data.games);
     if (!list || !list.length) return false;
-    var base = baseUrl || location.href;
+    var base = catalogAssetBase(baseUrl);
     var cleaned = [];
     for (var i = 0; i < list.length; i++) {
       var raw = list[i];
@@ -674,13 +700,19 @@
   }
 
   function loadCatalog() {
-    var url = catalogUrl();
-    if (!url) return Promise.resolve(false);
-    return fetchWithTimeout(url, CATALOG_TIMEOUT_MS).then(function (res) {
-      if (!res.ok) throw new Error("catalog " + res.status);
-      var base = res.url || url;
-      return res.json().then(function (data) { return applyCatalog(data, base); });
-    }).catch(function () { return false; });
+    var urls = catalogCandidates();
+    function next(i) {
+      if (i >= urls.length) return Promise.resolve(false);
+      return fetchWithTimeout(urls[i], CATALOG_TIMEOUT_MS).then(function (res) {
+        if (!res.ok) throw new Error("catalog " + res.status);
+        var base = res.url || urls[i];
+        return res.json().then(function (data) {
+          if (applyCatalog(data, base)) return true;
+          throw new Error("empty catalog");
+        });
+      }).catch(function () { return next(i + 1); });
+    }
+    return next(0);
   }
 
   function refreshFromCatalog() {

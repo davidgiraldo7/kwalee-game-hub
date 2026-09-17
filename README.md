@@ -77,31 +77,33 @@ For screenshots at a real phone width, open `tools/preview.html`, which frames
 minimum viewport, so pass a window wider than the frame or the capture will be
 cropped.
 
-## Go live (GitHub Pages)
+## Go live
 
-This repo is set up for **GitHub Pages**. The hub, `games/catalog.json`, HTML
-games, and fonts all come from that one HTTPS origin, so players worldwide hit
-GitHub’s hosted site — not git, not `raw.githubusercontent.com` (which blocks
-iframes).
+Players use the hub on **Game Vault**:
+https://gamevault.kwalee.com/projects/929
 
-1. This repo is already on GitHub (`main`).
-2. Repo **Settings → Pages → Build and deployment → Source**: Deploy from a
-   branch. Branch `main`, folder `/ (root)`.
-3. Wait a minute, then open `https://davidgiraldo7.github.io/kwalee-game-hub/`.
+Mini games and the catalog come from **this GitHub repo** (GitHub Pages):
+https://davidgiraldo7.github.io/kwalee-game-hub/games/catalog.json
 
-Keep the repo **public** on a free account, or Pages stays private. `.nojekyll`
-is in the root so GitHub does not run Jekyll over the files.
+Upload the hub (`index.html` plus `assets/fonts/`) to that Game Vault project.
+Do not rely on Game Vault for `games/` — the hub always fetches the catalog from
+GitHub Pages and iframes any title that has a `src`. On localhost it will try
+`games/catalog.json` first so you can iterate without waiting on Pages.
+
+If Game Vault blocks the catalog, check that the project can `fetch` and iframe
+`https://davidgiraldo7.github.io`. GitHub Pages already sends
+`Access-Control-Allow-Origin: *` on the JSON.
 
 HTTPS only. Mixed-content `http://` game URLs are ignored when the hub is on
 HTTPS. Game of the week uses UTC (or `featuredId` in the JSON) so every region
 sees the same featured title.
 
 The hub does not wait on the catalog. Builtin games render immediately; if
-`games/catalog.json` arrives within 8 seconds the list updates. If the fetch
+the GitHub catalog arrives within 8 seconds the list updates. If the fetch
 fails, times out, or is blocked, players still get the six baked-in games.
 
-Do not load fonts or the catalog from Google, jsDelivr, or GitHub raw at
-runtime. Inter and Unbounded are self-hosted under `assets/fonts/` (SIL OFL).
+Inter and Unbounded ship with the hub under `assets/fonts/` (SIL OFL). Game
+HTML on GitHub should carry its own styles.
 
 ## Pulling games from somewhere
 
@@ -117,11 +119,10 @@ other static host (including `python3 -m http.server` while you develop).
 | itch.io / a CMS / Google Sheet | Free–low | Extra hop; you still export or proxy to JSON |
 | Firebase / Supabase / a custom API | Free tier, then paid | Live CMS, auth, analytics — overkill until you need it |
 
-On `http://` or `https://` the hub fetches same-origin `games/catalog.json`.
-A deploy can set `window.KWALEE_CATALOG_URL` to an HTTPS CDN URL; `?catalog=`
-only accepts a same-origin path, so a shared link cannot point players at a
-third-party catalog. `file://` and the Canvas preview cannot fetch, so they
-keep the baked-in six games.
+On Game Vault the hub fetches `https://davidgiraldo7.github.io/kwalee-game-hub/games/catalog.json`.
+A deploy can set `window.KWALEE_CATALOG_URL`; `?catalog=` accepts same-origin,
+GitHub Pages, or jsDelivr HTTPS URLs. `file://` and the Canvas preview cannot
+fetch, so they keep the baked-in six games.
 
 Catalog entries with `src` load in a sandboxed iframe and report a score with:
 
