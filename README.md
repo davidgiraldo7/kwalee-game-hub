@@ -86,9 +86,10 @@ Mini games and the catalog come from **this GitHub repo** (GitHub Pages):
 https://davidgiraldo7.github.io/kwalee-game-hub/games/catalog.json
 
 Upload the hub (`index.html` plus `assets/fonts/`) to that Game Vault project.
-Do not rely on Game Vault for `games/` — the hub always fetches the catalog from
-GitHub Pages and iframes any title that has a `src`. On localhost it will try
-`games/catalog.json` first so you can iterate without waiting on Pages.
+Do not rely on Game Vault for `games/` — the hub always fetches a fresh copy of
+the GitHub Pages catalog (cache-busted on every load) and iframes any title that
+has a `src`. To force a local catalog while developing, use
+`?catalog=games/catalog.json`.
 
 If Game Vault blocks the catalog, check that the project can `fetch` and iframe
 `https://davidgiraldo7.github.io`. GitHub Pages already sends

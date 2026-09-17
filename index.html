@@ -8,7 +8,6 @@
 <title>Kwalee Game Hub</title>
 <meta name="referrer" content="strict-origin-when-cross-origin" />
 <!-- Hub UI is hosted on GameVault. Mini games + catalog live on GitHub Pages. -->
-<link rel="preload" href="https://davidgiraldo7.github.io/kwalee-game-hub/games/catalog.json" as="fetch" crossorigin />
 <link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin />
 <link rel="preload" href="assets/fonts/unbounded-latin.woff2" as="font" type="font/woff2" crossorigin />
 <style>
@@ -639,12 +638,18 @@
       if (query) add(query);
     } catch (err) { /* ignore */ }
 
-    if (isLocalDevHost()) {
-      try { add(new URL("games/catalog.json", location.href).href); } catch (err) { add("games/catalog.json"); }
-    }
-
     if (location.protocol === "http:" || location.protocol === "https:") add(GAMES_CATALOG_URL);
     return urls;
+  }
+
+  function withCacheBust(url) {
+    try {
+      var u = new URL(url, location.href);
+      u.searchParams.set("v", String(Date.now()));
+      return u.href;
+    } catch (err) {
+      return url;
+    }
   }
 
   function catalogAssetBase(fetchedFrom) {
@@ -689,7 +694,7 @@
   function fetchWithTimeout(url, ms) {
     var ctrl = typeof AbortController === "function" ? new AbortController() : null;
     var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, ms);
-    var opts = { credentials: "omit", cache: "default", mode: "cors" };
+    var opts = { credentials: "omit", cache: "no-store", mode: "cors" };
     if (ctrl) opts.signal = ctrl.signal;
     return fetch(url, opts).then(function (res) {
       clearTimeout(timer);
@@ -704,7 +709,7 @@
     var urls = catalogCandidates();
     function next(i) {
       if (i >= urls.length) return Promise.resolve(false);
-      return fetchWithTimeout(urls[i], CATALOG_TIMEOUT_MS).then(function (res) {
+      return fetchWithTimeout(withCacheBust(urls[i]), CATALOG_TIMEOUT_MS).then(function (res) {
         if (!res.ok) throw new Error("catalog " + res.status);
         var base = res.url || urls[i];
         return res.json().then(function (data) {
