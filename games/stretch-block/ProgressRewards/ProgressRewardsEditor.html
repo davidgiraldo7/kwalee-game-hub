@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Progress Rewards Editor</title>
+    <style>
+        * { box-sizing: border-box; }
+        body, html {
+            margin: 0;
+            padding: 0;
+            min-height: 100%;
+            background: #1a1c29;
+            color: #fff;
+            font-family: "Nunito", "Trebuchet MS", system-ui, sans-serif;
+        }
+        #app {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+            padding: 24px;
+            align-items: flex-start;
+        }
+        h1 {
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin: 0 0 8px;
+            width: 100%;
+        }
+        .sub {
+            width: 100%;
+            margin: 0 0 12px;
+            color: #9aa0b5;
+            font-weight: 700;
+        }
+        h2 {
+            font-weight: 900;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 0 0 10px;
+            color: #9aa0b5;
+        }
+        .panel {
+            background: #282a3a;
+            border-radius: 18px;
+            padding: 20px;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.35), inset 0 2px 0 rgba(255,255,255,0.05);
+            min-width: 320px;
+            flex: 1 1 360px;
+        }
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        label { font-weight: 700; font-size: 14px; color: #c7ccdd; }
+        input[type="text"], input[type="number"], select, textarea {
+            background: #1f2130;
+            border: 2px solid #3a3d52;
+            color: #fff;
+            border-radius: 10px;
+            padding: 8px 10px;
+            font-family: inherit;
+            font-weight: 700;
+            font-size: 14px;
+        }
+        input[type="number"] { width: 90px; }
+        input[type="text"] { min-width: 160px; }
+        textarea {
+            width: 100%;
+            min-height: 220px;
+            resize: vertical;
+            font-size: 12px;
+            line-height: 1.4;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-weight: 500;
+        }
+        button {
+            background: #05c46b;
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            font-size: 15px;
+            font-weight: 700;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #049451;
+            transition: transform 0.08s, box-shadow 0.08s;
+            font-family: inherit;
+        }
+        button:active { transform: translateY(4px); box-shadow: 0 0 0 #049451; }
+        button.secondary { background: #576574; box-shadow: 0 4px 0 #3c4653; }
+        button.secondary:active { box-shadow: 0 0 0 #3c4653; }
+        button.danger { background: #e74c3c; box-shadow: 0 4px 0 #c0392b; }
+        .tier {
+            background: #1f2130;
+            border: 2px solid #3a3d52;
+            border-radius: 14px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+        .tier-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            color: #9aa0b5;
+            font-weight: 800;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .enum-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #14361f;
+            border: 2px solid #05c46b;
+            border-radius: 999px;
+            padding: 6px 10px 6px 12px;
+            margin: 0 8px 8px 0;
+            font-weight: 700;
+            font-size: 13px;
+        }
+        .enum-chip button {
+            padding: 4px 8px;
+            font-size: 12px;
+            border-radius: 8px;
+            box-shadow: none;
+        }
+        .preview {
+            width: 64px;
+            height: 64px;
+            object-fit: contain;
+            background: #151722;
+            border-radius: 10px;
+            border: 2px solid #3a3d52;
+        }
+        .preview.is-missing {
+            opacity: 0.35;
+            border-color: #e74c3c;
+        }
+        .msg {
+            min-height: 22px;
+            color: #ffb4a8;
+            font-weight: 700;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+        .msg.ok { color: #7dffa5; }
+        .hint { color: #9aa0b5; font-size: 13px; font-weight: 600; line-height: 1.4; }
+    </style>
+</head>
+<body>
+<div id="app">
+    <h1>Progress Rewards Editor</h1>
+    <p class="sub">Author absolute unlock tiers and reward enum ids. Opens from live <code>ProgressRewards/js/progress-rewards-data.js</code>. Item grants pull from <code>Items/js/items-data.js</code>. Labels and descriptions are <code>translations.js</code> keys. Export replaces the data file.</p>
+
+    <section class="panel">
+        <h2>Reward Enum</h2>
+        <div class="row">
+            <input type="text" id="enumInput" placeholder="NEW_REWARD_ID" />
+            <button type="button" id="enumAdd">Add Id</button>
+        </div>
+        <div id="enumList"></div>
+        <p class="hint">Ids become <code>ProgressRewardId.NAME</code>. Use SCREAMING_SNAKE_CASE.</p>
+    </section>
+
+    <section class="panel">
+        <h2>Tiers</h2>
+        <div id="tierList"></div>
+        <div class="row">
+            <button type="button" id="tierAdd">Add Tier</button>
+            <button type="button" class="secondary" id="tierSort">Sort by Unlock Level</button>
+        </div>
+        <div class="row">
+            <label for="loopEvery">Loop last reward every</label>
+            <input type="number" id="loopEvery" min="0" step="1" value="0" />
+            <span class="hint" style="margin:0;">levels (0 = off). After the final tier, that same prize repeats on this interval.</span>
+        </div>
+        <div class="msg" id="validationMsg"></div>
+    </section>
+
+    <section class="panel">
+        <h2>Export / Import</h2>
+        <div class="row">
+            <button type="button" id="btnExport">Download progress-rewards-data.js</button>
+            <button type="button" class="secondary" id="btnCopy">Copy to Clipboard</button>
+            <label class="secondary" style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;background:#576574;padding:10px 18px;border-radius:12px;box-shadow:0 4px 0 #3c4653;">
+                Load file
+                <input type="file" id="fileLoad" accept=".js,.json,text/javascript,application/json" hidden />
+            </label>
+        </div>
+        <textarea id="exportPreview" readonly spellcheck="false"></textarea>
+        <p class="hint">Drop the downloaded file into <code>ProgressRewards/js/progress-rewards-data.js</code>. Use <strong>Browse…</strong> on a tier to pick an image — the path is set to <code>ProgressRewards/Assets/&lt;filename&gt;</code>. Copy the image into <code>ProgressRewards/Assets/</code> if needed.</p>
+    </section>
+</div>
+
+<script src="../Items/js/items-data.js"></script>
+<script src="../translations.js"></script>
+<script src="js/progress-rewards-data.js"></script>
+<script>
+(function () {
+    function itemIds() {
+        const cat = window.ITEM_CATALOG || {};
+        return Object.keys(cat);
+    }
+
+    function itemMeta(id) {
+        return (window.ITEM_CATALOG && window.ITEM_CATALOG[id]) || null;
+    }
+
+    /** Resolve a translations.js key (or return plain text unchanged). */
+    function resolveCopy(keyOrText) {
+        const key = String(keyOrText || "").trim();
+        if (!key) return "";
+        const en = (window.GAME_TEXT && window.GAME_TEXT.en) || {};
+        if (Object.prototype.hasOwnProperty.call(en, key)) return en[key];
+        return key;
+    }
+
+    function itemDisplayName(id) {
+        const meta = itemMeta(id);
+        if (!meta) return id;
+        const label = resolveCopy(meta.label);
+        return label ? (id + " — " + label) : id;
+    }
+
+    function translationKeys() {
+        const en = (window.GAME_TEXT && window.GAME_TEXT.en) || {};
+        return Object.keys(en).sort();
+    }
+
+    function translationPreview(key) {
+        const en = (window.GAME_TEXT && window.GAME_TEXT.en) || {};
+        return String(en[key] || "").replace(/\n/g, " ");
+    }
+
+    /** Build a select of translations.js keys; optional empty "(none)" row. */
+    function fillTranslationSelect(select, selectedValue, opts) {
+        opts = opts || {};
+        const allowEmpty = opts.allowEmpty !== false;
+        select.innerHTML = "";
+        select.style.minWidth = "280px";
+        select.style.maxWidth = "100%";
+        if (allowEmpty) {
+            const none = document.createElement("option");
+            none.value = "";
+            none.textContent = "(none)";
+            select.appendChild(none);
+        }
+        const keys = translationKeys();
+        keys.forEach((key) => {
+            const opt = document.createElement("option");
+            opt.value = key;
+            const preview = translationPreview(key);
+            opt.textContent = preview ? (key + " — " + preview) : key;
+            if (key === selectedValue) opt.selected = true;
+            select.appendChild(opt);
+        });
+        if (selectedValue && keys.indexOf(selectedValue) === -1) {
+            const legacy = document.createElement("option");
+            legacy.value = selectedValue;
+            legacy.textContent = "(legacy text) " + selectedValue;
+            legacy.selected = true;
+            select.appendChild(legacy);
+        }
+        if (allowEmpty && !selectedValue) {
+            select.options[0].selected = true;
+        }
+        return select;
+    }
+
+    // Fallback only if js/progress-rewards-data.js failed to load.
+    const DEFAULT_ENUM = ["HINT_PACK", "FEATURE_FIXED_BLOCKS", "NEW_ANIMAL"];
+    const DEFAULT_TIERS = [
+        {
+            unlockLevel: 5,
+            rewardId: "HINT_PACK",
+            sprite: "Assets/Button_Hint.png",
+            label: "prLabelHintPack",
+            description: "prDescHintPack",
+            grantItem: "HINT",
+            grantAmount: 3
+        }
+    ];
+
+    function normalizeTier(list) {
+        return (list || []).map((t) => {
+            const grantItem = String(t.grantItem || "").trim();
+            let grantAmount = parseInt(t.grantAmount, 10) > 0 ? parseInt(t.grantAmount, 10) : 0;
+            if (!grantItem && parseInt(t.grantHints, 10) > 0) {
+                grantAmount = parseInt(t.grantHints, 10);
+            }
+            return {
+                unlockLevel: t.unlockLevel,
+                rewardId: t.rewardId,
+                sprite: t.sprite,
+                label: t.label || t.rewardId || "",
+                description: t.description || "",
+                grantItem: grantItem || (t.grantHints ? "HINT" : ""),
+                grantAmount: grantAmount || (t.grantHints ? parseInt(t.grantHints, 10) : 0)
+            };
+        });
+    }
+
+    function applyState(nextEnum, nextTiers, nextLoop) {
+        enumIds = (nextEnum || []).slice();
+        tiers = normalizeTier(nextTiers);
+        loopEvery = Math.max(0, parseInt(nextLoop, 10) || 0);
+    }
+
+    /** Prefer the live data file globals (loaded via script tag). */
+    function loadFromLiveDataFile() {
+        const ids = window.ProgressRewardId;
+        const liveTiers = window.PROGRESS_REWARD_TIERS;
+        if (!ids || !liveTiers || !liveTiers.length) return false;
+        applyState(
+            Object.keys(ids),
+            liveTiers,
+            window.PROGRESS_REWARD_LOOP_EVERY
+        );
+        return true;
+    }
+
+    function parseDataJsText(text) {
+        const enumMatch = text.match(/const ProgressRewardId\s*=\s*\{([\s\S]*?)\};/);
+        const tierMatch = text.match(/const PROGRESS_REWARD_TIERS\s*=\s*\[([\s\S]*?)\];/);
+        if (!enumMatch || !tierMatch) throw new Error("Unrecognized data file.");
+        const nextEnum = [];
+        enumMatch[1].replace(/([A-Z0-9_]+)\s*:/g, (_, id) => {
+            if (nextEnum.indexOf(id) === -1) nextEnum.push(id);
+        });
+        const nextTiers = [];
+        const re = /\{\s*unlockLevel:\s*(\d+)\s*,\s*rewardId:\s*ProgressRewardId\.([A-Z0-9_]+)\s*,\s*sprite:\s*"([^"]*)"\s*,\s*label:\s*"([^"]*)"([^}]*)\}/g;
+        let m;
+        while ((m = re.exec(tierMatch[1]))) {
+            const rest = m[5] || "";
+            const descM = rest.match(/description:\s*"([^"]*)"/);
+            const itemM = rest.match(/grantItem:\s*"([^"]*)"/);
+            const amountM = rest.match(/grantAmount:\s*(\d+)/);
+            const hintsM = rest.match(/grantHints:\s*(\d+)/);
+            const grantItem = itemM ? itemM[1] : "";
+            let grantAmount = amountM ? parseInt(amountM[1], 10) : 0;
+            nextTiers.push({
+                unlockLevel: parseInt(m[1], 10),
+                rewardId: m[2],
+                sprite: m[3],
+                label: m[4],
+                description: descM ? descM[1] : "",
+                grantItem: grantItem || (hintsM ? "HINT" : ""),
+                grantAmount: grantAmount || (hintsM ? parseInt(hintsM[1], 10) : 0)
+            });
+        }
+        if (!nextTiers.length) throw new Error("No tiers parsed.");
+        const loopMatch = text.match(/PROGRESS_REWARD_LOOP_EVERY\s*=\s*(\d+)/);
+        return {
+            enumIds: nextEnum,
+            tiers: nextTiers,
+            loopEvery: loopMatch ? Math.max(0, parseInt(loopMatch[1], 10) || 0) : 0
+        };
+    }
+
+    let enumIds = DEFAULT_ENUM.slice();
+    let tiers = DEFAULT_TIERS.map((t) => Object.assign({}, t));
+    let loopEvery = 0;
+    const loadedLive = loadFromLiveDataFile();
+
+    const enumList = document.getElementById("enumList");
+    const tierList = document.getElementById("tierList");
+    const enumInput = document.getElementById("enumInput");
+    const loopEveryInput = document.getElementById("loopEvery");
+    const validationMsg = document.getElementById("validationMsg");
+    const exportPreview = document.getElementById("exportPreview");
+
+    function sanitizeId(raw) {
+        return String(raw || "")
+            .trim()
+            .toUpperCase()
+            .replace(/[^A-Z0-9_]/g, "_")
+            .replace(/^_+|_+$/g, "");
+    }
+
+    /**
+     * Authored sprite paths are game-root relative (ProgressRewards/Assets/…).
+     * This editor lives inside ProgressRewards/, so strip our prefix or climb to the root.
+     */
+    function resolvePreviewSrc(gameRootPath) {
+        const p = String(gameRootPath || "").trim();
+        if (!p) return "";
+        if (/^(https?:|data:|blob:)/i.test(p)) return p;
+        if (p.indexOf("ProgressRewards/") === 0) return p.slice("ProgressRewards/".length);
+        if (p.indexOf("Assets/") === 0 || p.indexOf("Items/") === 0 ||
+            p.indexOf("DailyStreak/") === 0 || p.indexOf("Characters/") === 0) {
+            return "../" + p;
+        }
+        return p;
+    }
+
+    /** Build the authored path from a File picked in the dialog. */
+    function spritePathFromFile(file) {
+        const name = String((file && file.name) || "").replace(/^.*[\\/]/, "").trim();
+        if (!name) return "";
+        return "ProgressRewards/Assets/" + name;
+    }
+
+    function setMsg(text, ok) {
+        validationMsg.textContent = text || "";
+        validationMsg.className = "msg" + (ok ? " ok" : "");
+    }
+
+    function validate() {
+        const errors = [];
+        if (!enumIds.length) errors.push("Enum is empty.");
+        const loopN = parseInt(loopEvery, 10);
+        if (!(loopN >= 0) || String(loopEvery).trim() === "") {
+            errors.push("Loop every must be an integer >= 0 (0 disables).");
+        }
+        const seenLevels = new Set();
+        const seenRewards = new Set();
+        tiers.forEach((t, i) => {
+            const n = parseInt(t.unlockLevel, 10);
+            if (!(n >= 1)) errors.push("Tier " + (i + 1) + ": unlockLevel must be >= 1.");
+            if (seenLevels.has(n)) errors.push("Duplicate unlockLevel " + n + ".");
+            seenLevels.add(n);
+            if (!t.rewardId) errors.push("Tier " + (i + 1) + ": missing rewardId.");
+            else if (enumIds.indexOf(t.rewardId) === -1) {
+                errors.push("Tier " + (i + 1) + ": rewardId not in enum.");
+            }
+            if (seenRewards.has(t.rewardId)) {
+                errors.push("Duplicate rewardId " + t.rewardId + ".");
+            }
+            seenRewards.add(t.rewardId);
+            if (!String(t.sprite || "").trim()) {
+                errors.push("Tier " + (i + 1) + ": sprite path required.");
+            }
+        });
+        return errors;
+    }
+
+    function buildExport() {
+        const sorted = tiers.slice().sort((a, b) => a.unlockLevel - b.unlockLevel);
+        const enumBlock = enumIds.map((id) => "    " + id + ': "' + id + '"').join(",\n");
+        const loopN = Math.max(0, parseInt(loopEvery, 10) || 0);
+        const tierBlock = sorted.map((t) => {
+            const lines = [
+                "    {",
+                "        unlockLevel: " + (parseInt(t.unlockLevel, 10) || 1) + ",",
+                "        rewardId: ProgressRewardId." + t.rewardId + ",",
+                '        sprite: "' + String(t.sprite).replace(/"/g, '\\"') + '",',
+                '        label: "' + String(t.label || "").replace(/"/g, '\\"') + '"'
+            ];
+            const desc = String(t.description || "").trim();
+            const grantItem = String(t.grantItem || "").trim();
+            const grantAmount = parseInt(t.grantAmount, 10);
+            if (desc) {
+                lines[lines.length - 1] += ",";
+                lines.push('        description: "' + desc.replace(/"/g, '\\"') + '"');
+            }
+            if (grantItem) {
+                lines[lines.length - 1] += ",";
+                lines.push('        grantItem: "' + grantItem.replace(/"/g, '\\"') + '"');
+                if (grantAmount > 1) {
+                    lines[lines.length - 1] += ",";
+                    lines.push("        grantAmount: " + grantAmount);
+                }
+            }
+            lines.push("    }");
+            return lines.join("\n");
+        }).join(",\n");
+
+        return [
+            "// OWNER: shared — Progress Reward enum + authored tiers.",
+            "// Edit via ProgressRewards/ProgressRewardsEditor.html or by hand.",
+            "// Behaviour/timing: progress-rewards-config.js. Absolute unlockLevel per tier.",
+            '"use strict";',
+            "",
+            "/** Extendable reward ids. Gameplay: ProgressRewards.HasUnlockedProgressReward(id). */",
+            "const ProgressRewardId = {",
+            enumBlock,
+            "};",
+            "",
+            "/**",
+            " * Absolute unlock tiers (sorted ascending by unlockLevel).",
+            " * unlockLevel = completed-level threshold (player finished that many levels).",
+            " */",
+            "const PROGRESS_REWARD_TIERS = [",
+            tierBlock,
+            "];",
+            "",
+            "/**",
+            " * After every authored tier is claimed, re-grant the last tier's prize",
+            " * every N completed levels (measured from the last tier's unlockLevel).",
+            " * 0 = disabled (finite ladder only).",
+            " */",
+            "const PROGRESS_REWARD_LOOP_EVERY = " + loopN + ";",
+            "",
+            "window.ProgressRewardId = ProgressRewardId;",
+            "window.PROGRESS_REWARD_TIERS = PROGRESS_REWARD_TIERS;",
+            "window.PROGRESS_REWARD_LOOP_EVERY = PROGRESS_REWARD_LOOP_EVERY;",
+            ""
+        ].join("\n");
+    }
+
+    function refreshExport() {
+        const errors = validate();
+        if (errors.length) {
+            setMsg(errors.join(" "), false);
+        } else {
+            setMsg("Valid — ready to export.", true);
+        }
+        exportPreview.value = buildExport();
+    }
+
+    function renderEnum() {
+        enumList.innerHTML = "";
+        enumIds.forEach((id) => {
+            const chip = document.createElement("span");
+            chip.className = "enum-chip";
+            chip.textContent = id;
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "danger";
+            btn.textContent = "×";
+            btn.addEventListener("click", () => {
+                if (tiers.some((t) => t.rewardId === id)) {
+                    setMsg("Cannot remove " + id + " — still used by a tier.", false);
+                    return;
+                }
+                enumIds = enumIds.filter((x) => x !== id);
+                renderAll();
+            });
+            chip.appendChild(btn);
+            enumList.appendChild(chip);
+        });
+    }
+
+    function renderTiers() {
+        tierList.innerHTML = "";
+        tiers.forEach((tier, index) => {
+            const card = document.createElement("div");
+            card.className = "tier";
+            card.innerHTML = '<div class="tier-head"><span>Tier ' + (index + 1) + '</span></div>';
+            const head = card.querySelector(".tier-head");
+            const remove = document.createElement("button");
+            remove.type = "button";
+            remove.className = "danger";
+            remove.textContent = "Remove";
+            remove.addEventListener("click", () => {
+                tiers.splice(index, 1);
+                renderAll();
+            });
+            head.appendChild(remove);
+
+            const row1 = document.createElement("div");
+            row1.className = "row";
+            row1.innerHTML = "<label>Unlock level</label>";
+            const levelInput = document.createElement("input");
+            levelInput.type = "number";
+            levelInput.min = "1";
+            levelInput.value = tier.unlockLevel;
+            levelInput.addEventListener("change", () => {
+                tier.unlockLevel = parseInt(levelInput.value, 10) || 1;
+                refreshExport();
+            });
+            row1.appendChild(levelInput);
+
+            const rewardLabel = document.createElement("label");
+            rewardLabel.textContent = "Reward";
+            row1.appendChild(rewardLabel);
+            const select = document.createElement("select");
+            enumIds.forEach((id) => {
+                const opt = document.createElement("option");
+                opt.value = id;
+                opt.textContent = id;
+                if (id === tier.rewardId) opt.selected = true;
+                select.appendChild(opt);
+            });
+            select.addEventListener("change", () => {
+                tier.rewardId = select.value;
+                refreshExport();
+            });
+            row1.appendChild(select);
+            card.appendChild(row1);
+
+            const row2 = document.createElement("div");
+            row2.className = "row";
+            row2.innerHTML = "<label>Sprite</label>";
+            const spriteInput = document.createElement("input");
+            spriteInput.type = "text";
+            spriteInput.style.minWidth = "220px";
+            spriteInput.value = tier.sprite || "";
+            const browseBtn = document.createElement("button");
+            browseBtn.type = "button";
+            browseBtn.className = "secondary";
+            browseBtn.textContent = "Browse…";
+            const fileInput = document.createElement("input");
+            fileInput.type = "file";
+            fileInput.accept = "image/png,image/jpeg,image/webp,image/gif,.png,.jpg,.jpeg,.webp,.gif";
+            fileInput.hidden = true;
+            const preview = document.createElement("img");
+            preview.className = "preview";
+            preview.alt = "";
+            let objectUrl = "";
+
+            function clearObjectUrl() {
+                if (objectUrl) {
+                    URL.revokeObjectURL(objectUrl);
+                    objectUrl = "";
+                }
+            }
+
+            function syncPreview(blobUrl) {
+                preview.classList.remove("is-missing");
+                const src = blobUrl || resolvePreviewSrc(spriteInput.value);
+                if (!src) {
+                    preview.removeAttribute("src");
+                    preview.classList.add("is-missing");
+                    return;
+                }
+                preview.onerror = () => preview.classList.add("is-missing");
+                preview.onload = () => preview.classList.remove("is-missing");
+                preview.src = src;
+            }
+
+            browseBtn.addEventListener("click", () => fileInput.click());
+            fileInput.addEventListener("change", () => {
+                const file = fileInput.files && fileInput.files[0];
+                fileInput.value = "";
+                if (!file) return;
+                const path = spritePathFromFile(file);
+                if (!path) {
+                    setMsg("Could not read that file name.", false);
+                    return;
+                }
+                clearObjectUrl();
+                objectUrl = URL.createObjectURL(file);
+                tier.sprite = path;
+                spriteInput.value = path;
+                syncPreview(objectUrl);
+                refreshExport();
+                setMsg(
+                    "Path set to " + path + ". Put the file in ProgressRewards/Assets/ if it is not there yet.",
+                    true
+                );
+            });
+
+            spriteInput.addEventListener("input", () => {
+                clearObjectUrl();
+                tier.sprite = spriteInput.value;
+                syncPreview();
+                refreshExport();
+            });
+            syncPreview();
+            row2.appendChild(spriteInput);
+            row2.appendChild(browseBtn);
+            row2.appendChild(fileInput);
+            row2.appendChild(preview);
+            card.appendChild(row2);
+
+            const row3 = document.createElement("div");
+            row3.className = "row";
+            row3.innerHTML = "<label>Label</label>";
+            const labelSelect = document.createElement("select");
+            fillTranslationSelect(labelSelect, tier.label || "", { allowEmpty: true });
+            labelSelect.addEventListener("change", () => {
+                tier.label = labelSelect.value;
+                refreshExport();
+            });
+            row3.appendChild(labelSelect);
+            card.appendChild(row3);
+
+            const row4 = document.createElement("div");
+            row4.className = "row";
+            row4.innerHTML = "<label>Description</label>";
+            const descSelect = document.createElement("select");
+            fillTranslationSelect(descSelect, tier.description || "", { allowEmpty: true });
+            descSelect.addEventListener("change", () => {
+                tier.description = descSelect.value;
+                refreshExport();
+            });
+            row4.appendChild(descSelect);
+            card.appendChild(row4);
+
+            const row5 = document.createElement("div");
+            row5.className = "row";
+            row5.innerHTML = "<label>Grant item</label>";
+            const itemSelect = document.createElement("select");
+            const noneOpt = document.createElement("option");
+            noneOpt.value = "";
+            noneOpt.textContent = "(none)";
+            itemSelect.appendChild(noneOpt);
+            itemIds().forEach((id) => {
+                const opt = document.createElement("option");
+                opt.value = id;
+                opt.textContent = itemDisplayName(id);
+                if (id === tier.grantItem) opt.selected = true;
+                itemSelect.appendChild(opt);
+            });
+            itemSelect.addEventListener("change", () => {
+                tier.grantItem = itemSelect.value;
+                const meta = itemMeta(tier.grantItem);
+                if (meta) {
+                    if (!tier.sprite && meta.sprite) tier.sprite = meta.sprite;
+                    if (meta.kind === "consumable" && !(tier.grantAmount > 0)) {
+                        tier.grantAmount = 1;
+                    }
+                    if (meta.kind === "unlock") tier.grantAmount = 0;
+                }
+                renderAll();
+            });
+            row5.appendChild(itemSelect);
+            card.appendChild(row5);
+
+            const row6 = document.createElement("div");
+            row6.className = "row";
+            row6.innerHTML = "<label>Grant amount</label>";
+            const amountInput = document.createElement("input");
+            amountInput.type = "number";
+            amountInput.min = "0";
+            amountInput.placeholder = "stacks only";
+            amountInput.value = tier.grantAmount > 0 ? tier.grantAmount : "";
+            const grantMeta = itemMeta(tier.grantItem);
+            amountInput.disabled = !grantMeta || grantMeta.kind !== "consumable";
+            amountInput.addEventListener("change", () => {
+                const n = parseInt(amountInput.value, 10);
+                tier.grantAmount = n > 0 ? n : 0;
+                refreshExport();
+            });
+            row6.appendChild(amountInput);
+            card.appendChild(row6);
+
+            tierList.appendChild(card);
+        });
+    }
+
+    function renderAll() {
+        loopEveryInput.value = Math.max(0, parseInt(loopEvery, 10) || 0);
+        renderEnum();
+        renderTiers();
+        refreshExport();
+    }
+
+    loopEveryInput.addEventListener("change", () => {
+        loopEvery = Math.max(0, parseInt(loopEveryInput.value, 10) || 0);
+        loopEveryInput.value = loopEvery;
+        refreshExport();
+    });
+
+    document.getElementById("enumAdd").addEventListener("click", () => {
+        const id = sanitizeId(enumInput.value);
+        if (!id) {
+            setMsg("Enter a valid enum id.", false);
+            return;
+        }
+        if (enumIds.indexOf(id) !== -1) {
+            setMsg(id + " already exists.", false);
+            return;
+        }
+        enumIds.push(id);
+        enumInput.value = "";
+        renderAll();
+    });
+
+    document.getElementById("tierAdd").addEventListener("click", () => {
+        const nextLevel = tiers.reduce((m, t) => Math.max(m, parseInt(t.unlockLevel, 10) || 0), 0) + 5;
+        const freeId = enumIds.find((id) => !tiers.some((t) => t.rewardId === id)) || enumIds[0] || "NEW_REWARD";
+        if (enumIds.indexOf(freeId) === -1) enumIds.push(freeId);
+        tiers.push({
+            unlockLevel: nextLevel,
+            rewardId: freeId,
+            sprite: "ProgressRewards/Assets/feature_locked.png",
+            label: "",
+            description: "",
+            grantItem: "",
+            grantAmount: 0
+        });
+        renderAll();
+    });
+
+    document.getElementById("tierSort").addEventListener("click", () => {
+        tiers.sort((a, b) => a.unlockLevel - b.unlockLevel);
+        renderAll();
+    });
+
+    function download() {
+        const errors = validate();
+        if (errors.length) {
+            setMsg(errors.join(" "), false);
+            return;
+        }
+        const text = buildExport();
+        // octet-stream avoids browsers treating .js downloads as executable/script
+        // and silently blocking them (common with text/javascript blobs).
+        const blob = new Blob([text], { type: "application/octet-stream" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "progress-rewards-data.js";
+        a.rel = "noopener";
+        a.style.display = "none";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1500);
+        setMsg("Downloaded progress-rewards-data.js", true);
+    }
+
+    document.getElementById("btnExport").addEventListener("click", download);
+    document.getElementById("btnCopy").addEventListener("click", async () => {
+        const errors = validate();
+        if (errors.length) {
+            setMsg(errors.join(" "), false);
+            return;
+        }
+        try {
+            await navigator.clipboard.writeText(buildExport());
+            setMsg("Copied to clipboard.", true);
+        } catch (_) {
+            exportPreview.select();
+            setMsg("Clipboard blocked — select/copy the preview.", false);
+        }
+    });
+
+    document.getElementById("fileLoad").addEventListener("change", (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            try {
+                const text = String(reader.result || "");
+                if (file.name.endsWith(".json")) {
+                    const data = JSON.parse(text);
+                    applyState(
+                        data.enumIds || Object.keys(data.ProgressRewardId || {}),
+                        data.tiers || data.PROGRESS_REWARD_TIERS || [],
+                        data.loopEvery != null ? data.loopEvery : data.PROGRESS_REWARD_LOOP_EVERY
+                    );
+                } else {
+                    const parsed = parseDataJsText(text);
+                    applyState(parsed.enumIds, parsed.tiers, parsed.loopEvery);
+                }
+                renderAll();
+                setMsg("Loaded " + file.name, true);
+            } catch (err) {
+                setMsg("Load failed: " + err.message, false);
+            }
+            e.target.value = "";
+        };
+        reader.readAsText(file);
+    });
+
+    renderAll();
+    if (loadedLive) {
+        setMsg("Loaded ProgressRewards/js/progress-rewards-data.js", true);
+    } else {
+        setMsg("Could not load progress-rewards-data.js — using built-in defaults.", false);
+    }
+})();
+</script>
+</body>
+</html>

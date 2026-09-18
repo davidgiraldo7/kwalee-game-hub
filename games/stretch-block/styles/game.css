@@ -1,0 +1,905 @@
+/* OWNER: artist — game screen, HUD, tutorials, hint chrome */
+
+/* ---------- Game Screen ---------- */
+#gameScreen {
+    --cs-hint-button-size: 60px;
+    --cs-hint-button-bottom: max(28px, var(--ads-bottom-inset, env(safe-area-inset-bottom, 0px)));
+    --cs-hint-board-gap: 8.4px;
+    --cs-tutorial-slot-height: 82px;
+    --cs-render-overscan: 48px;
+    justify-content: flex-start;
+    padding-bottom: calc(var(--cs-hint-button-size) + var(--cs-hint-button-bottom) + var(--cs-hint-board-gap));
+    background: var(--game-bg, #faf1e2);
+}
+
+.header {
+    margin-top: calc(18px + env(safe-area-inset-top, 0px));
+    color: #241a44;
+    padding: 6px 0;
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: .5px;
+    animation: headerIn .5s cubic-bezier(.2, 1.4, .35, 1) forwards;
+    transition: transform var(--cs-outro-move-ms, 400ms) cubic-bezier(.4, 0, 1, 1),
+    opacity var(--cs-outro-fade-ms, 300ms) ease;
+}
+
+.header.exit-up {
+    animation: none;
+    transform: translateY(-80px);
+    opacity: 0;
+}
+
+#gameScreen .header {
+    position: relative;
+    z-index: 2;
+    padding: 7px 0;
+    font-size: 18px;
+    letter-spacing: .6px;
+}
+
+@keyframes headerIn {
+    0% {
+        opacity: 0;
+        transform: translateY(-26px) scale(.8);
+    }
+
+    60% {
+        opacity: 1;
+        transform: translateY(4px) scale(1.05);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* ---------- Flavour text (level complete) — black bar + green vignette ---------- */
+.flavour-text {
+    --result-text-size: clamp(34px, 9vw, 52px);
+    --flavour-win: #38dc85;
+    --flavour-win-glow: rgba(56, 220, 133, .45);
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 8;
+    opacity: 0;
+}
+
+.flavour-text::before,
+.fail-text::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: calc(var(--result-text-size) * 2.5);
+    transform: translateY(-50%);
+    background: rgba(58, 64, 74, .52);
+    opacity: 0;
+    transition: opacity .18s ease;
+}
+
+/* Green vignette overlay that blooms in behind the text as it appears. */
+.flavour-vignette {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(120% 80% at 50% 50%,
+        rgba(56, 220, 133, 0) 42%,
+        rgba(56, 220, 133, .18) 70%,
+        rgba(20, 120, 70, .42) 100%);
+    opacity: 0;
+    transform: scale(1.05);
+    transition: opacity .32s ease, transform .32s ease;
+}
+
+.flavour-text.show {
+    opacity: 1;
+}
+
+.flavour-text.show::before,
+.fail-text.show::before {
+    opacity: 1;
+}
+
+.flavour-text.show .flavour-vignette {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.flavour-text.dismiss::before,
+.fail-text.settle::before {
+    opacity: 0;
+}
+
+.flavour-text.dismiss .flavour-vignette {
+    opacity: 0;
+}
+
+.flavour-label {
+    position: relative;
+    z-index: 1;
+    font-family: "Fredoka", "Nunito", sans-serif;
+    font-size: var(--result-text-size);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--flavour-win);
+    text-shadow: 0 4px 12px var(--flavour-win-glow);
+    white-space: nowrap;
+    opacity: 0;
+    transform: scale(0);
+}
+
+.flavour-text.show .flavour-label {
+    animation: flavourPop .6s cubic-bezier(.2, 1.6, .35, 1) forwards;
+}
+
+.flavour-text.dismiss .flavour-label {
+    animation: flavourOut .4s ease forwards;
+}
+
+@keyframes flavourPop {
+    0%   { transform: scale(0);   opacity: 0; }
+    50%  { transform: scale(1.2); opacity: 1; }
+    100% { transform: scale(1);   opacity: 1; }
+}
+
+@keyframes flavourOut {
+    0%   { transform: scale(1); opacity: 1; }
+    100% { transform: scale(1); opacity: 0; }
+}
+
+
+/* ---------- Fail text (level failed) ---------- */
+.fail-text {
+    --result-text-size: clamp(22px, 7vw, 52px);
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    padding: 0 24px;
+    pointer-events: none;
+    z-index: 12;
+    opacity: 0;
+}
+
+.fail-text span {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    font-size: var(--result-text-size);
+    font-weight: 800;
+    color: #ff6b70;
+    text-align: center;
+    text-shadow: 0 4px 12px rgba(255, 90, 95, .35);
+    white-space: nowrap;
+    opacity: 0;
+    transform: translateY(0);
+    transition: transform .5s cubic-bezier(.4, 0, .2, 1), opacity .4s ease;
+}
+
+.fail-text.show {
+    opacity: 1;
+}
+
+.fail-text.show span {
+    opacity: 1;
+}
+
+.fail-text.settle span {
+    transform: translateY(-80px);
+}
+
+.play-area {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    position: relative;
+    z-index: 0;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    color: #a09ab4;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.cs-tutorial-slot {
+    flex: 0 0 var(--cs-tutorial-slot-height);
+    width: 100%;
+}
+
+/* ---------- Color Stretch HUD ---------- */
+.cs-hud {
+    display: flex;
+    position: relative;
+    z-index: 2;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 12px;
+    transition: transform var(--cs-outro-move-ms, 400ms) cubic-bezier(.4, 0, 1, 1),
+    opacity var(--cs-outro-fade-ms, 300ms) ease;
+}
+
+.header.exit-up+.cs-hud {
+    transform: translateY(-40px);
+    opacity: 0;
+}
+
+.cs-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #eef2f8;
+    border: 1px solid rgba(0, 0, 0, .05);
+    border-radius: 999px;
+    padding: 5px 14px;
+    color: #241a44;
+    font-size: 13px;
+    font-weight: 500;
+    box-shadow: 0 2px 6px rgba(36, 26, 68, .06);
+}
+
+.cs-pill-value {
+    font-size: 15px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Reserve a fixed slot for the countdown so the pill never resizes as the
+   digits change (Fredoka lacks tabular figures, so widths vary). */
+#csMovesValue {
+    display: inline-block;
+    min-width: 4ch;
+    text-align: center;
+}
+
+.cs-timer-icon {
+    width: 15px;
+    height: 15px;
+    flex: none;
+    color: #8a83a6;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.cs-pill.warn .cs-timer-icon {
+    color: #ff5a5f;
+}
+
+.cs-pill.warn {
+    background: #ffe3e0;
+    border-color: rgba(255, 90, 95, .35);
+}
+
+.cs-pill.warn .cs-pill-value {
+    color: #ff5a5f;
+}
+
+#gameScreen .cs-hud {
+    gap: 12px;
+    margin-top: 14px;
+}
+
+#gameScreen .cs-pill {
+    gap: 7px;
+    background: #fff;
+    border-width: 1.2px;
+    padding: 6px 17px;
+    font-size: 16px;
+}
+
+#gameScreen .cs-pill-value {
+    font-size: 18px;
+}
+
+#gameScreen .cs-timer-icon {
+    width: 18px;
+    height: 18px;
+}
+
+.cs-pill.last-move {
+    border-color: #ff5a5f;
+    box-shadow: 0 0 0 1px rgba(255, 90, 95, .55), 0 0 12px rgba(255, 90, 95, .42);
+    animation: lastMovePulse .7s ease-in-out infinite alternate;
+    will-change: transform;
+}
+
+@keyframes lastMovePulse {
+    from {
+        border-color: #ff5a5f;
+        transform: scale(1);
+    }
+
+    to {
+        border-color: #ff272d;
+        transform: scale(1.08);
+    }
+}
+
+#gameScreen.ui-exit-up .header,
+#gameScreen.ui-exit-up .settingsbtn,
+#gameScreen.ui-exit-up .backbtn,
+#gameScreen.ui-exit-up .cs-hud,
+#gameScreen.ui-exit-up .cs-tutorial {
+    transform: translateY(var(--cs-outro-offset-y, -140px));
+    opacity: 0;
+}
+
+/* Scoped to the exit state so the slow outro curve does not also apply to the
+   buttons' own press, which needs the snappy transition from `.iconbtn`. */
+#gameScreen.ui-exit-up .settingsbtn,
+#gameScreen.ui-exit-up .backbtn {
+    transition: transform var(--cs-outro-move-ms, 400ms) cubic-bezier(.4, 0, 1, 1),
+    opacity var(--cs-outro-fade-ms, 300ms) ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cs-pill.last-move {
+        animation: none;
+    }
+}
+
+.cs-canvas {
+    display: block;
+    position: absolute;
+    top: calc(-1 * var(--cs-render-overscan));
+    bottom: calc(-1 * var(--cs-render-overscan));
+    left: 0;
+    width: 100%;
+    height: calc(100% + var(--cs-render-overscan) * 2);
+    touch-action: none;
+}
+
+#gameScreen .settingsbtn,
+#gameScreen .backbtn {
+    z-index: 2;
+}
+
+#gameScreen.tutorial-level #csMovesPill,
+#gameScreen.tutorial-level .settingsbtn {
+    display: none;
+}
+
+.cs-tutorial {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    pointer-events: none;
+    opacity: 0;
+    transition: transform var(--cs-outro-move-ms, 400ms) cubic-bezier(.4, 0, 1, 1),
+    opacity var(--cs-outro-fade-ms, 300ms) ease;
+}
+
+.cs-tutorial.show {
+    opacity: 1;
+}
+
+.cs-tutorial-title,
+.cs-tutorial-copy,
+.cs-tutorial-target,
+.cs-tutorial-hand {
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
+.cs-tutorial-title {
+    display: none;
+    color: #fff;
+    font-size: 28px;
+    font-weight: 500;
+    line-height: 1.1;
+    text-align: center;
+    text-shadow: 0 2px 8px rgba(20, 15, 37, .65);
+    transform: translate(-50%, calc(-100% - 12px));
+}
+
+.cs-tutorial-copy {
+    width: min(520px, calc(100% - 32px));
+    max-width: calc(100% - 32px);
+    height: 76px;
+    box-sizing: border-box;
+    padding: 11px 16px;
+    border-radius: 16px;
+    background: rgba(36, 26, 68, .97);
+    box-shadow: 0 8px 18px rgba(36, 26, 68, .28);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 500;
+    line-height: 1.24;
+    overflow: hidden;
+    text-align: center;
+    transform: translateX(-50%);
+}
+
+.cs-tutorial-copy.portrait-three-lines {
+    height: 100px;
+}
+
+.cs-tutorial.hint .cs-tutorial-copy {
+    transform: translate(-50%, -100%);
+}
+
+.cs-tutorial-targets {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+}
+
+.cs-tutorial-dimmer {
+    display: none;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+}
+
+.cs-tutorial.mechanic .cs-tutorial-dimmer {
+    display: block;
+}
+
+/* Hint onboarding dims the entire game. The bulb is raised above this
+   layer so it is the only available game action. */
+.cs-tutorial.hint {
+    z-index: 20;
+    pointer-events: auto;
+}
+
+.cs-tutorial.hint .cs-tutorial-dimmer {
+    display: block;
+}
+
+.cs-tutorial.hint .cs-tutorial-copy {
+    z-index: 2;
+}
+
+#csTutorial.hint~.cs-hint-btn {
+    z-index: 21;
+}
+
+/* Hint FTUE — New Feature card (before finger-tap). */
+.hint-feature-intro {
+    position: absolute;
+    inset: 0;
+    z-index: 40;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 20px calc(28px + var(--ads-bottom-inset, env(safe-area-inset-bottom, 0px)));
+    pointer-events: auto;
+}
+
+.hint-feature-intro[hidden] {
+    display: none !important;
+}
+
+.hint-feature-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(10, 8, 16, 0.78);
+}
+
+.hint-feature-card {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    width: min(100%, 320px);
+    opacity: 0;
+    transform: scale(0.86) translateY(16px);
+    transition:
+        opacity 0.35s ease,
+        transform 0.45s cubic-bezier(0.2, 1.4, 0.35, 1);
+}
+
+.hint-feature-intro.show .hint-feature-card {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+}
+
+.hint-feature-title {
+    margin: 0 0 8px;
+    color: #fff;
+    font-family: "Nunito", "Trebuchet MS", system-ui, sans-serif;
+    font-size: clamp(28px, 7vw, 40px);
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: 0.2px;
+    text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+}
+
+.hint-feature-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 112px;
+    height: 112px;
+    border-radius: 50%;
+    background: linear-gradient(180deg, #ffd15c, #ffb02e);
+    color: #3a2208;
+    box-shadow:
+        0 6px 0 #d98a12,
+        0 12px 22px rgba(0, 0, 0, 0.35);
+}
+
+.hint-feature-icon svg {
+    width: 58px;
+    height: 58px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2.2;
+}
+
+.hint-feature-label {
+    margin: 4px 0 0;
+    color: #fff;
+    font-family: "Nunito", "Trebuchet MS", system-ui, sans-serif;
+    font-size: 26px;
+    font-weight: 700;
+    text-align: center;
+    text-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
+}
+
+.hint-feature-desc {
+    margin: 0;
+    max-width: 280px;
+    color: rgba(255, 255, 255, 0.82);
+    font-family: "Nunito", "Trebuchet MS", system-ui, sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.35;
+    text-align: center;
+}
+
+.hint-feature-claim {
+    margin-top: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.55);
+    border-radius: 16px;
+    padding: 14px 56px;
+    font-family: "Nunito", "Trebuchet MS", system-ui, sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: #3a2a1a;
+    background: linear-gradient(180deg, #ffd24a 0%, #f0b820 100%);
+    box-shadow: 0 5px 0 #c49210;
+    cursor: pointer;
+}
+
+.hint-feature-claim:active {
+    transform: translateY(4px);
+    box-shadow: 0 1px 0 #c49210;
+}
+
+.cs-hint-tutorial-hand {
+    display: none;
+    position: absolute;
+    width: 82px;
+    height: auto;
+    z-index: 22;
+    pointer-events: none;
+    filter: drop-shadow(0 3px 2px rgba(0, 0, 0, .28));
+    transform: translate(-10%, -10%);
+    will-change: transform;
+}
+
+#csTutorial.hint~.cs-hint-tutorial-hand {
+    display: block;
+    animation: tutorialTapHand .9s ease-in-out infinite;
+}
+
+.cs-tutorial-target {
+    border: 3px solid #fff;
+    border-radius: 14px;
+    box-sizing: border-box;
+    box-shadow: 0 0 0 4px rgba(77, 155, 255, .42), 0 0 16px rgba(77, 155, 255, .75);
+    transform: translate(-50%, -50%);
+    animation: tutorialTargetPulse 1s ease-in-out infinite alternate;
+}
+
+.cs-tutorial-continue {
+    display: none;
+    position: absolute;
+    left: 50%;
+    bottom: calc(var(--cs-hint-button-bottom) + 18px);
+    z-index: 2;
+    padding: 8px 16px;
+    border-radius: 999px;
+    background: rgba(36, 26, 68, .92);
+    box-shadow: 0 5px 12px rgba(36, 26, 68, .26);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 600;
+    transform: translateX(-50%);
+    white-space: nowrap;
+}
+
+.cs-tutorial.mechanic .cs-tutorial-continue {
+    display: block;
+}
+
+.cs-tutorial.mechanic .cs-tutorial-title,
+.cs-tutorial.mechanic .cs-tutorial-copy {
+    z-index: 2;
+}
+
+.cs-tutorial.mechanic .cs-tutorial-title {
+    display: block;
+}
+
+.cs-tutorial.mechanic .cs-tutorial-hand {
+    display: none;
+}
+
+.cs-tutorial-hand {
+    width: 82px;
+    height: auto;
+    z-index: 2;
+    filter: drop-shadow(0 3px 2px rgba(0, 0, 0, .28));
+    transform: translate(-10%, -10%);
+    will-change: transform;
+}
+
+.cs-tutorial.drag .cs-tutorial-hand {
+    animation: tutorialDragHand 3s linear infinite;
+}
+
+.cs-tutorial.tap .cs-tutorial-hand {
+    animation: tutorialTapHand .9s ease-in-out infinite;
+}
+
+.cs-tutorial.reminder .cs-tutorial-target,
+.cs-tutorial.reminder .cs-tutorial-hand {
+    display: none;
+}
+
+/* Hint button: sits below the board, horizontally centred. Always shown
+   after the inventory unlock level; count badge sits top-right. */
+.cs-hint-btn {
+    position: absolute;
+    left: 50%;
+    bottom: var(--cs-hint-button-bottom);
+    transform: translateX(-50%);
+    z-index: 6;
+    width: var(--cs-hint-button-size);
+    height: var(--cs-hint-button-size);
+    padding: 0;
+    border: none;
+    background: transparent url("../Assets/Button_Hint.png") center / contain no-repeat;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    opacity: 0;
+    transition: opacity .2s ease;
+    will-change: transform;
+}
+
+.cs-hint-btn.is-visible {
+    opacity: 1;
+}
+
+.cs-hint-btn.is-visible.is-empty {
+    opacity: 1;
+}
+
+/* Pressed variant: while held down or on a successful hint press. */
+.cs-hint-btn:active,
+.cs-hint-btn.is-pressed {
+    background-image: url("../Assets/Button_Hint_Pressed.png");
+}
+
+.cs-hint-count {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    z-index: 1;
+    box-sizing: border-box;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 5px;
+    border-radius: 999px;
+    border: 2px solid #fff6d6;
+    background: linear-gradient(180deg, #fff0b8, #ffd15c);
+    box-shadow: 0 2px 0 #d98a12, 0 3px 6px rgba(0, 0, 0, .18);
+    color: #5a3a00;
+    font-family: "Fredoka", "Nunito", sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    line-height: 18px;
+    letter-spacing: -0.02em;
+    text-align: center;
+    pointer-events: none;
+}
+
+/* Empty inventory: green + badge — tap opens the Add Hint RV offer. */
+.cs-hint-btn.is-empty .cs-hint-count {
+    min-width: 22px;
+    padding: 0;
+    border-color: #e8fff2;
+    background: linear-gradient(180deg, #38dc85 0%, #28c76f 100%);
+    box-shadow: 0 2px 0 #1fa459, 0 3px 6px rgba(0, 0, 0, .18);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 800;
+    line-height: 18px;
+}
+
+.cs-hint-btn.is-empty:not(:disabled) {
+    cursor: pointer;
+}
+
+.cs-hint-btn:disabled {
+    cursor: default;
+}
+
+.cs-hint-btn.is-empty:disabled {
+    cursor: default;
+    opacity: var(--cs-hint-empty-opacity, 0.6);
+}
+
+.cs-hint-btn.is-empty:disabled .cs-hint-count {
+    background: linear-gradient(180deg, #f0e6c8, #e0c98a);
+    border-color: #f7efd8;
+    color: #7a5a28;
+    box-shadow: 0 2px 0 #c4a056, 0 3px 6px rgba(0, 0, 0, .14);
+    font-size: 12px;
+}
+
+.cs-hint-btn.is-pressed {
+    animation: csHintButtonPress .18s ease-out;
+}
+
+@keyframes csHintButtonPress {
+
+    0%,
+    100% {
+        transform: translateX(-50%) scale(1);
+    }
+
+    50% {
+        transform: translateX(-50%) scale(.8);
+    }
+}
+
+.cs-hint-btn.is-locked {
+    background-image: url("../Assets/Button_Hint_Locked.png");
+    cursor: pointer;
+}
+
+.cs-hint-btn.is-locked .cs-hint-count {
+    display: none;
+}
+
+.cs-hint-btn.is-locked:active,
+.cs-hint-btn.is-locked.is-pressed {
+    background-image: url("../Assets/Button_Hint_Locked.png");
+}
+
+/* Hint grant fly-ins (RV Add Hint ×N). */
+.cs-hint-fly {
+    position: absolute;
+    z-index: 45;
+    pointer-events: none;
+    box-sizing: border-box;
+    min-width: 34px;
+    height: 34px;
+    padding: 0 8px;
+    border-radius: 999px;
+    border: 2px solid #fff6d6;
+    background: linear-gradient(180deg, #fff0b8, #ffd15c);
+    box-shadow: 0 3px 0 #d98a12, 0 6px 14px rgba(0, 0, 0, .22);
+    color: #5a3a00;
+    font-family: "Fredoka", "Nunito", sans-serif;
+    font-weight: 800;
+    font-size: 16px;
+    line-height: 30px;
+    letter-spacing: -0.02em;
+    text-align: center;
+    will-change: transform, opacity;
+}
+
+.cs-hint-btn.is-grant-pulse {
+    animation: csHintGrantPulse .28s cubic-bezier(0.2, 1.4, 0.3, 1);
+}
+
+@keyframes csHintGrantPulse {
+    0% {
+        transform: translateX(-50%) scale(1);
+    }
+
+    45% {
+        transform: translateX(-50%) scale(1.18);
+    }
+
+    100% {
+        transform: translateX(-50%) scale(1);
+    }
+}
+
+.cs-hint-btn[hidden] {
+    display: none;
+}
+
+@media (min-aspect-ratio: 1 / 1) {
+    #gameScreen .play-area {
+        min-height: 0;
+    }
+
+    #gameScreen .cs-tutorial .cs-tutorial-copy {
+        width: min(380px, calc(100% - 48px));
+        font-size: 22px;
+    }
+}
+
+@keyframes tutorialTargetPulse {
+    from {
+        opacity: 0.35;
+        box-shadow: 0 0 0 3px rgba(77, 155, 255, .32), 0 0 10px rgba(77, 155, 255, .5);
+    }
+
+    to {
+        opacity: 1;
+        box-shadow: 0 0 0 9px rgba(77, 155, 255, .52), 0 0 28px rgba(77, 155, 255, .9);
+    }
+}
+
+@keyframes tutorialDragHand {
+    0% {
+        opacity: 1;
+        transform: translate(-10%, -10%);
+    }
+
+    80% {
+        opacity: 1;
+        transform: translate(calc(-10% + var(--tutorial-drag-x, 0px)),
+        calc(-10% + var(--tutorial-drag-y, 0px)));
+    }
+
+    90% {
+        opacity: 0;
+        transform: translate(calc(-10% + var(--tutorial-drag-x, 0px)),
+        calc(-10% + var(--tutorial-drag-y, 0px)));
+    }
+
+    90.001% {
+        opacity: 0;
+        transform: translate(-10%, -10%);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translate(-10%, -10%);
+    }
+}
+
+@keyframes tutorialTapHand {
+
+    0%,
+    100% {
+        transform: translate(-10%, -10%) scale(1);
+    }
+
+    50% {
+        transform: translate(-10%, -10%) scale(.78);
+    }
+}
+

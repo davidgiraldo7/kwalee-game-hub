@@ -1,0 +1,2220 @@
+/* OWNER: shared (KPF chrome) — change carefully */
+
+@font-face {
+    font-family: "Nunito";
+    src: url("../Nunito-ExtraBold.ttf") format("truetype");
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Fredoka";
+    src: url("../Fredoka-Medium.ttf") format("truetype");
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Fredoka";
+    src: url("../Fredoka-SemiBold.ttf") format("truetype");
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Fredoka";
+    src: url("../Fredoka-Bold.ttf") format("truetype");
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+    height: 100%;
+    margin: 0;
+}
+
+body {
+    font-family: "Nunito", "Trebuchet MS", system-ui, sans-serif;
+    font-weight: 600;
+    background: var(--home-bg, #faf1e2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    color: #fff;
+    overflow: hidden;
+}
+
+/* Layout anchors shared by splash / home chrome. Percentages map 1:1 to the
+   height-filled background art; px floors keep UI clear of notches + home bar. */
+:root {
+    --home-bar-content-h: 72px;
+    --home-bar-clearance: calc(var(--home-bar-content-h) + var(--ads-bottom-inset, env(safe-area-inset-bottom, 0px)));
+    --home-logo-y: 21%;
+    --home-play-y: 15%;
+    --home-bg: #faf1e2;
+    --game-bg: #faf1e2;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: var(--ads-bottom-inset, env(safe-area-inset-bottom, 0px));
+    --safe-left: env(safe-area-inset-left, 0px);
+    --safe-right: env(safe-area-inset-right, 0px);
+    --ads-bottom-inset: env(safe-area-inset-bottom, 0px);
+}
+
+/* Keep the game viewport fixed while mobile browser/system UI animates. */
+.app {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    height: 100vh;
+    height: 100svh;
+    max-height: 100%;
+    overflow: hidden;
+    background: var(--home-bg, #faf1e2);
+    --ads-bottom-inset: env(safe-area-inset-bottom, 0px);
+}
+
+/* ---------- Screens ---------- */
+.screen {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    opacity: 0;
+    transition: opacity .25s ease;
+}
+
+.screen.active {
+    display: flex;
+    opacity: 1;
+}
+
+/* ---------- Start Screen ---------- */
+#startScreen {
+    justify-content: center;
+    gap: 0;
+    padding: 0;
+    text-align: center;
+    overflow: hidden;
+    background: var(--home-bg, #faf1e2);
+}
+
+/* Home background: cover the viewport while keeping aspect. On portrait phones
+   this height-fills (crop left/right) so logo %Y stays in the art's sky zone —
+   same idea as the former `background-size: auto 100%`. */
+.bg-scroll {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center center;
+    pointer-events: none;
+}
+
+/* Static PNG (first in DOM) shown behind the video so devices that can't
+   decode the WebM (e.g. iOS) still see the home art; the video paints on top. */
+.bg-scroll-fallback {
+    z-index: 0;
+}
+
+/* Interactive Soft-3D home board (see js/home-board.js). Video/PNG stay in
+   the DOM; board mode hides them so we can flip back without deleting assets. */
+.home-board-canvas {
+    display: none;
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: auto;
+    touch-action: none;
+}
+
+#startScreen.home-board-mode .bg-scroll {
+    display: none;
+}
+
+#startScreen.home-board-mode .home-board-canvas {
+    display: block;
+}
+
+#startScreen.home-board-mode {
+    background: var(--home-bg, #faf1e2);
+}
+
+/* Anchor the title by its vertical centre so scaling only shrinks its size,
+   keeping the Y position fixed as the device/viewport changes. */
+.game-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    position: absolute;
+    z-index: 1;
+    top: max(var(--home-logo-y), calc(var(--safe-top) + 56px));
+    left: 0;
+    padding: 0 max(12px, var(--safe-left)) 0 max(12px, var(--safe-right));
+    transform: translateY(-50%);
+    pointer-events: none;
+}
+
+/* Board-less home variant is much wider than the old stacked wordmark
+   (aspect ~2.65 vs ~1.9), so it runs full width to keep the letters legible;
+   .game-logo's own side padding supplies the margin. */
+.game-logo .logo-img {
+    width: min(100%, 460px);
+    max-height: 32vh;
+    max-height: 32dvh;
+    height: auto;
+    display: block;
+    object-fit: contain;
+}
+
+.playbtn {
+    border: none;
+    cursor: pointer;
+    color: #fff;
+    background: linear-gradient(180deg, #38dc85 0%, #28c76f 100%);
+    font-family: inherit;
+    font-weight: 500;
+    width: min(180px, calc(100% - 48px));
+    height: 64px;
+    max-width: 100%;
+    border-radius: 999px;
+    box-shadow: 0 7px 0 #1fa459;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    position: absolute;
+    z-index: 1;
+    left: 50%;
+    /* Prefer art-relative 15%; never sit under the home bar on short phones. */
+    bottom: max(var(--home-play-y), calc(var(--home-bar-clearance) + 20px));
+    transform: translateX(-50%);
+    transition: transform .06s ease, box-shadow .06s ease;
+}
+
+.playbtn:active {
+    transform: translateX(-50%) translateY(4px);
+    box-shadow: 0 3px 0 #1fa459;
+}
+
+.playbtn .play-level {
+    font-size: clamp(20px, 5.5vw, 26px);
+    letter-spacing: 1px;
+}
+
+/* ---------- Home Bar (bottom tabs) ---------- */
+.home-bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2;
+    display: flex;
+    min-height: var(--home-bar-content-h);
+    /* Same tan as Soft-3D PLATFORM_COLOR (js/game-feel.js) so the bar reads as
+       part of the home board rather than a lighter cream strip. */
+    background: #c7a170;
+    border-top: 1px solid rgba(90, 55, 20, .18);
+    box-shadow: 0 -4px 16px rgba(90, 50, 15, .12);
+    padding-bottom: var(--safe-bottom);
+}
+
+.home-bar .tab {
+    flex: 1;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-family: inherit;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 14px 0 16px;
+    color: #9c7a55;
+    transition: transform .06s ease;
+}
+
+.home-bar .tab:active {
+    transform: translateY(1px);
+}
+
+/* Must stay a direct flex child of .tab: as a flex item the span is blockified
+   so width/height apply. Nesting it in a non-flex wrapper leaves it
+   display:inline, which collapses the box and the mask renders nothing. */
+.home-bar .tab .tab-icon {
+    width: 35px;
+    height: 35px;
+    background-color: currentColor;
+    -webkit-mask: var(--icon) no-repeat center / contain;
+    mask: var(--icon) no-repeat center / contain;
+}
+
+.home-bar .tab .tab-label {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .3px;
+}
+
+/* Current tab: the brightest thing in the bar, lifted by the same hard bottom
+   shadow the rest of the UI uses — no backing pill. */
+.home-bar .tab.active {
+    color: #fff6e6;
+}
+
+.home-bar .tab.active .tab-icon {
+    filter: drop-shadow(0 2px 0 rgba(88, 48, 14, .5));
+}
+
+.home-bar .tab.active .tab-label {
+    text-shadow: 0 2px 0 rgba(88, 48, 14, .38);
+}
+
+/* Locked tabs sit the other side of the bar tone from the current tab: dark
+   warm brown recedes, while .active reads bright and raised. */
+.home-bar .tab.locked {
+    color: #6b3a24;
+}
+
+/* ---------- Debug buttons ---------- */
+.debug {
+    position: absolute;
+    right: 12px;
+    bottom: calc(var(--home-bar-clearance) + 0px);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-end;
+    z-index: 5;
+    max-width: min(280px, calc(100vw - 24px));
+}
+
+.debug.debug-gone {
+    display: none !important;
+}
+
+.debug-label {
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: #a09ab4;
+    text-transform: uppercase;
+    cursor: pointer;
+    border: none;
+    background: none;
+    padding: 4px 8px;
+    font-family: inherit;
+}
+
+.debug-label::after {
+    content: "\25B2";
+    margin-left: 4px;
+    font-size: 8px;
+}
+
+.debug.collapsed .debug-label::after {
+    content: "\25BC";
+}
+
+.debug.collapsed .debug-body,
+.debug.collapsed .debug-icon-row,
+.debug.collapsed .mixer-panel,
+.debug.collapsed .cs3d-debug-panel,
+.debug.collapsed .home-board-debug-panel {
+    display: none;
+}
+
+.debug-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: stretch;
+    width: 100%;
+    max-height: min(52dvh, 420px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 2px;
+    scrollbar-width: thin;
+}
+
+.debug-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: stretch;
+    padding: 8px;
+    border-radius: 12px;
+    background: rgba(20, 16, 36, .42);
+    border: 1px solid rgba(255, 255, 255, .08);
+}
+
+.debug-section > .debugbtn {
+    width: 100%;
+}
+
+.debug-section-label {
+    font-size: 9px;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: #a09ab4;
+    padding: 0 2px;
+}
+
+.debug-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+
+.debug-row .debugbtn {
+    width: 100%;
+    min-width: 0;
+}
+
+.debug-skip {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.debug-skip input {
+    width: 48px;
+    flex: 0 0 auto;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 6px 8px;
+    font-size: 12px;
+    font-family: inherit;
+    text-align: center;
+    outline: none;
+}
+
+.debug-skip .debugbtn {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.debug-skip input:focus {
+    border-color: #4d9bff;
+}
+
+.debug-reset {
+    background: #ff9f43;
+}
+
+.debug-view {
+    background: #6c5ce7;
+}
+
+.debugbtn {
+    border: none;
+    cursor: pointer;
+    color: #fff;
+    font-family: inherit;
+    font-weight: 500;
+    font-size: 12px;
+    padding: 8px 10px;
+    border-radius: 999px;
+    box-shadow: 0 4px 0 rgba(0, 0, 0, .35);
+    opacity: .85;
+    transition: transform .06s ease, opacity .12s ease;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.debugbtn:active {
+    transform: translateY(2px);
+}
+
+.debugbtn:hover {
+    opacity: 1;
+}
+
+.debug-win {
+    background: #28c76f;
+}
+
+.debug-fail {
+    background: #ff5a5f;
+}
+
+.debug-lang {
+    background: #4d9bff;
+}
+
+/* Hide game / home HUD chrome for clean screenshots (toggle via debug or U).
+   Use visibility (not display) so flex spacers like the header/HUD keep their
+   space and the board does not refit larger. */
+body.hide-game-ui .settingsbtn,
+body.hide-game-ui .backbtn,
+body.hide-game-ui .header,
+body.hide-game-ui .cs-hud,
+body.hide-game-ui .cs-hint-btn,
+body.hide-game-ui .cs-tutorial,
+body.hide-game-ui .hint-feature-intro,
+body.hide-game-ui .cs-hint-tutorial-hand,
+body.hide-game-ui .home-bar,
+body.hide-game-ui .playbtn,
+body.hide-game-ui .game-logo,
+body.hide-game-ui .settings-overlay,
+body.hide-game-ui .quit-confirm,
+body.hide-game-ui .ad-offer,
+body.hide-game-ui #debugPanel,
+body.hide-game-ui #meterPanel,
+body.hide-game-ui #csPerfStat,
+body.hide-game-ui .flavour-text,
+body.hide-game-ui .fail-text,
+body.hide-game-ui .ds-home-pill {
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+/* ---------- Debug Mixer & Meter ---------- */
+.debug-icon-btn {
+    border: none;
+    cursor: pointer;
+    background: rgba(255, 255, 255, .12);
+    font-size: 16px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    opacity: .85;
+    transition: opacity .12s;
+}
+
+.debug-icon-btn:hover {
+    opacity: 1;
+}
+
+.debug-icon-btn.active {
+    background: #3ca03c;
+    color: #fff;
+    opacity: 1;
+}
+
+.debug-icon-row {
+    display: flex;
+    gap: 6px;
+}
+
+.debug.mixer-open .debug-body,
+.debug.mixer-open .debug-label {
+    display: none !important;
+}
+
+.mixer-panel {
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    background: rgba(0, 180, 80, .15);
+    border-radius: 14px;
+    padding: 12px;
+    width: 220px;
+    max-height: 420px;
+    font-size: 11px;
+    color: #241a44;
+}
+
+.debug.mixer-open .mixer-panel {
+    display: flex;
+}
+
+.cs3d-debug-panel {
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    width: min(360px, calc(100vw - 28px));
+    max-height: calc(50dvh - 14px);
+    overflow: auto;
+    background: rgba(15, 20, 30, .84);
+    color: #eef3ff;
+    border: 1px solid rgba(255, 255, 255, .15);
+    border-radius: 12px;
+    padding: 10px;
+    box-shadow: 0 10px 36px rgba(0, 0, 0, .36);
+    backdrop-filter: blur(6px);
+    font: 12px/1.3 "Trebuchet MS", system-ui, sans-serif;
+}
+
+.debug.cs3d-open {
+    top: 14px;
+    bottom: auto;
+    right: 14px;
+    z-index: 15;
+}
+
+.debug.cs3d-open .debug-label,
+.debug.cs3d-open .debug-icon-row,
+.debug.cs3d-open .debug-body,
+.debug.cs3d-open .mixer-panel {
+    display: none !important;
+}
+
+.debug.cs3d-open .cs3d-debug-panel {
+    display: flex;
+}
+
+.home-board-debug-panel {
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    width: min(360px, calc(100vw - 28px));
+    max-height: calc(50dvh - 14px);
+    overflow: auto;
+    background: rgba(15, 20, 30, .84);
+    color: #eef3ff;
+    border: 1px solid rgba(255, 255, 255, .15);
+    border-radius: 12px;
+    padding: 10px;
+    box-shadow: 0 10px 36px rgba(0, 0, 0, .36);
+    backdrop-filter: blur(6px);
+    font: 12px/1.3 "Trebuchet MS", system-ui, sans-serif;
+}
+
+.debug.home-open {
+    top: 14px;
+    bottom: auto;
+    right: 14px;
+    z-index: 15;
+}
+
+.debug.home-open .debug-label,
+.debug.home-open .debug-icon-row,
+.debug.home-open .debug-body,
+.debug.home-open .mixer-panel,
+.debug.home-open .cs3d-debug-panel {
+    display: none !important;
+}
+
+.debug.home-open .home-board-debug-panel {
+    display: flex;
+}
+
+.home-board-debug-panel h3 {
+    margin: 0;
+    font-size: 13px;
+}
+
+.cs3d-debug-panel h3 {
+    margin: 0;
+    font-size: 13px;
+}
+
+.cs3d-tabbar {
+    display: flex;
+    gap: 4px;
+    position: sticky;
+    top: 0;
+    background: rgba(15, 20, 30, .92);
+    padding-bottom: 4px;
+    z-index: 1;
+}
+
+.cs3d-tab {
+    flex: 1;
+    border: 1px solid rgba(255, 255, 255, .15);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, .06);
+    color: #b3c8ff;
+    padding: 6px 4px;
+    cursor: pointer;
+    font: 700 11px/1 "Trebuchet MS", system-ui, sans-serif;
+}
+
+.cs3d-tab.active {
+    background: rgba(90, 140, 255, .35);
+    color: #fff;
+    border-color: rgba(140, 180, 255, .6);
+}
+
+.cs3d-tabpage {
+    flex-direction: column;
+    gap: 6px;
+}
+
+.cs3d-debug-panel .cs3d-section {
+    margin-top: 6px;
+    color: #b3c8ff;
+    font-weight: 700;
+    letter-spacing: .2px;
+}
+
+.cs3d-debug-panel .cs3d-row {
+    display: grid;
+    grid-template-columns: 112px 1fr 58px;
+    gap: 6px;
+    align-items: center;
+}
+
+.cs3d-debug-panel input[type="range"] {
+    width: 100%;
+}
+
+.cs3d-debug-panel input[type="number"] {
+    width: 100%;
+    border: 1px solid rgba(255, 255, 255, .2);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, .1);
+    color: #eef3ff;
+    padding: 3px 5px;
+}
+
+.cs3d-debug-panel input[type="color"] {
+    grid-column: 2 / span 2;
+    width: 100%;
+    height: 26px;
+    border: 0;
+    background: transparent;
+}
+
+.cs3d-debug-actions {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-top: 4px;
+}
+
+.cs3d-debug-actions button {
+    border: 1px solid rgba(255, 255, 255, .2);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, .12);
+    color: #f2f6ff;
+    padding: 6px 8px;
+    cursor: pointer;
+    font: inherit;
+}
+
+.mixer-section-label {
+    font-weight: 700;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    color: #6b6684;
+    margin: 4px 0 0;
+}
+
+.mixer-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.mixer-row label {
+    flex: 1;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mixer-row input[type="range"] {
+    flex: 2;
+    height: 6px;
+    accent-color: #28c76f;
+    cursor: pointer;
+}
+
+.mixer-row .mixer-val {
+    width: 26px;
+    text-align: right;
+    font-size: 10px;
+    color: #6b6684;
+}
+
+.mixer-toggles {
+    display: flex;
+    gap: 4px;
+    margin-top: 2px;
+}
+
+.mixer-tog {
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 7px;
+    border-radius: 6px;
+    background: #e0dce8;
+    color: #6b6684;
+    transition: background .12s, color .12s;
+}
+
+.mixer-tog.active {
+    background: #4d9bff;
+    color: #fff;
+}
+
+.mixer-tog.mute-active {
+    background: #ff5a5f;
+    color: #fff;
+}
+
+.mixer-channel-tag {
+    font-size: 9px;
+    padding: 2px 5px;
+    border-radius: 4px;
+    background: #e8e4f0;
+    color: #6b6684;
+    font-weight: 600;
+}
+
+.mixer-sounds-scroll {
+    max-height: 180px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-right: 4px;
+}
+
+.mixer-sounds-scroll::-webkit-scrollbar {
+    width: 4px;
+}
+
+.mixer-sounds-scroll::-webkit-scrollbar-thumb {
+    background: #c0bcc8;
+    border-radius: 2px;
+}
+
+.mixer-sound-strip {
+    background: rgba(255, 255, 255, .6);
+    border-radius: 10px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.mixer-sound-strip .mixer-row input[type="range"] {
+    flex: 3;
+}
+
+.mixer-save-btn {
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 12px;
+    padding: 8px;
+    border-radius: 10px;
+    background: #28c76f;
+    color: #fff;
+    text-align: center;
+}
+
+/* Loudness Meter Panel */
+.meter-panel {
+    display: none;
+    position: absolute;
+    left: 12px;
+    bottom: var(--home-bar-clearance);
+    flex-direction: column;
+    gap: 6px;
+    background: rgba(20, 15, 40, .88);
+    backdrop-filter: blur(4px);
+    border-radius: 14px;
+    padding: 14px 16px;
+    font-size: 11px;
+    color: #e0dce8;
+    z-index: 5;
+    min-width: 170px;
+}
+
+.meter-panel.show {
+    display: flex;
+}
+
+.meter-panel h4 {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+}
+
+.meter-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.meter-row .meter-label {
+    color: #a09ab4;
+    font-weight: 500;
+}
+
+.meter-row .meter-value {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.meter-reset-btn {
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 11px;
+    padding: 6px;
+    border-radius: 8px;
+    background: #4d9bff;
+    color: #fff;
+    text-align: center;
+    margin-top: 4px;
+}
+
+/* ---------- Result Overlay ---------- */
+.overlay {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    background: rgba(9, 6, 20, .72);
+    backdrop-filter: blur(3px);
+    z-index: 10;
+    padding: 24px;
+    text-align: center;
+}
+
+.overlay.show {
+    display: flex;
+    animation: fade .25s ease;
+}
+
+.overlay.result-locked {
+    display: flex !important;
+}
+
+.overlay.backdrop-only .overlay-card {
+    opacity: 0 !important;
+    transition: none;
+}
+
+.overlay.reveal-content .overlay-card {
+    opacity: 1 !important;
+    transition: opacity .35s ease;
+}
+
+.overlay .overlay-card .nextbtn.btn-hidden {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .35s ease;
+}
+
+.overlay .overlay-card .nextbtn.btn-visible {
+    opacity: 1;
+    pointer-events: auto;
+    transition: opacity .35s ease;
+}
+
+@keyframes fade {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.overlay-card {
+    background: transparent;
+    box-shadow: none;
+    padding: 24px;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    position: relative;
+    z-index: 2;
+    animation: pop .35s ease;
+}
+
+.overlay-bottom {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    width: 100%;
+    gap: 8px;
+    box-sizing: border-box;
+}
+
+/* Win card: compact title on top, board owns the middle, chrome anchored bottom. */
+.overlay-card.win {
+    justify-content: flex-start;
+    align-items: center;
+    padding: 0;
+    gap: 0;
+    animation: none;
+    --win-title-top: calc(16px + var(--safe-top, 0px));
+    --win-bottom-inset: calc(18px + var(--safe-bottom, 0px));
+    --win-top-reserve: 0px;
+    --win-bottom-reserve: 0px;
+}
+
+.overlay-card.win.win-docked {
+    --win-top-reserve: var(--win-dock-top-reserve, 72px);
+    --win-bottom-reserve: 0px;
+}
+
+.overlay-card.win.win-chrome {
+    --win-top-reserve: var(--win-dock-top-reserve, 72px);
+    --win-bottom-reserve: var(--win-chrome-bottom-reserve, 168px);
+}
+
+.overlay-card.win h2 {
+    position: absolute;
+    left: 0;
+    right: 0;
+    margin: 0;
+    padding: 0 20px;
+    z-index: 5;
+    pointer-events: none;
+    font-size: 28px;
+    font-weight: 800;
+    line-height: 1.05;
+    text-align: center;
+    box-sizing: border-box;
+    transition: top var(--win-dock-ms, 560ms) cubic-bezier(.22, .61, .36, 1),
+        transform var(--win-dock-ms, 560ms) cubic-bezier(.22, .61, .36, 1);
+}
+
+.overlay-card.win.win-hero h2 {
+    top: 38%;
+    transform: translateY(-50%);
+}
+
+.overlay-card.win.win-docked h2,
+.overlay-card.win.win-chrome h2 {
+    top: var(--win-title-top);
+    transform: none;
+}
+
+.overlay-card.win .overlay-board-slot {
+    display: block;
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    top: var(--win-top-reserve);
+    bottom: var(--win-bottom-reserve);
+    width: auto;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    margin: 0;
+    flex: none;
+    pointer-events: none;
+    transition: none;
+}
+
+/* left/right only — never width:100% with both insets (that shifts content left). */
+.overlay-card.win .overlay-bottom {
+    position: absolute;
+    left: 20px;
+    right: 20px;
+    width: auto;
+    max-width: none;
+    bottom: var(--win-bottom-inset, calc(18px + var(--safe-bottom, 0px)));
+    z-index: 5;
+    margin: 0 auto;
+    transform: translateY(24px);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 420ms cubic-bezier(.22, .61, .36, 1),
+        opacity 320ms ease;
+}
+
+.overlay-card.win.win-chrome .overlay-bottom {
+    transform: none;
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.overlay-card.win.win-hero .overlay-bottom,
+.overlay-card.win.win-docked:not(.win-chrome) .overlay-bottom {
+    visibility: hidden;
+}
+
+@keyframes pop {
+    from {
+        opacity: 0;
+        transform: translateY(12px) scale(.96);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.overlay-card h2 {
+    margin: 0 0 4px;
+    font-size: 46px;
+    font-weight: 800;
+    text-align: center;
+    line-height: 1.05;
+}
+
+.overlay-card.win h2 {
+    color: #38dc85;
+    font-size: 28px;
+    margin: 0;
+    line-height: 1.05;
+}
+
+.overlay-card.fail h2 {
+    color: #ff6b70;
+}
+
+.overlay-card p {
+    margin: 0;
+    opacity: .85;
+    font-size: 22px;
+}
+
+.overlay-card .overlay-percentile {
+    max-width: 20em;
+    text-align: center;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.25;
+    opacity: 1;
+    color: #fff;
+    margin: 0 auto;
+}
+
+/* Fail card: board slot unused; bottom chrome is normal flow. */
+.overlay-card.fail .overlay-board-slot {
+    display: none;
+}
+
+.overlay-card .overlay-percentile[hidden] {
+    display: none;
+}
+
+/* Hide the "Great job" line on the level-complete card (fail card keeps it). */
+.overlay-card.win #overlaySubtitle {
+    display: none;
+}
+
+/* Lift the finished board above the frosted overlay so it reads crisply while
+   it shrinks into the slot; title/chrome sit above it. */
+#gameScreen.board-in-overlay .cs-canvas {
+    z-index: 3;
+    pointer-events: none;
+    transform-origin: center center;
+    transition: transform 560ms cubic-bezier(.22, .61, .36, 1),
+        opacity 300ms ease, filter 300ms ease;
+    will-change: transform;
+}
+
+/* When a reward/feature unlock takes over the win card, drop the board behind
+   the card (below .overlay-card z-index) and dim it so the popup reads above. */
+#gameScreen.board-in-overlay.board-unlock-dim .cs-canvas {
+    z-index: 1;
+    opacity: .28;
+    filter: brightness(.5) saturate(.85);
+}
+
+/* Inline progress-reward slot, between the result copy and Continue button. */
+.overlay-progress {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    margin: 6px 0 0;
+    box-sizing: border-box;
+}
+
+.overlay-progress:empty {
+    display: none;
+}
+
+/* Reserve the reward bar's footprint for the whole win flow. The embedded bar
+   is mounted here at init but only becomes visible ~1.5s after the card lands
+   (and is retired after a claim). Keeping it in-flow but invisible means the
+   card is laid out once and never reflows as the bar fades in, claims, or
+   retires — the first placement holds through every stage. */
+.overlay-card.win .overlay-progress > .pr-overlay.pr-embedded {
+    display: block;
+    visibility: hidden;
+    width: min(100%, 320px);
+    max-width: 320px;
+    margin-left: auto;
+    margin-right: auto;
+    flex: 0 0 auto;
+}
+
+.overlay-card.win .overlay-progress > .pr-overlay.pr-embedded.show {
+    visibility: visible;
+}
+
+/* After the Claim, keep just the bar hidden through the wrap-up (the reveal
+   overlay lives in the same slot, so we can't fade the whole slot here)... */
+.overlay-card.progress-claiming .pr-panel {
+    visibility: hidden;
+}
+
+/* ...then retire the bar but keep its reserved footprint so the win card stays
+   exactly where it first landed instead of re-centring without it. */
+.overlay-card.win.progress-claimed .overlay-progress > .pr-overlay.pr-embedded {
+    visibility: hidden;
+}
+
+.overlay-card .overlay-percentile .beat-pct {
+    color: #f5c518;
+    font-weight: 800;
+}
+
+.nextbtn {
+    border: none;
+    cursor: pointer;
+    color: #fff;
+    font-family: inherit;
+    font-weight: 500;
+    font-size: 18px;
+    padding: 12px 34px;
+    border-radius: 999px;
+    background: #28c76f;
+    box-shadow: 0 5px 0 #1fa459;
+    margin-top: 36px;
+    align-self: center;
+}
+
+.overlay-card.win .nextbtn {
+    margin-top: 10px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.nextbtn:active {
+    transform: translateY(2px);
+    box-shadow: 0 3px 0 #1fa459;
+}
+
+.retrybtn {
+    background: #ff5a5f;
+    box-shadow: 0 5px 0 #c9393e;
+}
+
+.retrybtn:active {
+    box-shadow: 0 3px 0 #c9393e;
+}
+
+/* ---------- Celebration VFX ---------- */
+/* Per-letter expand-in for the title (tap-to-expand vibe) */
+.overlay-card h2 .ltr {
+    display: inline-block;
+    white-space: pre;
+    opacity: 0;
+    transform: scaleX(.08) scaleY(1.05);
+    animation: letterExpand .48s cubic-bezier(.2, 1.4, .28, 1) forwards;
+}
+
+@keyframes letterExpand {
+    0% {
+        opacity: 0;
+        transform: scaleX(.08) scaleY(1.08);
+        filter: brightness(1.35);
+    }
+
+    55% {
+        opacity: 1;
+        transform: scaleX(1.14) scaleY(.9);
+        filter: brightness(1);
+    }
+
+    78% {
+        transform: scaleX(.96) scaleY(1.06);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scaleX(1) scaleY(1);
+        filter: brightness(1);
+    }
+}
+
+/* Confetti stays behind the result text and button. */
+.confetti {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Fireworks canvas covers the whole app, above all UI */
+.fireworks {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 30;
+}
+
+/* Transition cover — same atmosphere as #splashScreen (SP-1089) */
+.fade-black {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(180deg, #c8e8f0 0%, #e8ddd0 50%, #f0e4d4 100%);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 50;
+    transition: opacity .4s cubic-bezier(.4, 0, .2, 1);
+    padding:
+        max(16px, var(--safe-top))
+        max(16px, var(--safe-right))
+        max(16px, var(--safe-bottom))
+        max(16px, var(--safe-left));
+}
+
+.fade-black.show {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.fade-splash-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(12px, 3.2vh, 24px);
+    width: min(100%, 420px);
+    opacity: 0.92;
+}
+
+.fade-splash-title {
+    width: min(84%, 396px);
+    max-height: min(28vh, 220px);
+    height: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 6px 12px rgba(40, 20, 10, 0.2));
+}
+
+.fade-splash-logo {
+    width: min(28%, 110px);
+    max-height: min(12vh, 90px);
+    height: auto;
+    object-fit: contain;
+    opacity: 0.85;
+}
+
+/* Expanding glow burst behind the card */
+.burst {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 320px;
+    height: 320px;
+    transform: translate(-50%, -50%) scale(0);
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(56, 220, 133, .55) 0%, rgba(56, 220, 133, 0) 65%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.overlay.celebrate .burst {
+    animation: burst .7s ease-out forwards;
+}
+
+@keyframes burst {
+    0% {
+        transform: translate(-50%, -50%) scale(0);
+        opacity: .9;
+    }
+
+    70% {
+        opacity: .45;
+    }
+
+    100% {
+        transform: translate(-50%, -50%) scale(1.9);
+        opacity: 0;
+    }
+}
+
+/* Intro bounce for the Next Level button — held back until the progress-reward
+   flow has played out (see .progress-pending). */
+.overlay-card.win:not(.progress-pending) .nextbtn {
+    animation: btnPopIn .5s cubic-bezier(.2, 1.5, .35, 1) both;
+    animation-delay: .4s;
+}
+
+@keyframes btnPopIn {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+
+    60% {
+        transform: scale(1.12);
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* ---------- Icon buttons (settings / back) ---------- */
+/* Chunky warm-tan discs sharing the play button's press physics and the
+   settings card's cream/brown palette. The icon lives on ::before so the
+   button itself can carry a body — a mask on the button would clip it. */
+.iconbtn {
+    position: absolute;
+    top: calc(16px + var(--safe-top));
+    z-index: 6;
+    width: var(--iconbtn-size, 44px);
+    height: var(--iconbtn-size, 44px);
+    padding: 0;
+    cursor: pointer;
+    border: 2px solid rgba(255, 255, 255, .72);
+    border-radius: 999px;
+    /* Deeper than the cream page background so the disc still reads on it. */
+    background: linear-gradient(180deg, #fbeacd 0%, #edcb9b 100%);
+    box-shadow:
+        0 var(--iconbtn-lift, 4px) 0 #c9975d,
+        0 calc(var(--iconbtn-lift, 4px) + 2px) 10px rgba(90, 50, 15, .22);
+    transition: transform .06s ease, box-shadow .06s ease, opacity .3s ease;
+}
+
+.iconbtn::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-color: #8b4528;
+    -webkit-mask: var(--iconbtn-icon) no-repeat center / var(--iconbtn-icon-size);
+    mask: var(--iconbtn-icon) no-repeat center / var(--iconbtn-icon-size);
+}
+
+.iconbtn:active {
+    transform: translateY(var(--iconbtn-lift, 4px));
+    box-shadow: 0 0 0 #c9975d, 0 1px 4px rgba(90, 50, 15, .22);
+}
+
+.iconbtn:disabled {
+    cursor: default;
+    pointer-events: none;
+}
+
+.settingsbtn {
+    right: max(16px, var(--safe-right));
+    --iconbtn-icon: url("../Icon-Settings.png");
+    --iconbtn-icon-size: 24px 24px;
+}
+
+.backbtn {
+    left: max(16px, var(--safe-left));
+    --iconbtn-icon: url("../Assets/Icon-Arrow.png");
+    /* Arrow art is taller than wide; height-only sizing keeps its aspect. */
+    --iconbtn-icon-size: auto 52%;
+}
+
+/* Game screen keeps the original 36px box so the board's top-UI measurement in
+   game-sim.js is unchanged; the hard shadow sits outside the layout box. */
+#gameScreen .iconbtn {
+    --iconbtn-size: 36px;
+    --iconbtn-lift: 3px;
+}
+
+#gameScreen .settingsbtn {
+    --iconbtn-icon-size: 20px 20px;
+}
+
+/* ---------- Settings menu ---------- */
+/* Warm tan / gold language shared with the daily streak popup. */
+.settings-overlay {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(58, 30, 10, .62);
+    backdrop-filter: blur(3px);
+    z-index: 20;
+    padding: 24px;
+}
+
+.settings-overlay.show {
+    display: flex;
+    animation: fade .25s ease;
+}
+
+.settings-card {
+    position: relative;
+    width: 100%;
+    max-width: 320px;
+    background:
+        radial-gradient(ellipse 90% 60% at 50% 0%, rgba(255, 248, 232, .9) 0%, transparent 70%),
+        linear-gradient(180deg, #fbf3e6 0%, #f2e0c4 100%);
+    color: #6b3a24;
+    padding: 26px 24px 24px;
+    border-radius: 24px;
+    border: 2px solid rgba(255, 255, 255, .5);
+    box-shadow: 0 14px 40px rgba(80, 40, 10, .38);
+    animation: pop .35s ease;
+}
+
+.settings-card h2 {
+    margin: 0 0 20px;
+    font-size: 26px;
+    font-weight: 800;
+    text-align: center;
+    color: #8b4528;
+}
+
+.settings-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 32px;
+    height: 32px;
+    border: none;
+    cursor: pointer;
+    border-radius: 999px;
+    background: #f5c9a0;
+    color: #8b4528;
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 1;
+    box-shadow: 0 2px 0 rgba(160, 100, 50, .3);
+}
+
+.settings-close:active {
+    transform: scale(.9);
+}
+
+.setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 4px;
+    border-bottom: 1px solid rgba(139, 69, 40, .16);
+}
+
+.setting-row:last-of-type {
+    border-bottom: none;
+}
+
+.setting-row span {
+    font-size: 16px;
+    font-weight: 700;
+    color: #6b3a24;
+}
+
+/* Soft-3D stretch-block toggles (canvas knobs rendered by settings-block-toggles.js) */
+.toggle {
+    position: relative;
+    width: var(--toggle-w, 92px);
+    height: var(--toggle-h, 36px);
+    flex-shrink: 0;
+    border-radius: var(--toggle-radius, 10px);
+    overflow: hidden;
+    background: var(--toggle-track, #e6c79d);
+    box-shadow: inset 0 1px 3px rgba(90, 55, 20, .18);
+}
+
+.toggle input {
+    position: absolute;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    cursor: pointer;
+    z-index: 3;
+}
+
+.toggle .track {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: var(--toggle-track, #e6c79d);
+    pointer-events: none;
+}
+
+.toggle-socket {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: var(--toggle-socket-size, 14px);
+    height: var(--toggle-socket-size, 14px);
+    border-radius: 50%;
+    border: var(--toggle-socket-border, 2px) solid rgba(255, 255, 255, .88);
+    box-shadow:
+        inset 0 0 0 1px rgba(120, 80, 40, .16),
+        0 1px 0 rgba(255, 255, 255, .28);
+    pointer-events: none;
+    z-index: 2;
+    transform: translate(-50%, -50%);
+    will-change: left, top;
+}
+
+.toggle .knob {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    pointer-events: none;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    z-index: 1;
+}
+
+.settings-quit {
+    width: 100%;
+    margin-top: 22px;
+    border: none;
+    cursor: pointer;
+    color: #fff;
+    font-family: inherit;
+    font-weight: 500;
+    font-size: 17px;
+    padding: 12px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #f79a3c 0%, #f07820 100%);
+    box-shadow: 0 5px 0 #c85a12;
+}
+
+.settings-quit:active {
+    transform: translateY(2px);
+    box-shadow: 0 3px 0 #c85a12;
+}
+
+/* Secondary text-only links */
+.settings-links {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    margin-top: 18px;
+}
+
+.settings-link {
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 14px;
+    color: #a05838;
+    padding: 6px 8px;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.settings-link:active {
+    color: #8b4528;
+}
+
+/* ---------- Quit Confirmation ---------- */
+/* Warm tan / gold language shared with the daily streak popup. */
+.quit-confirm {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(58, 30, 10, .62);
+    backdrop-filter: blur(3px);
+    z-index: 21;
+    padding: 24px;
+}
+
+.quit-confirm.show {
+    display: flex;
+    animation: fade .25s ease;
+}
+
+.quit-confirm-card {
+    width: 100%;
+    max-width: 320px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background:
+        radial-gradient(ellipse 90% 60% at 50% 0%, rgba(255, 248, 232, .9) 0%, transparent 70%),
+        linear-gradient(180deg, #fbf3e6 0%, #f2e0c4 100%);
+    color: #6b3a24;
+    padding: 28px 24px 24px;
+    border-radius: 24px;
+    border: 2px solid rgba(255, 255, 255, .5);
+    box-shadow: 0 14px 40px rgba(80, 40, 10, .38);
+    text-align: center;
+    animation: pop .25s ease;
+}
+
+.quit-confirm h3 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    color: #8b4528;
+}
+
+.quit-confirm p {
+    margin: 8px 0 16px;
+    font-size: 15px;
+    color: #a05838;
+    font-weight: 500;
+}
+
+.quit-confirm-btns {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+}
+
+.quit-confirm-btn {
+    flex: 1;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 500;
+    font-size: 16px;
+    padding: 12px;
+    border-radius: 999px;
+    color: #fff;
+}
+
+.quit-yes {
+    background: linear-gradient(180deg, #38dc85 0%, #28c76f 100%);
+    box-shadow: 0 4px 0 #1fa459;
+}
+
+.quit-yes:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 #1fa459;
+}
+
+.quit-no {
+    background: linear-gradient(180deg, #f79a3c 0%, #f07820 100%);
+    box-shadow: 0 4px 0 #c85a12;
+}
+
+.quit-no:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 #c85a12;
+}
+
+/* ---------- Ad offer popups (Times Up / Give Up / Add Hint) ---------- */
+.ad-offer {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(58, 30, 10, .62);
+    backdrop-filter: blur(3px);
+    z-index: 22;
+    padding: 24px;
+}
+
+.ad-offer.show {
+    display: flex;
+    animation: fade .25s ease;
+}
+
+.ad-offer.show.is-hiding {
+    animation: adOfferFadeOut .2s ease forwards;
+    pointer-events: none;
+}
+
+.ad-offer.show.is-hiding .ad-offer-card {
+    animation: adOfferCardOut .2s ease forwards;
+}
+
+@keyframes adOfferFadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+@keyframes adOfferCardOut {
+    from {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.88) translateY(14px);
+    }
+}
+
+.ad-offer-card {
+    position: relative;
+    width: 100%;
+    max-width: 320px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    background:
+        radial-gradient(ellipse 90% 60% at 50% 0%, rgba(255, 248, 232, .9) 0%, transparent 70%),
+        linear-gradient(180deg, #fbf3e6 0%, #f2e0c4 100%);
+    color: #6b3a24;
+    padding: 28px 22px 22px;
+    border-radius: 24px;
+    border: 2px solid rgba(255, 255, 255, .5);
+    box-shadow: 0 14px 40px rgba(80, 40, 10, .38);
+    text-align: center;
+    animation: pop .25s ease;
+}
+
+.ad-offer-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 32px;
+    height: 32px;
+    border: none;
+    cursor: pointer;
+    border-radius: 999px;
+    background: #f5c9a0;
+    color: #8b4528;
+    font-size: 20px;
+    font-weight: 800;
+    line-height: 1;
+    box-shadow: 0 2px 0 rgba(160, 100, 50, .3);
+    z-index: 1;
+}
+
+.ad-offer-close:active {
+    transform: scale(.9);
+}
+
+.ad-offer-title {
+    margin: 0;
+    font-family: "Fredoka", "Nunito", sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: #8b4528;
+    letter-spacing: -0.02em;
+}
+
+.ad-offer-char {
+    width: 164px;
+    height: 164px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 4px 0 8px;
+}
+
+.ad-offer-sad {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 6px 10px rgba(107, 58, 36, .22));
+    pointer-events: none;
+    user-select: none;
+    animation: adOfferSadIn .38s cubic-bezier(.34, 1.4, .5, 1) both;
+}
+
+@keyframes adOfferSadIn {
+    from {
+        opacity: 0;
+        transform: scale(.72) translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.ad-offer-hint-prize {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 4px 0 8px;
+}
+
+.ad-offer-hint-icon {
+    width: 96px;
+    height: 96px;
+    object-fit: contain;
+    filter: drop-shadow(0 6px 0 rgba(150, 92, 40, .35));
+}
+
+.ad-offer-hint-mult {
+    position: absolute;
+    right: -2px;
+    bottom: 8px;
+    min-width: 44px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #ffe08a 0%, #f3c33d 100%);
+    color: #6b3a24;
+    font-family: "Fredoka", "Nunito", sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    box-shadow: 0 3px 0 rgba(176, 108, 20, .55);
+}
+
+.ad-offer-btn {
+    width: 100%;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 18px;
+    padding: 14px 16px;
+    border-radius: 999px;
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.ad-offer-btn-rv {
+    background: linear-gradient(180deg, #38dc85 0%, #28c76f 100%);
+    box-shadow: 0 4px 0 #1fa459;
+}
+
+.ad-offer-btn-rv:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 #1fa459;
+}
+
+.ad-offer-btn-rv:disabled,
+.ad-offer-btn-rv.is-busy {
+    opacity: 0.55;
+    cursor: default;
+    pointer-events: none;
+    transform: none;
+    box-shadow: 0 4px 0 #1fa459;
+}
+
+.ad-offer.is-granting .ad-offer-card {
+    pointer-events: none;
+}
+
+.ad-offer.is-granting .ad-offer-hint-prize {
+    animation: adOfferPrizePop .35s cubic-bezier(0.2, 1.4, 0.3, 1);
+}
+
+@keyframes adOfferPrizePop {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.12); }
+    100% { transform: scale(1); }
+}
+
+.ad-offer-btn-retry {
+    background: linear-gradient(180deg, #38dc85 0%, #28c76f 100%);
+    box-shadow: 0 4px 0 #1fa459;
+}
+
+.ad-offer-btn-retry:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 #1fa459;
+}
+
+.ad-offer-text-btn {
+    border: none;
+    background: transparent;
+    color: #a05838;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 700;
+    padding: 8px 12px;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.ad-rv-icon {
+    position: relative;
+    width: 28px;
+    height: 28px;
+    flex: 0 0 auto;
+}
+
+.ad-rv-play {
+    width: 28px;
+    height: 28px;
+    fill: #fff;
+    stroke: rgba(15, 80, 40, .35);
+    stroke-width: 1.2;
+}
+
+.ad-rv-play path {
+    fill: #1fa459;
+    stroke: none;
+}
+
+.ad-rv-badge {
+    position: absolute;
+    right: -6px;
+    bottom: -4px;
+    padding: 1px 4px;
+    border-radius: 4px;
+    background: #f3c33d;
+    color: #5a3a10;
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    line-height: 1.2;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, .2);
+}
+
+.ad-offer-toast {
+    z-index: 40;
+    background: rgba(255, 248, 232, .95);
+    padding: 8px 14px;
+    border-radius: 999px;
+    box-shadow: 0 4px 14px rgba(80, 40, 10, .25);
+}
+
+.ads-debug-panel {
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 4px 4px;
+}
+
+.debug.ads-open .ads-debug-panel {
+    display: flex;
+}
+
+.debug.ads-open .debug-body,
+.debug.ads-open .mixer-panel {
+    display: none;
+}
+
+.ads-debug-nofill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #cfc8e4;
+    padding: 4px 2px;
+}
+
+.ads-debug-gate {
+    margin: 0;
+    padding: 8px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, .28);
+    color: #d7d0ef;
+    font-size: 10px;
+    line-height: 1.35;
+    white-space: pre-wrap;
+    max-height: 120px;
+    overflow: auto;
+}
+
+/* ---------- Locked Tab Toast ---------- */
+.locked-toast {
+    position: absolute;
+    pointer-events: none;
+    font-size: 12px;
+    font-weight: 500;
+    color: #6b6684;
+    white-space: nowrap;
+    animation: toastFloat 1.8s ease forwards;
+    z-index: 10;
+}
+
+@keyframes toastFloat {
+    0% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    70% {
+        opacity: 1;
+        transform: translateY(-30px);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translateY(-45px);
+    }
+}
+
+/* ---------- Splash Screen ---------- */
+#splashScreen {
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(180deg, #c8e8f0 0%, #e8ddd0 50%, #f0e4d4 100%);
+    overflow: hidden;
+    padding:
+        max(16px, var(--safe-top))
+        max(16px, var(--safe-right))
+        max(16px, var(--safe-bottom))
+        max(16px, var(--safe-left));
+}
+
+.splash-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(12px, 3.2vh, 24px);
+    width: min(100%, 420px);
+    max-height: 100%;
+    opacity: 0;
+    transform: translateY(18px) scale(0.96);
+    transition: opacity .5s ease, transform .5s ease;
+}
+
+.splash-content.visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+.splash-title {
+    width: min(84%, 396px);
+    max-height: min(28vh, 220px);
+    height: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 6px 12px rgba(40, 20, 10, 0.2));
+}
+
+.splash-logo {
+    width: min(28%, 110px);
+    max-height: min(12vh, 90px);
+    height: auto;
+    object-fit: contain;
+    opacity: 0.85;
+}
+
+.splash-bar-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: min(68%, 280px);
+    flex-shrink: 0;
+}
+
+.splash-bar-track {
+    position: relative;
+    width: 100%;
+    height: 18px;
+    border-radius: 999px;
+    background: rgba(30, 20, 12, 0.18);
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+}
+
+.splash-bar-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #f0a020, #f3c33d);
+    box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.35);
+}
+
+.splash-bar-fill::after {
+    content: "";
+    position: absolute;
+    top: 0; right: 0;
+    width: 10px; height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4));
+    opacity: 0;
+}
+
+.splash-bar-fill.complete::after {
+    animation: splashFillFlash .3s ease-out;
+}
+
+@keyframes splashFillFlash {
+    0% { opacity: 0; }
+    40% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+.splash-bar-label {
+    font-family: "Nunito", sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: rgba(60, 40, 20, 0.55);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+/* Short / compact phones: tighten home + splash so logo, play, and bar don't collide. */
+@media (max-height: 700px) {
+    :root {
+        --home-logo-y: 18%;
+        --home-play-y: 16%;
+    }
+
+    .game-logo .logo-img {
+        width: min(62%, 280px);
+        max-height: 26vh;
+        max-height: 26dvh;
+    }
+
+    .playbtn {
+        height: 56px;
+        width: min(160px, calc(100% - 40px));
+    }
+
+    .splash-title {
+        max-height: min(24vh, 160px);
+    }
+
+    .splash-logo {
+        max-height: min(10vh, 70px);
+    }
+}
+
+@media (max-height: 560px) {
+    :root {
+        --home-logo-y: 16%;
+    }
+
+    .game-logo .logo-img {
+        width: min(76%, 300px);
+        max-height: 22vh;
+        max-height: 22dvh;
+    }
+
+    .splash-content {
+        gap: 10px;
+    }
+
+    .splash-bar-track {
+        height: 14px;
+    }
+}

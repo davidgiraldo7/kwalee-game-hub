@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Daily Streak Editor</title>
+    <style>
+        * { box-sizing: border-box; }
+        body, html {
+            margin: 0;
+            padding: 0;
+            min-height: 100%;
+            background: #1a1c29;
+            color: #fff;
+            font-family: "Nunito", "Trebuchet MS", system-ui, sans-serif;
+        }
+        #app {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+            padding: 24px;
+            align-items: flex-start;
+        }
+        h1 {
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin: 0 0 8px;
+            width: 100%;
+        }
+        .sub {
+            width: 100%;
+            margin: 0 0 12px;
+            color: #9aa0b5;
+            font-weight: 700;
+        }
+        h2 {
+            font-weight: 900;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 0 0 10px;
+            color: #9aa0b5;
+        }
+        .panel {
+            background: #282a3a;
+            border-radius: 18px;
+            padding: 20px;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.35), inset 0 2px 0 rgba(255,255,255,0.05);
+            min-width: 320px;
+            flex: 1 1 360px;
+        }
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        label { font-weight: 700; font-size: 14px; color: #c7ccdd; min-width: 110px; }
+        input[type="text"], input[type="number"], select, textarea {
+            background: #1f2130;
+            border: 2px solid #3a3d52;
+            color: #fff;
+            border-radius: 10px;
+            padding: 8px 10px;
+            font-family: inherit;
+            font-weight: 700;
+            font-size: 14px;
+        }
+        input[type="number"] { width: 90px; }
+        input[type="text"] { min-width: 160px; flex: 1; }
+        textarea {
+            width: 100%;
+            min-height: 240px;
+            resize: vertical;
+            font-size: 12px;
+            line-height: 1.4;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-weight: 500;
+        }
+        button {
+            background: #05c46b;
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            font-size: 15px;
+            font-weight: 700;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #049451;
+            transition: transform 0.08s, box-shadow 0.08s;
+            font-family: inherit;
+        }
+        button:active { transform: translateY(4px); box-shadow: 0 0 0 #049451; }
+        button.secondary { background: #576574; box-shadow: 0 4px 0 #3c4653; }
+        button.secondary:active { box-shadow: 0 0 0 #3c4653; }
+        button.danger { background: #e74c3c; box-shadow: 0 4px 0 #c0392b; }
+        .reward-card {
+            background: #1f2130;
+            border: 2px solid #3a3d52;
+            border-radius: 14px;
+            padding: 14px;
+        }
+        .enum-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #14361f;
+            border: 2px solid #05c46b;
+            border-radius: 999px;
+            padding: 6px 10px 6px 12px;
+            margin: 0 8px 8px 0;
+            font-weight: 700;
+            font-size: 13px;
+        }
+        .enum-chip button {
+            padding: 4px 8px;
+            font-size: 12px;
+            border-radius: 8px;
+            box-shadow: none;
+        }
+        .preview {
+            width: 72px;
+            height: 72px;
+            object-fit: contain;
+            background: #151722;
+            border-radius: 10px;
+            border: 2px solid #3a3d52;
+        }
+        .preview.is-missing {
+            opacity: 0.35;
+            border-color: #e74c3c;
+        }
+        .track-preview {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+            padding: 10px 12px;
+            border-radius: 999px;
+            background: #151722;
+            border: 2px solid #3a3d52;
+            justify-content: space-between;
+        }
+        .track-node {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 13px;
+            background: #3a3d52;
+            color: #fff;
+        }
+        .track-node.gift {
+            background: linear-gradient(180deg, #ffd15c, #f0a820);
+            color: #3a2208;
+            font-size: 11px;
+        }
+        .msg {
+            min-height: 22px;
+            color: #ffb4a8;
+            font-weight: 700;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+        .msg.ok { color: #7dffa5; }
+        .hint { color: #9aa0b5; font-size: 13px; font-weight: 600; line-height: 1.4; }
+    </style>
+</head>
+<body>
+<div id="app">
+    <h1>Daily Streak Editor</h1>
+    <p class="sub">Author the cycle reward id, gift day, and prize copy. Opens from live <code>DailyStreak/js/daily-streak-data.js</code>. Labels / descriptions are <code>translations.js</code> keys. Item grants pull from <code>Items/js/items-data.js</code>.</p>
+
+    <section class="panel">
+        <h2>Reward Enum</h2>
+        <div class="row">
+            <input type="text" id="enumInput" placeholder="STREAK_ANIMAL_2" />
+            <button type="button" id="enumAdd">Add Id</button>
+        </div>
+        <div id="enumList"></div>
+        <p class="hint">Ids become <code>DailyStreakRewardId.NAME</code>. Use SCREAMING_SNAKE_CASE.</p>
+    </section>
+
+    <section class="panel">
+        <h2>Cycle Reward</h2>
+        <div class="reward-card" id="rewardCard"></div>
+        <div class="msg" id="validationMsg"></div>
+        <p class="hint" style="margin-top:10px;">Gift sits on <strong>Reward day</strong> within a track of <strong>Cycle length</strong> days. Post-reward weeks roll forward without a chest.</p>
+    </section>
+
+    <section class="panel">
+        <h2>Export / Import</h2>
+        <div class="row">
+            <button type="button" id="btnExport">Download daily-streak-data.js</button>
+            <button type="button" class="secondary" id="btnCopy">Copy to Clipboard</button>
+            <label class="secondary" style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;background:#576574;padding:10px 18px;border-radius:12px;box-shadow:0 4px 0 #3c4653;">
+                Load file
+                <input type="file" id="fileLoad" accept=".js,.json,text/javascript,application/json" hidden />
+            </label>
+        </div>
+        <textarea id="exportPreview" readonly spellcheck="false"></textarea>
+        <p class="hint">Drop the downloaded file into <code>DailyStreak/js/daily-streak-data.js</code>. Browse… sets the sprite path to <code>DailyStreak/Assets/&lt;filename&gt;</code> — copy the image there if needed.</p>
+    </section>
+</div>
+
+<script src="../Items/js/items-data.js"></script>
+<script src="../translations.js"></script>
+<script src="js/daily-streak-data.js"></script>
+<script>
+(function () {
+    function itemIds() {
+        const cat = window.ITEM_CATALOG || {};
+        return Object.keys(cat);
+    }
+
+    function itemMeta(id) {
+        return (window.ITEM_CATALOG && window.ITEM_CATALOG[id]) || null;
+    }
+
+    function resolveCopy(keyOrText) {
+        const key = String(keyOrText || "").trim();
+        if (!key) return "";
+        const en = (window.GAME_TEXT && window.GAME_TEXT.en) || {};
+        if (Object.prototype.hasOwnProperty.call(en, key)) return en[key];
+        return key;
+    }
+
+    function itemDisplayName(id) {
+        const meta = itemMeta(id);
+        if (!meta) return id;
+        const label = resolveCopy(meta.label);
+        return label ? (id + " — " + label) : id;
+    }
+
+    function translationKeys() {
+        const en = (window.GAME_TEXT && window.GAME_TEXT.en) || {};
+        return Object.keys(en).sort();
+    }
+
+    function fillTranslationSelect(select, selectedValue, opts) {
+        const allowEmpty = !!(opts && opts.allowEmpty);
+        const keys = translationKeys();
+        select.innerHTML = "";
+        if (allowEmpty) {
+            const none = document.createElement("option");
+            none.value = "";
+            none.textContent = "— none —";
+            select.appendChild(none);
+        }
+        keys.forEach((key) => {
+            const opt = document.createElement("option");
+            opt.value = key;
+            const preview = resolveCopy(key);
+            opt.textContent = preview && preview !== key ? (key + " — " + preview) : key;
+            select.appendChild(opt);
+        });
+        if (selectedValue && keys.indexOf(selectedValue) === -1) {
+            const legacy = document.createElement("option");
+            legacy.value = selectedValue;
+            legacy.textContent = selectedValue + " (legacy text)";
+            select.appendChild(legacy);
+        }
+        select.value = selectedValue || "";
+        if (allowEmpty && !selectedValue) {
+            select.options[0].selected = true;
+        }
+        return select;
+    }
+
+    // Fallback only if js/daily-streak-data.js failed to load.
+    const DEFAULT_ENUM = ["STREAK_ANIMAL_1"];
+    const DEFAULT_REWARD = {
+        cycleLength: 7,
+        rewardDay: 7,
+        rewardId: "STREAK_ANIMAL_1",
+        sprite: "ProgressRewards/Assets/feature_dog.png",
+        label: "streakNewAnimal",
+        description: "streakDescAnimal1",
+        grantItem: "ANIMAL_1",
+        grantAmount: 0
+    };
+
+    function applyLiveReward() {
+        const live = window.DAILY_STREAK_DAY7 || window.DAILY_STREAK_REWARD;
+        const ids = window.DailyStreakRewardId;
+        if (!live) return false;
+        if (ids) {
+            enumIds = Object.keys(ids);
+        }
+        reward = {
+            cycleLength: live.cycleLength || 7,
+            rewardDay: live.rewardDay || 7,
+            rewardId: live.rewardId || "STREAK_ANIMAL_1",
+            sprite: live.sprite || "",
+            label: live.label || "",
+            description: live.description || "",
+            grantItem: live.grantItem || "",
+            grantAmount: parseInt(live.grantAmount, 10) || 0
+        };
+        if (reward.rewardId && enumIds.indexOf(reward.rewardId) === -1) {
+            enumIds.push(reward.rewardId);
+        }
+        return true;
+    }
+
+    let enumIds = DEFAULT_ENUM.slice();
+    let reward = Object.assign({}, DEFAULT_REWARD);
+    const loadedLive = applyLiveReward();
+
+    const enumList = document.getElementById("enumList");
+    const rewardCard = document.getElementById("rewardCard");
+    const enumInput = document.getElementById("enumInput");
+    const validationMsg = document.getElementById("validationMsg");
+    const exportPreview = document.getElementById("exportPreview");
+
+    function sanitizeId(raw) {
+        return String(raw || "")
+            .trim()
+            .toUpperCase()
+            .replace(/[^A-Z0-9_]/g, "_")
+            .replace(/^_+|_+$/g, "");
+    }
+
+    /**
+     * Authored sprite paths are game-root relative (DailyStreak/Assets/…, Assets/…).
+     * This editor lives inside DailyStreak/, so strip our prefix or climb to the root.
+     */
+    function resolvePreviewSrc(gameRootPath) {
+        const p = String(gameRootPath || "").trim();
+        if (!p) return "";
+        if (/^(https?:|data:|blob:)/i.test(p)) return p;
+        if (p.indexOf("DailyStreak/") === 0) return p.slice("DailyStreak/".length);
+        if (p.indexOf("Assets/") === 0 || p.indexOf("Items/") === 0 ||
+            p.indexOf("ProgressRewards/") === 0 || p.indexOf("Characters/") === 0) {
+            return "../" + p;
+        }
+        return p;
+    }
+
+    function spritePathFromFile(file) {
+        const name = String((file && file.name) || "").replace(/^.*[\\/]/, "").trim();
+        if (!name) return "";
+        return "DailyStreak/Assets/" + name;
+    }
+
+    function setMsg(text, ok) {
+        validationMsg.textContent = text || "";
+        validationMsg.className = "msg" + (ok ? " ok" : "");
+    }
+
+    function clampRewardDay() {
+        const cycle = Math.max(1, parseInt(reward.cycleLength, 10) || 7);
+        reward.cycleLength = cycle;
+        let day = parseInt(reward.rewardDay, 10);
+        if (!(day > 0)) day = cycle;
+        reward.rewardDay = Math.max(1, Math.min(cycle, day));
+    }
+
+    function validate() {
+        const errors = [];
+        if (!enumIds.length) errors.push("Enum is empty.");
+        clampRewardDay();
+        if (!reward.rewardId) errors.push("Pick a reward id.");
+        else if (enumIds.indexOf(reward.rewardId) === -1) {
+            errors.push("Reward id is not in the enum.");
+        }
+        if (!String(reward.sprite || "").trim()) errors.push("Sprite path required.");
+        if (!String(reward.label || "").trim()) errors.push("Label required.");
+        return errors;
+    }
+
+    function escapeStr(s) {
+        return String(s || "").replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+    }
+
+    function buildExport() {
+        clampRewardDay();
+        const enumBlock = enumIds.map((id) => "    " + id + ': "' + id + '"').join(",\n");
+        const lines = [
+            "    cycleLength: " + reward.cycleLength + ",",
+            "    rewardDay: " + reward.rewardDay + ",",
+            "    rewardId: DailyStreakRewardId." + reward.rewardId + ",",
+            '    sprite: "' + escapeStr(reward.sprite) + '",',
+            '    label: "' + escapeStr(reward.label) + '",',
+            '    description: "' + escapeStr(reward.description) + '"'
+        ];
+        const grant = String(reward.grantItem || "").trim();
+        const grantAmount = parseInt(reward.grantAmount, 10);
+        if (grant) {
+            lines[lines.length - 1] += ",";
+            lines.push('    grantItem: "' + escapeStr(grant) + '"');
+            if (grantAmount > 1) {
+                lines[lines.length - 1] += ",";
+                lines.push("    grantAmount: " + grantAmount);
+            }
+        }
+
+        return [
+            "// OWNER: shared — Daily Win Streak reward enum + cycle reward.",
+            "// Edit via DailyStreak/DailyStreakEditor.html or by hand.",
+            "// Behaviour/timing: daily-streak-config.js.",
+            '"use strict";',
+            "",
+            "/** Extendable reward ids. Gameplay: DailyStreak.HasUnlockedStreakReward(id). */",
+            "const DailyStreakRewardId = {",
+            enumBlock,
+            "};",
+            "",
+            "/**",
+            " * First-cycle streak reward (one-shot).",
+            " *",
+            " * cycleLength — days on the track (overrides DAILY_STREAK_CFG.cycleLength when set).",
+            " * rewardDay   — which day in that cycle shows the gift / grants the reward (1..cycleLength).",
+            " *",
+            " * grantItem / grantAmount — Items catalog grant (see Items/js/items-data.js).",
+            " */",
+            "const DAILY_STREAK_DAY7 = {",
+            lines.join("\n"),
+            "};",
+            "",
+            "/** Alias — prefer DAILY_STREAK_DAY7 in hosts; same object. */",
+            "const DAILY_STREAK_REWARD = DAILY_STREAK_DAY7;",
+            "",
+            "window.DailyStreakRewardId = DailyStreakRewardId;",
+            "window.DAILY_STREAK_DAY7 = DAILY_STREAK_DAY7;",
+            "window.DAILY_STREAK_REWARD = DAILY_STREAK_REWARD;",
+            ""
+        ].join("\n");
+    }
+
+    function refreshExport() {
+        const errors = validate();
+        setMsg(errors.length ? errors.join(" ") : "Looks good.", !errors.length);
+        exportPreview.value = buildExport();
+    }
+
+    function renderEnum() {
+        enumList.innerHTML = "";
+        enumIds.forEach((id) => {
+            const chip = document.createElement("span");
+            chip.className = "enum-chip";
+            chip.appendChild(document.createTextNode(id));
+            const rm = document.createElement("button");
+            rm.type = "button";
+            rm.className = "danger";
+            rm.textContent = "×";
+            rm.title = "Remove";
+            rm.addEventListener("click", () => {
+                if (reward.rewardId === id) {
+                    setMsg("Cannot remove " + id + " — it is the active reward.", false);
+                    return;
+                }
+                enumIds = enumIds.filter((x) => x !== id);
+                renderAll();
+            });
+            chip.appendChild(rm);
+            enumList.appendChild(chip);
+        });
+    }
+
+    function renderTrackPreview() {
+        clampRewardDay();
+        const wrap = document.createElement("div");
+        wrap.className = "track-preview";
+        for (let d = 1; d <= reward.cycleLength; d++) {
+            const node = document.createElement("div");
+            node.className = "track-node" + (d === reward.rewardDay ? " gift" : "");
+            node.textContent = d === reward.rewardDay ? "Gift" : String(d);
+            wrap.appendChild(node);
+        }
+        return wrap;
+    }
+
+    function renderReward() {
+        rewardCard.innerHTML = "";
+        clampRewardDay();
+
+        function addRow(labelText, el) {
+            const row = document.createElement("div");
+            row.className = "row";
+            const lab = document.createElement("label");
+            lab.textContent = labelText;
+            row.appendChild(lab);
+            row.appendChild(el);
+            rewardCard.appendChild(row);
+            return row;
+        }
+
+        const cycleInput = document.createElement("input");
+        cycleInput.type = "number";
+        cycleInput.min = "1";
+        cycleInput.max = "30";
+        cycleInput.value = reward.cycleLength;
+        cycleInput.addEventListener("change", () => {
+            reward.cycleLength = Math.max(1, parseInt(cycleInput.value, 10) || 7);
+            clampRewardDay();
+            renderAll();
+        });
+        addRow("Cycle length", cycleInput);
+
+        const dayInput = document.createElement("input");
+        dayInput.type = "number";
+        dayInput.min = "1";
+        dayInput.max = String(reward.cycleLength);
+        dayInput.value = reward.rewardDay;
+        dayInput.addEventListener("change", () => {
+            reward.rewardDay = parseInt(dayInput.value, 10) || reward.cycleLength;
+            clampRewardDay();
+            renderAll();
+        });
+        addRow("Reward day", dayInput);
+
+        const idSelect = document.createElement("select");
+        enumIds.forEach((id) => {
+            const opt = document.createElement("option");
+            opt.value = id;
+            opt.textContent = id;
+            if (id === reward.rewardId) opt.selected = true;
+            idSelect.appendChild(opt);
+        });
+        idSelect.addEventListener("change", () => {
+            reward.rewardId = idSelect.value;
+            refreshExport();
+        });
+        addRow("Reward id", idSelect);
+
+        const labelSelect = document.createElement("select");
+        fillTranslationSelect(labelSelect, reward.label || "", { allowEmpty: true });
+        labelSelect.addEventListener("change", () => {
+            reward.label = labelSelect.value;
+            refreshExport();
+        });
+        addRow("Label", labelSelect);
+
+        const descSelect = document.createElement("select");
+        fillTranslationSelect(descSelect, reward.description || "", { allowEmpty: true });
+        descSelect.addEventListener("change", () => {
+            reward.description = descSelect.value;
+            refreshExport();
+        });
+        addRow("Description", descSelect);
+
+        const itemSelect = document.createElement("select");
+        const noneOpt = document.createElement("option");
+        noneOpt.value = "";
+        noneOpt.textContent = "(none)";
+        itemSelect.appendChild(noneOpt);
+        itemIds().forEach((id) => {
+            const opt = document.createElement("option");
+            opt.value = id;
+            opt.textContent = itemDisplayName(id);
+            if (id === reward.grantItem) opt.selected = true;
+            itemSelect.appendChild(opt);
+        });
+        itemSelect.addEventListener("change", () => {
+            reward.grantItem = itemSelect.value;
+            const meta = itemMeta(reward.grantItem);
+            if (meta) {
+                reward.label = meta.label || reward.label;
+                reward.description = meta.description || reward.description;
+                if (meta.sprite) reward.sprite = meta.sprite;
+                if (meta.kind === "consumable" && !(reward.grantAmount > 0)) {
+                    reward.grantAmount = 1;
+                }
+                if (meta.kind === "unlock") reward.grantAmount = 0;
+            }
+            renderAll();
+        });
+        addRow("Grant item", itemSelect);
+
+        const amountInput = document.createElement("input");
+        amountInput.type = "number";
+        amountInput.min = "0";
+        amountInput.placeholder = "stacks only";
+        amountInput.value = reward.grantAmount > 0 ? reward.grantAmount : "";
+        const gMeta = itemMeta(reward.grantItem);
+        amountInput.disabled = !gMeta || gMeta.kind !== "consumable";
+        amountInput.addEventListener("change", () => {
+            const n = parseInt(amountInput.value, 10);
+            reward.grantAmount = n > 0 ? n : 0;
+            refreshExport();
+        });
+        addRow("Grant amount", amountInput);
+
+        const spriteRow = document.createElement("div");
+        spriteRow.className = "row";
+        const spriteLab = document.createElement("label");
+        spriteLab.textContent = "Sprite";
+        spriteRow.appendChild(spriteLab);
+        const spriteInput = document.createElement("input");
+        spriteInput.type = "text";
+        spriteInput.value = reward.sprite || "";
+        spriteInput.addEventListener("input", () => {
+            reward.sprite = spriteInput.value;
+            img.src = resolvePreviewSrc(reward.sprite);
+            refreshExport();
+        });
+        spriteRow.appendChild(spriteInput);
+        const browse = document.createElement("button");
+        browse.type = "button";
+        browse.className = "secondary";
+        browse.textContent = "Browse…";
+        const fileInput = document.createElement("input");
+        fileInput.type = "file";
+        fileInput.accept = "image/*";
+        fileInput.hidden = true;
+        browse.addEventListener("click", () => fileInput.click());
+        fileInput.addEventListener("change", () => {
+            const file = fileInput.files && fileInput.files[0];
+            if (!file) return;
+            const path = spritePathFromFile(file);
+            if (!path) return;
+            reward.sprite = path;
+            spriteInput.value = path;
+            img.src = URL.createObjectURL(file);
+            img.classList.remove("is-missing");
+            refreshExport();
+            fileInput.value = "";
+        });
+        spriteRow.appendChild(browse);
+        spriteRow.appendChild(fileInput);
+        const img = document.createElement("img");
+        img.className = "preview";
+        img.alt = "";
+        img.src = resolvePreviewSrc(reward.sprite);
+        img.addEventListener("error", () => img.classList.add("is-missing"));
+        img.addEventListener("load", () => img.classList.remove("is-missing"));
+        spriteRow.appendChild(img);
+        rewardCard.appendChild(spriteRow);
+
+        const previewLab = document.createElement("div");
+        previewLab.className = "hint";
+        previewLab.textContent = "Track preview";
+        previewLab.style.marginBottom = "4px";
+        rewardCard.appendChild(previewLab);
+        rewardCard.appendChild(renderTrackPreview());
+    }
+
+    function renderAll() {
+        renderEnum();
+        renderReward();
+        refreshExport();
+    }
+
+    document.getElementById("enumAdd").addEventListener("click", () => {
+        const id = sanitizeId(enumInput.value);
+        if (!id) {
+            setMsg("Enter a valid enum id.", false);
+            return;
+        }
+        if (enumIds.indexOf(id) !== -1) {
+            setMsg(id + " already exists.", false);
+            return;
+        }
+        enumIds.push(id);
+        enumInput.value = "";
+        renderAll();
+    });
+
+    function download() {
+        const errors = validate();
+        if (errors.length) {
+            setMsg(errors.join(" "), false);
+            return;
+        }
+        const blob = new Blob([buildExport()], { type: "text/javascript" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "daily-streak-data.js";
+        a.click();
+        URL.revokeObjectURL(a.href);
+        setMsg("Downloaded daily-streak-data.js", true);
+    }
+
+    document.getElementById("btnExport").addEventListener("click", download);
+    document.getElementById("btnCopy").addEventListener("click", async () => {
+        const errors = validate();
+        if (errors.length) {
+            setMsg(errors.join(" "), false);
+            return;
+        }
+        try {
+            await navigator.clipboard.writeText(buildExport());
+            setMsg("Copied to clipboard.", true);
+        } catch (err) {
+            setMsg("Copy failed: " + err.message, false);
+        }
+    });
+
+    document.getElementById("fileLoad").addEventListener("change", (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            try {
+                const text = String(reader.result || "");
+                if (file.name.endsWith(".json")) {
+                    const data = JSON.parse(text);
+                    enumIds = (data.enumIds || Object.keys(data.DailyStreakRewardId || {})).slice();
+                    const src = data.reward || data.DAILY_STREAK_DAY7 || data.DAILY_STREAK_REWARD || {};
+                    reward = {
+                        cycleLength: parseInt(src.cycleLength, 10) || 7,
+                        rewardDay: parseInt(src.rewardDay, 10) || 7,
+                        rewardId: src.rewardId || enumIds[0] || "STREAK_ANIMAL_1",
+                        sprite: src.sprite || "",
+                        label: src.label || "",
+                        description: src.description || "",
+                        grantItem: String(src.grantItem || "").trim(),
+                        grantAmount: parseInt(src.grantAmount, 10) || 0
+                    };
+                } else {
+                    const enumMatch = text.match(/const DailyStreakRewardId\s*=\s*\{([\s\S]*?)\};/);
+                    const rewardMatch = text.match(/const DAILY_STREAK_(?:DAY7|REWARD)\s*=\s*\{([\s\S]*?)\};/);
+                    if (!enumMatch || !rewardMatch) throw new Error("Unrecognized data file.");
+                    enumIds = [];
+                    enumMatch[1].replace(/([A-Z0-9_]+)\s*:/g, (_, id) => {
+                        if (enumIds.indexOf(id) === -1) enumIds.push(id);
+                    });
+                    const body = rewardMatch[1];
+                    const pick = (re, fallback) => {
+                        const m = body.match(re);
+                        return m ? m[1] : fallback;
+                    };
+                    const legacyChar = pick(/grantCharacter:\s*"([^"]*)"/, "");
+                    reward = {
+                        cycleLength: parseInt(pick(/cycleLength:\s*(\d+)/, "7"), 10) || 7,
+                        rewardDay: parseInt(pick(/rewardDay:\s*(\d+)/, "7"), 10) || 7,
+                        rewardId: pick(/rewardId:\s*DailyStreakRewardId\.([A-Z0-9_]+)/, enumIds[0] || "STREAK_ANIMAL_1"),
+                        sprite: pick(/sprite:\s*"([^"]*)"/, ""),
+                        label: pick(/label:\s*"([^"]*)"/, ""),
+                        description: pick(/description:\s*"([^"]*)"/, ""),
+                        grantItem: pick(/grantItem:\s*"([^"]*)"/, "") || (legacyChar ? "ANIMAL_1" : ""),
+                        grantAmount: parseInt(pick(/grantAmount:\s*(\d+)/, "0"), 10) || 0
+                    };
+                }
+                if (enumIds.indexOf(reward.rewardId) === -1 && reward.rewardId) {
+                    enumIds.push(reward.rewardId);
+                }
+                clampRewardDay();
+                renderAll();
+                setMsg("Loaded " + file.name, true);
+            } catch (err) {
+                setMsg("Load failed: " + err.message, false);
+            }
+            e.target.value = "";
+        };
+        reader.readAsText(file);
+    });
+
+    renderAll();
+    if (loadedLive) {
+        setMsg("Loaded DailyStreak/js/daily-streak-data.js", true);
+    } else {
+        setMsg("Could not load daily-streak-data.js — using built-in defaults.", false);
+    }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1150 @@
+/* OWNER: shared — Progress Reward System UI (portable module).
+   Stretch / KPF layout language; artist polish later. */
+
+.pr-overlay {
+    --pr-panel: #3a2a22;
+    --pr-panel-edge: #2a1c16;
+    --pr-fill: #f0a020;
+    --pr-track: #241812;
+    --pr-copy: #f5d9a0;
+    --pr-btn: #3ecf7a;
+    --pr-btn-shadow: #2a9e5a;
+    --pr-chest-bar-size: 64px;
+    --pr-chest-center-size: 360px;
+    /* Motion durations — kept in sync with PROGRESS_REWARDS_CFG by the module so
+       the CSS beats land with the JS waits instead of drifting past them. */
+    --pr-settle-ms: 420ms;
+    --pr-claim-out-ms: 300ms;
+    --pr-confetti-ms: 1700ms;
+    --pr-ease-spring: cubic-bezier(0.2, 1.25, 0.35, 1);
+    --pr-ease-out: cubic-bezier(0.2, 0.9, 0.3, 1);
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    font-family: "Nunito", "Trebuchet MS", system-ui, sans-serif;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.28s ease, visibility 0.28s ease;
+}
+
+.pr-overlay.show {
+    pointer-events: auto;
+    opacity: 1;
+    visibility: visible;
+}
+
+.pr-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(20, 14, 10, 0.62);
+    transition: background 0.35s ease;
+}
+
+.pr-overlay.pr-claiming .pr-backdrop,
+.pr-overlay.pr-emerging .pr-backdrop,
+.pr-overlay.pr-revealing .pr-backdrop {
+    background: rgba(0, 0, 0, 0.92);
+}
+
+.pr-overlay.show.pr-claiming .pr-panel,
+.pr-overlay.show.pr-emerging .pr-panel,
+.pr-overlay.show.pr-revealing .pr-panel {
+    transform: translateY(110%);
+    pointer-events: none;
+    visibility: hidden;
+}
+
+.pr-overlay.pr-claiming .pr-dismiss-btn,
+.pr-overlay.pr-emerging .pr-dismiss-btn,
+.pr-overlay.pr-revealing .pr-dismiss-btn {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* pr-claim-out keeps pr-revealing on so the card can fade in place; these
+   overrides must stay after the takeover rules above to win on source order. */
+.pr-overlay.pr-claim-out .pr-backdrop {
+    background: rgba(20, 14, 10, 0.62);
+}
+
+/* Standalone only: embedded hosts retire the bar after a claim themselves
+   (e.g. .overlay-card.progress-claiming), so don't slide it back under them. */
+.pr-overlay.show.pr-claim-out:not(.pr-embedded) .pr-panel {
+    transform: translateY(0);
+    pointer-events: auto;
+    visibility: visible;
+}
+
+/* ---- Center stage (Spine chest + PNG fallback) ---- */
+.pr-center-wrap {
+    position: absolute;
+    left: 50%;
+    top: 42%;
+    transform: translate(-50%, -50%);
+    width: min(92vw, var(--pr-chest-center-size));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    z-index: 2;
+    overflow: visible;
+    transition:
+        top var(--pr-settle-ms) var(--pr-ease-out),
+        width var(--pr-settle-ms) var(--pr-ease-out);
+}
+
+.pr-overlay.pr-revealing .pr-center-wrap {
+    top: 50%;
+    width: min(92vw, 320px);
+}
+
+.pr-feature-title {
+    margin: 0;
+    color: #fff;
+    font-family: "Fredoka", "Nunito", "Trebuchet MS", system-ui, sans-serif;
+    font-size: clamp(28px, 7vw, 40px);
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: 0.2px;
+    text-shadow:
+        0 3px 0 rgba(0, 0, 0, 0.4),
+        0 8px 18px rgba(0, 0, 0, 0.45);
+    opacity: 0;
+    transform: translateY(-8px);
+    transition: opacity 0.35s ease, transform 0.35s ease;
+    pointer-events: none;
+}
+
+.pr-overlay.pr-revealing .pr-feature-title {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Per-letter pop (JS splits the title when cfg.titleLetterPop is on). */
+.pr-feature-title .pr-title-letter {
+    display: inline-block;
+    white-space: pre;
+    transform-origin: 50% 90%;
+}
+
+.pr-overlay.pr-revealing .pr-feature-title .pr-title-letter {
+    animation: prTitleLetterPop 0.44s var(--pr-ease-spring) both;
+    animation-delay: var(--pr-letter-delay, 0ms);
+}
+
+@keyframes prTitleLetterPop {
+    0% { opacity: 0; transform: translateY(16px) scale(0.6); }
+    60% { opacity: 1; transform: translateY(-3px) scale(1.14); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+#prCenterStage {
+    position: relative;
+    width: min(92vw, var(--pr-chest-center-size));
+    height: min(92vw, var(--pr-chest-center-size));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform-origin: 50% 50%;
+    will-change: transform;
+    overflow: visible;
+}
+
+#prCenterStage.pr-parked {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    /* Don't leave an empty chest-sized hole that shoves the claim card down. */
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+}
+
+#prCenterStage.pr-flying {
+    opacity: 1;
+    visibility: visible;
+    z-index: 5;
+}
+
+.pr-center-spine {
+    /* Larger than the stage so Open FX can spill past the layout box. */
+    position: absolute;
+    inset: -40%;
+    width: 180%;
+    height: 180%;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    overflow: visible;
+}
+
+.pr-center-spine .spine-player,
+.pr-bar-spine .spine-player {
+    overflow: visible !important;
+    background: transparent !important;
+}
+
+.pr-center-spine .spine-player,
+.pr-center-spine .spine-player canvas,
+.pr-bar-spine .spine-player,
+.pr-bar-spine .spine-player canvas {
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 0 !important;
+}
+
+.pr-center-chest {
+    width: calc(var(--pr-chest-center-size) * 0.33);
+    height: calc(var(--pr-chest-center-size) * 0.33);
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    transform-origin: 50% 80%;
+    filter: drop-shadow(0 10px 16px rgba(0, 0, 0, 0.35));
+    transition: opacity 0.3s ease;
+}
+
+.pr-overlay.show:not(.pr-claiming):not(.pr-revealing) .pr-center-chest:not([hidden]) {
+    animation: prChestBob 1.8s ease-in-out infinite;
+}
+
+.pr-overlay.pr-claiming .pr-center-chest:not([hidden]) {
+    animation: prChestOpen 0.7s cubic-bezier(0.2, 1.3, 0.35, 1) forwards;
+}
+
+@keyframes prChestBob {
+    0%, 100% { transform: translateY(0) rotate(-2deg); }
+    50% { transform: translateY(-8px) rotate(2deg); }
+}
+
+@keyframes prChestOpen {
+    0% { transform: scale(1) rotate(0); }
+    35% { transform: scale(1.12) rotate(-6deg); }
+    70% { transform: scale(1.18) rotate(4deg); }
+    100% { transform: scale(1.08) rotate(0); }
+}
+
+.pr-prize-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    opacity: 0;
+    transform: scale(0.7) translateY(12px);
+    pointer-events: none;
+    transition: opacity 0.35s ease, transform 0.45s cubic-bezier(0.2, 1.4, 0.35, 1);
+}
+
+.pr-overlay.pr-emerging .pr-prize-card {
+    position: absolute;
+    top: 48%;
+    left: 50%;
+    opacity: 1;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+/* The card goes from absolutely-centred (emerging) to in-flow (revealing), so
+   the reflow is unavoidable. Animate through a short opacity dip instead of
+   transitioning transform across it — otherwise the card visibly snaps then
+   slides. Reads as the prize settling into its frame. */
+.pr-overlay.pr-revealing .pr-prize-card {
+    opacity: 1;
+    pointer-events: auto;
+    transition: none;
+    animation: prCardLand var(--pr-settle-ms) var(--pr-ease-spring) both;
+}
+
+@keyframes prCardLand {
+    0% { opacity: 0.12; transform: translateY(24px) scale(0.9); }
+    45% { opacity: 1; }
+    72% { transform: translateY(-5px) scale(1.03); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Carry the emerged prize down into the frame rather than letting it jump back
+   from the emerge animation's end pose. */
+.pr-overlay.pr-revealing .pr-prize-sprite,
+.pr-overlay.pr-revealing .pr-hint-prize:not([hidden]) {
+    animation: prPrizeSettle var(--pr-settle-ms) var(--pr-ease-spring) both;
+}
+
+@keyframes prPrizeSettle {
+    0% { transform: translateY(-32px) scale(1.16); }
+    70% { transform: translateY(4px) scale(0.98); }
+    100% { transform: translateY(0) scale(1); }
+}
+
+.pr-prize-frame {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: min(72vw, 220px);
+    height: min(72vw, 160px);
+    border-radius: 18px;
+    background: transparent;
+}
+
+/* Backing lives on a pseudo-element so it can cross-fade in; a transparent →
+   gradient background jump is not interpolatable. */
+.pr-prize-frame::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    box-sizing: border-box;
+    border-radius: inherit;
+    background: linear-gradient(180deg, #3a2a22 0%, #241812 100%);
+    box-shadow:
+        inset 0 2px 0 rgba(255, 255, 255, 0.08),
+        0 10px 24px rgba(0, 0, 0, 0.45);
+    opacity: 0;
+    transition: opacity var(--pr-settle-ms) ease;
+    pointer-events: none;
+}
+
+.pr-overlay.pr-revealing .pr-prize-frame::before {
+    opacity: 1;
+}
+
+.pr-prize-trail {
+    display: none;
+}
+
+.pr-overlay.pr-emerging .pr-prize-trail {
+    display: block;
+    position: absolute;
+    left: 50%;
+    bottom: 10%;
+    width: 48%;
+    height: 120%;
+    transform: translateX(-50%);
+    pointer-events: none;
+    background:
+        linear-gradient(180deg, rgba(180, 120, 255, 0.85) 0%, rgba(180, 120, 255, 0.35) 45%, transparent 100%);
+    filter: blur(1px);
+    opacity: 0.85;
+    border-radius: 8px;
+    animation: prPrizeTrail 0.7s ease-out forwards;
+    z-index: 0;
+}
+
+@keyframes prPrizeTrail {
+    0% { opacity: 0; transform: translateX(-50%) translateY(40%) scaleY(0.4); }
+    35% { opacity: 0.9; }
+    100% { opacity: 0; transform: translateX(-50%) translateY(-30%) scaleY(1.1); }
+}
+
+.pr-overlay.pr-emerging .pr-prize-sprite,
+.pr-overlay.pr-emerging .pr-hint-prize {
+    position: relative;
+    z-index: 1;
+    animation: prPrizeEmerge 0.7s cubic-bezier(0.2, 1.2, 0.35, 1) forwards;
+}
+
+.pr-overlay.pr-emerging .pr-prize-sprite {
+    width: 72px;
+    height: 72px;
+}
+
+@keyframes prPrizeEmerge {
+    0% { transform: translateY(48px) scale(0.45); opacity: 0; }
+    55% { transform: translateY(-36px) scale(1.05); opacity: 1; }
+    100% { transform: translateY(-64px) scale(1); opacity: 1; }
+}
+
+.pr-overlay.pr-emerging .pr-prize-label,
+.pr-overlay.pr-emerging .pr-prize-desc,
+.pr-overlay.pr-emerging .pr-claim-btn {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.pr-overlay.pr-revealing .pr-center-chest:not([hidden]),
+.pr-overlay.pr-revealing .pr-center-spine:not([hidden]) {
+    transition: opacity 0.25s ease;
+}
+
+.pr-prize-sprite {
+    position: relative;
+    z-index: 1;
+    width: 112px;
+    height: 112px;
+    object-fit: contain;
+    filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.3));
+}
+
+/* Hint-pack grant: in-game bulb + "+N" amount */
+.pr-hint-prize {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.3));
+}
+
+.pr-hint-prize[hidden] {
+    display: none;
+}
+
+.pr-hint-prize-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 88px;
+    height: 88px;
+    border-radius: 50%;
+    background: linear-gradient(180deg, #ffd15c, #ffb02e);
+    color: #5a3a00;
+    box-shadow: 0 5px 0 #d98a12, 0 10px 18px rgba(0, 0, 0, .28);
+}
+
+.pr-hint-prize-icon svg {
+    width: 46px;
+    height: 46px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2.2;
+}
+
+.pr-hint-prize-plus {
+    color: #fff6d6;
+    font-family: "Fredoka", "Nunito", sans-serif;
+    font-weight: 700;
+    font-size: 52px;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    text-shadow:
+        0 3px 0 #c49210,
+        0 6px 12px rgba(0, 0, 0, 0.35);
+}
+
+.pr-overlay.pr-revealing .pr-hint-prize-plus {
+    color: #ffd15c;
+}
+
+.pr-prize-label {
+    margin: 0;
+    color: #fff;
+    font-size: 24px;
+    font-weight: 700;
+    text-align: center;
+    text-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
+}
+
+.pr-prize-desc {
+    margin: 0;
+    max-width: 280px;
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 1.35;
+    text-align: center;
+}
+
+.pr-claim-btn {
+    position: relative;
+    margin-top: 10px;
+    border: none;
+    border-radius: 16px;
+    padding: 14px 56px;
+    font: inherit;
+    font-size: 22px;
+    font-weight: 700;
+    color: #1a120c;
+    background: #f0c020;
+    box-shadow: 0 5px 0 #c49210;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.pr-claim-btn:active {
+    transform: translateY(4px);
+    box-shadow: 0 1px 0 #c49210;
+}
+
+/* Glow sweep on a pseudo-element so the button's own transform stays free for
+   the entrance animation and the :active press. */
+.pr-claim-btn::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(100deg, transparent 34%, rgba(255, 255, 255, 0.55) 50%, transparent 66%);
+    background-size: 260% 100%;
+    background-repeat: no-repeat;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.pr-overlay.pr-revealing .pr-claim-btn:not([hidden])::after {
+    opacity: 1;
+    animation: prClaimSheen 2.4s ease-in-out 1s infinite;
+}
+
+@keyframes prClaimSheen {
+    0% { background-position: -160% 0; }
+    45%, 100% { background-position: 260% 0; }
+}
+
+/* Reveal cascade: prize settles, then label, desc and the CTA rise in. */
+.pr-overlay.pr-revealing .pr-prize-label {
+    animation: prRevealRise 0.4s var(--pr-ease-spring) calc(var(--pr-settle-ms) * 0.45) backwards;
+}
+
+.pr-overlay.pr-revealing .pr-prize-desc:not([hidden]) {
+    animation: prRevealRise 0.4s var(--pr-ease-spring) calc(var(--pr-settle-ms) * 0.6) backwards;
+}
+
+.pr-overlay.pr-revealing .pr-claim-btn:not([hidden]) {
+    animation: prClaimBtnIn 0.46s var(--pr-ease-spring) calc(var(--pr-settle-ms) * 0.78) backwards;
+}
+
+@keyframes prRevealRise {
+    0% { opacity: 0; transform: translateY(14px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes prClaimBtnIn {
+    0% { opacity: 0; transform: translateY(24px) scale(0.86); }
+    62% { opacity: 1; transform: translateY(-4px) scale(1.05); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ---- Claim exit: fade the takeover out while the bar panel slides back ---- */
+.pr-overlay.pr-claim-out .pr-center-wrap {
+    animation: prClaimOut var(--pr-claim-out-ms) var(--pr-ease-out) both;
+    pointer-events: none;
+}
+
+@keyframes prClaimOut {
+    0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(0.84); }
+}
+
+/* ---- Unlock FX layer (flash, shockwave, confetti) ----
+   Always fixed and full-screen so it works identically in overlay and embedded
+   mode. JS sets --pr-fx-x / --pr-fx-y to the chest centre in viewport px. */
+.pr-fx {
+    position: fixed;
+    inset: 0;
+    z-index: 84;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.pr-flash {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at var(--pr-fx-x, 50%) var(--pr-fx-y, 42%),
+        rgba(255, 255, 255, 0.95) 0%,
+        rgba(255, 236, 190, 0.5) 26%,
+        transparent 60%);
+    opacity: 0;
+    animation: prFlash 520ms ease-out forwards;
+}
+
+@keyframes prFlash {
+    0% { opacity: 0; }
+    12% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+.pr-shock {
+    position: absolute;
+    left: var(--pr-fx-x, 50%);
+    top: var(--pr-fx-y, 42%);
+    width: 60px;
+    height: 60px;
+    margin: -30px 0 0 -30px;
+    border-radius: 50%;
+    border: 10px solid rgba(255, 238, 196, 0.9);
+    animation: prShock 640ms cubic-bezier(0.15, 0.85, 0.3, 1) forwards;
+}
+
+@keyframes prShock {
+    0% { opacity: 0.95; transform: scale(0.18); }
+    100% { opacity: 0; transform: scale(7); border-width: 1px; }
+}
+
+/* Centred with margins so the flight transform stays pure (no calc() mixing
+   percentages with signed lengths). */
+.pr-confetti-piece {
+    position: absolute;
+    left: var(--pr-fx-x, 50%);
+    top: var(--pr-fx-y, 42%);
+    width: var(--pr-c-w, 9px);
+    height: var(--pr-c-h, 14px);
+    margin: calc(var(--pr-c-h, 14px) / -2) 0 0 calc(var(--pr-c-w, 9px) / -2);
+    background: var(--pr-c-color, #f3c33d);
+    border-radius: 2px;
+    opacity: 0;
+    animation: prConfettiFly var(--pr-confetti-ms) cubic-bezier(0.18, 0.7, 0.3, 1)
+        var(--pr-c-delay, 0ms) forwards;
+}
+
+@keyframes prConfettiFly {
+    0% { opacity: 0; transform: translate(0, 0) rotate(0deg) scale(0.5); }
+    10% { opacity: 1; }
+    45% {
+        transform: translate(var(--pr-c-mx, 0px), var(--pr-c-peak, -140px))
+            rotate(var(--pr-c-half-spin, 180deg)) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(var(--pr-c-dx, 0px), var(--pr-c-dy, 320px))
+            rotate(var(--pr-c-spin, 360deg)) scale(0.85);
+    }
+}
+
+.pr-dismiss-btn {
+    position: absolute;
+    top: max(16px, env(safe-area-inset-top, 0px));
+    right: max(16px, env(safe-area-inset-right, 0px));
+    z-index: 3;
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.18);
+    color: #fff;
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+}
+
+/* ---- Bottom progress panel ---- */
+.pr-panel {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 10px 12px calc(18px + var(--ads-bottom-inset, env(safe-area-inset-bottom, 0px)));
+    background: linear-gradient(180deg, #4a352a 0%, var(--pr-panel) 40%, var(--pr-panel-edge) 100%);
+    border-radius: 22px 22px 0 0;
+    box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.35);
+    transform: translateY(110%);
+    transition: transform 0.4s cubic-bezier(0.2, 1.1, 0.35, 1);
+    overflow: visible;
+}
+
+.pr-overlay.show .pr-panel {
+    transform: translateY(0);
+}
+
+.pr-levels-left {
+    margin: 0 0 6px;
+    text-align: center;
+    color: var(--pr-copy);
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    transform-origin: 50% 50%;
+}
+
+.pr-levels-left.pr-count-pop {
+    animation: prCountPop 0.28s cubic-bezier(0.2, 1.5, 0.35, 1);
+}
+
+@keyframes prCountPop {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.14); }
+    100% { transform: scale(1); }
+}
+
+.pr-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    overflow: visible;
+}
+
+.pr-track {
+    position: relative;
+    flex: 1;
+    height: 22px;
+    border-radius: 999px;
+    background: var(--pr-track);
+    box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.45);
+    overflow: hidden;
+}
+
+.pr-section-marks {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.pr-section-mark {
+    position: absolute;
+    top: 3px;
+    bottom: 3px;
+    width: 2px;
+    margin-left: -1px;
+    border-radius: 1px;
+    background: rgba(255, 255, 255, 0.12);
+    transform: scaleY(0.85);
+    transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pr-section-mark.is-filled {
+    background: rgba(255, 255, 255, 0.55);
+    box-shadow: 0 0 6px rgba(255, 200, 80, 0.65);
+    transform: scaleY(1);
+}
+
+.pr-section-mark.is-pop {
+    animation: prMarkPop 0.28s cubic-bezier(0.2, 1.6, 0.35, 1);
+}
+
+@keyframes prMarkPop {
+    0% { transform: scaleY(1) scaleX(1); }
+    45% { transform: scaleY(1.35) scaleX(1.8); background: #fff; }
+    100% { transform: scaleY(1) scaleX(1); }
+}
+
+.pr-fill {
+    position: relative;
+    z-index: 0;
+    height: 100%;
+    width: 0%;
+    border-radius: inherit;
+    background: linear-gradient(180deg, #ffc04a 0%, var(--pr-fill) 55%, #d87810 100%);
+    box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.35);
+    transform-origin: left center;
+    transition: none;
+}
+
+.pr-fill.animating {
+    transition: width 0.28s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* Liquid shine that only runs while the fill is actually moving. */
+.pr-fill::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(100deg, transparent 26%, rgba(255, 255, 255, 0.5) 50%, transparent 74%);
+    background-size: 240% 100%;
+    background-repeat: no-repeat;
+    background-position: -140% 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.pr-fill.animating::before {
+    opacity: 1;
+    animation: prFillShine 620ms linear infinite;
+}
+
+@keyframes prFillShine {
+    0% { background-position: -140% 0; }
+    100% { background-position: 240% 0; }
+}
+
+.pr-fill.pr-section-pop {
+    animation: prFillPop 0.28s cubic-bezier(0.2, 1.5, 0.35, 1);
+}
+
+@keyframes prFillPop {
+    0% { filter: brightness(1); }
+    35% { filter: brightness(1.35); }
+    100% { filter: brightness(1); }
+}
+
+.pr-fill::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 10px;
+    height: 100%;
+    border-radius: 0 999px 999px 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45));
+    opacity: 0;
+    pointer-events: none;
+}
+
+.pr-fill.pr-section-pop::after {
+    animation: prFillEdgeFlash 0.28s ease-out;
+}
+
+@keyframes prFillEdgeFlash {
+    0% { opacity: 0; }
+    40% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+.pr-bar-chest-wrap {
+    position: relative;
+    width: var(--pr-chest-bar-size);
+    height: var(--pr-chest-bar-size);
+    flex-shrink: 0;
+    margin-left: -24px;
+    margin-top: -22px;
+    z-index: 2;
+    transition: opacity 0.2s ease;
+    overflow: visible;
+}
+
+.pr-bar-spine {
+    position: absolute;
+    inset: -6%;
+    width: 112%;
+    height: 112%;
+    pointer-events: none;
+    overflow: visible;
+    filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.35));
+}
+
+.pr-bar-chest {
+    width: var(--pr-chest-bar-size);
+    height: var(--pr-chest-bar-size);
+    flex-shrink: 0;
+    object-fit: contain;
+    filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.35));
+}
+
+.pr-bar-chest-wrap.is-ready,
+.pr-bar-chest.is-ready {
+    animation: prBarChestPulse 0.9s ease-in-out infinite;
+}
+
+/* "Claim me" glow while the crate is sitting on a filled bar. */
+.pr-bar-chest-wrap.is-ready .pr-bar-spine,
+.pr-bar-chest.is-ready {
+    filter:
+        drop-shadow(0 3px 4px rgba(0, 0, 0, 0.35))
+        drop-shadow(0 0 12px rgba(255, 214, 120, 0.95));
+}
+
+@keyframes prBarChestPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.12); }
+}
+
+.pr-complete-note {
+    margin: 12px 0 0;
+    text-align: center;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    opacity: 0.85;
+    display: none;
+}
+
+.pr-overlay.pr-all-done .pr-complete-note {
+    display: block;
+}
+
+.pr-overlay.pr-all-done .pr-levels-left {
+    display: none;
+}
+
+.pr-overlay.pr-all-done .pr-bar-row {
+    opacity: 0.45;
+}
+
+/* ============================================================
+   Embedded mode — inline inside the level-complete card.
+   Sits between the result copy and the Continue button and
+   speaks the warm tan / cream language of the streak,
+   settings and quit popups.
+   ============================================================ */
+.pr-overlay.pr-embedded {
+    --pr-fill: #f0a020;
+    --pr-track: #cba377;
+    --pr-copy: #8b4528;
+    position: relative;
+    inset: auto;
+    z-index: auto;
+    display: none;
+    width: 100%;
+    max-width: 340px;
+    margin: 0 auto;
+    pointer-events: none;
+    overflow: visible;
+}
+
+.pr-overlay.pr-embedded.show {
+    display: block;
+    pointer-events: auto;
+    animation: prEmbedFade 0.35s ease;
+}
+
+@keyframes prEmbedFade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.pr-overlay.pr-embedded.show .pr-panel {
+    animation: prEmbedPanelIn 0.42s cubic-bezier(0.2, 1.1, 0.35, 1) both;
+}
+
+@keyframes prEmbedPanelIn {
+    from { opacity: 0; transform: translateY(12px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Backdrop only dims the screen during the claim takeover. */
+.pr-embedded .pr-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    background: rgba(30, 18, 10, 0);
+    pointer-events: none;
+}
+
+.pr-embedded.pr-claiming .pr-backdrop,
+.pr-embedded.pr-emerging .pr-backdrop,
+.pr-embedded.pr-revealing .pr-backdrop {
+    background: rgba(30, 18, 10, 0.9);
+    pointer-events: auto;
+}
+
+/* Lift the dim as the claim fades out so the win card reads through again. */
+.pr-embedded.pr-claim-out .pr-backdrop {
+    background: rgba(30, 18, 10, 0);
+    pointer-events: none;
+}
+
+.pr-embedded .pr-dismiss-btn {
+    display: none;
+}
+
+/* Chest fly / reveal plays screen-centred above the card. */
+.pr-embedded .pr-center-wrap {
+    position: fixed;
+    z-index: 82;
+}
+
+/* Cream backing panel: locked to the sprite aspect so it never distorts, and
+   used as a coordinate box for the absolutely-placed copy and bar. */
+.pr-embedded .pr-panel {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+    aspect-ratio: 512 / 161;
+    background: url("../Assets/Reward-Panel-Backing.png") center / 100% 100% no-repeat;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.pr-embedded .pr-levels-left {
+    position: absolute;
+    top: 10%;
+    left: 9%;
+    margin: 0;
+    color: #6f4a26;
+    font-size: 16px;
+    font-weight: 800;
+    text-align: left;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+/* Bar backing sprite, centred on the panel's cream core (y=71/161 ≈ 44%),
+   which excludes the sprite's bottom drop shadow. */
+.pr-embedded .pr-bar-row {
+    position: absolute;
+    left: 50%;
+    top: 44%;
+    transform: translate(-50%, -50%);
+    display: block;
+    width: 93%;
+    aspect-ratio: 513 / 124;
+    background: url("../Assets/Reward-Bar-Backing.png") center / 100% 100% no-repeat;
+    overflow: visible;
+}
+
+/* Flood-fill layer: covers the whole bar sprite and is masked to its exact
+   shape, so the width-driven fill sweeps left→right and floods the circle too. */
+.pr-embedded .pr-track {
+    position: absolute;
+    inset: 0;
+    width: auto;
+    height: auto;
+    padding: 0;
+    display: block;
+    background: none;
+    border-radius: 0;
+    box-shadow: none;
+    overflow: hidden;
+    -webkit-mask: url("../Assets/Reward-Bar-Backing.png") center / 100% 100% no-repeat;
+    mask: url("../Assets/Reward-Bar-Backing.png") center / 100% 100% no-repeat;
+}
+
+.pr-embedded .pr-track::before {
+    display: none;
+}
+
+/* Step dashes sit in the brown groove band; positioned across the full sweep so
+   they line up with the flood fill. */
+.pr-embedded .pr-section-marks {
+    display: block;
+    left: 0;
+    right: 0;
+    top: 34%;
+    bottom: 34%;
+    height: auto;
+    transform: none;
+    z-index: 2;
+}
+
+.pr-embedded .pr-section-mark {
+    top: 2px;
+    bottom: 2px;
+    width: 3px;
+    margin-left: -1.5px;
+    border-radius: 2px;
+    background: rgba(74, 44, 14, 0.4);
+    transform: none;
+}
+
+.pr-embedded .pr-section-mark.is-filled {
+    background: rgba(255, 255, 255, 0.85);
+    box-shadow: 0 0 6px rgba(255, 210, 110, 0.85);
+    transform: none;
+}
+
+.pr-embedded .pr-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 0;
+    height: 100%;
+    border-radius: 0;
+    background: linear-gradient(180deg, #ffce6b 0%, #f5a623 45%, #e8890f 78%, #cf7208 100%);
+    box-shadow: none;
+}
+
+.pr-embedded .pr-complete-note {
+    position: absolute;
+    top: 10%;
+    left: 0;
+    right: 0;
+    margin: 0;
+    color: #6f4a26;
+    font-size: 16px;
+    font-weight: 800;
+    opacity: 0.95;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+/* Prize/chest seated in the sprite's open circle end. */
+.pr-embedded .pr-bar-chest-wrap {
+    position: absolute;
+    left: 87.3%;
+    top: 50%;
+    width: auto;
+    height: 88%;
+    aspect-ratio: 1;
+    margin: 0;
+    transform: translate(-50%, -50%);
+    align-self: auto;
+    z-index: 3;
+}
+
+.pr-embedded .pr-bar-chest {
+    width: 100%;
+    height: 100%;
+}
+
+/* The shared ready-pulse animates bare `transform: scale()`, which would drop
+   the centring translate the embedded slot relies on. */
+.pr-embedded .pr-bar-chest-wrap.is-ready {
+    animation: prBarChestPulseCentred 0.9s ease-in-out infinite;
+}
+
+@keyframes prBarChestPulseCentred {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); }
+    50% { transform: translate(-50%, -50%) scale(1.12); }
+}
+
+/* Reveal card — no backing square; the prize art stands on its own so it can
+   fill the space the frame used to occupy. */
+.pr-embedded .pr-prize-frame::before {
+    background: none;
+    border: none;
+    box-shadow: none;
+}
+
+/* Grow the prize art now that the backing square is gone. */
+.pr-embedded .pr-prize-frame {
+    height: min(72vw, 200px);
+}
+
+.pr-embedded .pr-prize-sprite {
+    width: 168px;
+    height: 168px;
+}
+
+.pr-embedded .pr-prize-label {
+    color: #fff8ec;
+}
+
+.pr-embedded .pr-claim-btn {
+    color: #fff;
+    background: linear-gradient(180deg, #f79a3c 0%, #f07820 100%);
+    box-shadow: 0 5px 0 #c85a12;
+    border-radius: 999px;
+}
+
+.pr-embedded .pr-claim-btn:active {
+    transform: translateY(3px);
+    box-shadow: 0 2px 0 #c85a12;
+}
+
+/* ============================================================
+   Reduced motion — keep every beat readable, drop the movement.
+   The flow is driven by JS waits, so cutting animations here
+   only removes travel; the sequence still steps through.
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+    .pr-overlay,
+    .pr-overlay * {
+        animation: none !important;
+    }
+
+    .pr-overlay,
+    .pr-overlay *,
+    .pr-overlay *::before,
+    .pr-overlay *::after {
+        transition-duration: 0.01ms !important;
+    }
+
+    .pr-fx {
+        display: none;
+    }
+
+    /* Animations carried these into view, so state them outright. */
+    .pr-overlay.pr-revealing .pr-prize-card,
+    .pr-overlay.pr-revealing .pr-prize-label,
+    .pr-overlay.pr-revealing .pr-prize-desc:not([hidden]),
+    .pr-overlay.pr-revealing .pr-claim-btn:not([hidden]),
+    .pr-overlay.pr-revealing .pr-feature-title .pr-title-letter,
+    .pr-overlay.pr-emerging .pr-prize-sprite,
+    .pr-overlay.pr-emerging .pr-hint-prize:not([hidden]) {
+        opacity: 1;
+        transform: none;
+    }
+
+    .pr-overlay.pr-claim-out .pr-center-wrap {
+        opacity: 0;
+    }
+}

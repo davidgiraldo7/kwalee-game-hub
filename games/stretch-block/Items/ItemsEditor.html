@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Items Editor</title>
+    <style>
+        * { box-sizing: border-box; }
+        body, html {
+            margin: 0; padding: 0; min-height: 100%;
+            background: #1a1c29; color: #fff;
+            font-family: "Nunito", "Trebuchet MS", system-ui, sans-serif;
+        }
+        #app {
+            display: flex; flex-wrap: wrap; gap: 24px; padding: 24px;
+            align-items: flex-start;
+        }
+        h1 {
+            font-weight: 900; text-transform: uppercase; letter-spacing: 2px;
+            margin: 0 0 8px; width: 100%;
+        }
+        .sub { width: 100%; margin: 0 0 12px; color: #9aa0b5; font-weight: 700; }
+        h2 {
+            font-weight: 900; font-size: 16px; text-transform: uppercase;
+            letter-spacing: 1px; margin: 0 0 10px; color: #9aa0b5;
+        }
+        .panel {
+            background: #282a3a; border-radius: 18px; padding: 20px;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.35), inset 0 2px 0 rgba(255,255,255,0.05);
+            min-width: 320px; flex: 1 1 380px;
+        }
+        .row {
+            display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+            margin-bottom: 10px;
+        }
+        label { font-weight: 700; font-size: 14px; color: #c7ccdd; min-width: 120px; }
+        input[type="text"], input[type="number"], select, textarea {
+            background: #1f2130; border: 2px solid #3a3d52; color: #fff;
+            border-radius: 10px; padding: 8px 10px; font-family: inherit;
+            font-weight: 700; font-size: 14px;
+        }
+        input[type="number"] { width: 90px; }
+        input[type="text"] { min-width: 160px; flex: 1; }
+        textarea {
+            width: 100%; min-height: 260px; resize: vertical; font-size: 12px;
+            line-height: 1.4; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-weight: 500;
+        }
+        button {
+            background: #05c46b; color: white; border: none; padding: 10px 18px;
+            font-size: 15px; font-weight: 700; border-radius: 12px; cursor: pointer;
+            box-shadow: 0 4px 0 #049451; font-family: inherit;
+        }
+        button:active { transform: translateY(4px); box-shadow: 0 0 0 #049451; }
+        button.secondary { background: #576574; box-shadow: 0 4px 0 #3c4653; }
+        button.danger { background: #e74c3c; box-shadow: 0 4px 0 #c0392b; }
+        .item {
+            background: #1f2130; border: 2px solid #3a3d52; border-radius: 14px;
+            padding: 12px; margin-bottom: 10px;
+        }
+        .item-head {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 8px; color: #9aa0b5; font-weight: 800; font-size: 13px;
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+        .preview {
+            width: 56px; height: 56px; object-fit: contain; background: #151722;
+            border-radius: 10px; border: 2px solid #3a3d52;
+        }
+        .preview.is-missing { opacity: 0.35; border-color: #e74c3c; }
+        .msg { min-height: 22px; color: #ffb4a8; font-weight: 700; font-size: 14px; margin-top: 8px; }
+        .msg.ok { color: #7dffa5; }
+        .hint { color: #9aa0b5; font-size: 13px; font-weight: 600; line-height: 1.4; }
+        .chip {
+            display: inline-block; padding: 2px 8px; border-radius: 999px;
+            font-size: 11px; font-weight: 800; letter-spacing: 0.5px;
+            background: #3a3d52; color: #c7ccdd;
+        }
+        .chip.consumable { background: #1e3a5f; color: #8ec8ff; }
+        .chip.unlock { background: #3a2a12; color: #ffd27a; }
+    </style>
+</head>
+<body>
+<div id="app">
+    <h1>Items Editor</h1>
+    <p class="sub">Shared catalog for inventory + Progress Rewards + Daily Streak. Export replaces <code>Items/js/items-data.js</code>.</p>
+
+    <section class="panel">
+        <h2>Catalog</h2>
+        <div id="itemList"></div>
+        <div class="row">
+            <button type="button" id="itemAdd">Add Item</button>
+        </div>
+        <div class="msg" id="validationMsg"></div>
+        <p class="hint"><strong>consumable</strong> = stackable inventory count (hints). <strong>unlock</strong> = one-shot (animals); optional <code>characterId</code> links BlockCharacters. <strong>label</strong> / <strong>description</strong> should be <code>translations.js</code> keys.</p>
+    </section>
+
+    <section class="panel">
+        <h2>Export / Import</h2>
+        <div class="row">
+            <button type="button" id="btnExport">Download items-data.js</button>
+            <button type="button" class="secondary" id="btnCopy">Copy to Clipboard</button>
+            <label class="secondary" style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;background:#576574;padding:10px 18px;border-radius:12px;box-shadow:0 4px 0 #3c4653;">
+                Load file
+                <input type="file" id="fileLoad" accept=".js,.json,text/javascript,application/json" hidden />
+            </label>
+        </div>
+        <textarea id="exportPreview" readonly spellcheck="false"></textarea>
+        <p class="hint">Reward editors load this catalog for their grant pickers. Drop the file into <code>Items/js/items-data.js</code>.</p>
+    </section>
+</div>
+
+<script>
+(function () {
+    const DEFAULT_ITEMS = [
+        {
+            id: "HINT",
+            kind: "consumable",
+            label: "itemHintLabel",
+            description: "itemHintDescription",
+            sprite: "Assets/Button_Hint.png",
+            startingAmount: 3
+        },
+        {
+            id: "CAT",
+            kind: "unlock",
+            label: "itemCatLabel",
+            description: "itemCatDescription",
+            sprite: "Assets/Characters/Cat/Mask/Cat_EarMask_1.png",
+            characterId: "Cat"
+        },
+        {
+            id: "ANIMAL_1",
+            kind: "unlock",
+            label: "itemDogLabel",
+            description: "itemDogDescription",
+            sprite: "Assets/Characters/Dog/Mask/Dog_EarMask_Flop.png",
+            characterId: "Dog"
+        },
+        {
+            id: "ANIMAL_2",
+            kind: "unlock",
+            label: "itemDinoLabel",
+            description: "itemDinoDescription",
+            sprite: "Assets/Characters/Dino/Mask/Dino_Mask_Rex.png",
+            characterId: "Dino"
+        }
+    ];
+
+    let items = DEFAULT_ITEMS.map((i) => Object.assign({}, i));
+
+    const itemList = document.getElementById("itemList");
+    const validationMsg = document.getElementById("validationMsg");
+    const exportPreview = document.getElementById("exportPreview");
+
+    function sanitizeId(raw) {
+        return String(raw || "").trim().toUpperCase()
+            .replace(/[^A-Z0-9_]/g, "_").replace(/^_+|_+$/g, "");
+    }
+
+    function escapeStr(s) {
+        return String(s || "").replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+    }
+
+    function resolvePreviewSrc(gameRootPath) {
+        const p = String(gameRootPath || "").trim();
+        if (!p) return "";
+        if (/^(https?:|data:|blob:)/i.test(p)) return p;
+        if (p.indexOf("Items/") === 0) return p.slice("Items/".length);
+        // Editor lives in Items/ — Assets/ and DailyStreak/ are siblings of Items/
+        if (p.indexOf("Assets/") === 0 || p.indexOf("DailyStreak/") === 0 ||
+            p.indexOf("ProgressRewards/") === 0) {
+            return "../" + p;
+        }
+        return p;
+    }
+
+    function setMsg(text, ok) {
+        validationMsg.textContent = text || "";
+        validationMsg.className = "msg" + (ok ? " ok" : "");
+    }
+
+    function validate() {
+        const errors = [];
+        const seen = new Set();
+        items.forEach((item, i) => {
+            if (!item.id) errors.push("Item " + (i + 1) + ": missing id.");
+            else if (seen.has(item.id)) errors.push("Duplicate id " + item.id + ".");
+            else seen.add(item.id);
+            if (item.kind !== "consumable" && item.kind !== "unlock") {
+                errors.push(item.id + ": kind must be consumable or unlock.");
+            }
+            if (!String(item.label || "").trim()) errors.push(item.id + ": label required.");
+            if (!String(item.sprite || "").trim()) errors.push(item.id + ": sprite required.");
+        });
+        return errors;
+    }
+
+    function buildExport() {
+        const enumBlock = items.map((i) => "    " + i.id + ': "' + i.id + '"').join(",\n");
+        const catalogBlock = items.map((item) => {
+            const lines = [
+                "    " + item.id + ": {",
+                "        id: ItemId." + item.id + ",",
+                '        kind: "' + item.kind + '",',
+                '        label: "' + escapeStr(item.label) + '",',
+                '        description: "' + escapeStr(item.description) + '",',
+                '        sprite: "' + escapeStr(item.sprite) + '"'
+            ];
+            if (item.kind === "consumable") {
+                const n = parseInt(item.startingAmount, 10);
+                lines[lines.length - 1] += ",";
+                lines.push("        startingAmount: " + (Number.isFinite(n) && n >= 0 ? n : 0));
+            } else if (String(item.characterId || "").trim()) {
+                lines[lines.length - 1] += ",";
+                lines.push('        characterId: "' + escapeStr(item.characterId) + '"');
+            }
+            lines.push("    }");
+            return lines.join("\n");
+        }).join(",\n");
+
+        return [
+            "// OWNER: shared — Item enum + catalog (hints, animals, future goods).",
+            "// Edit via Items/ItemsEditor.html or by hand. Runtime: items.js.",
+            "// ProgressRewards / DailyStreak grant via grantItem (+ grantAmount for stacks).",
+            '"use strict";',
+            "",
+            "/**",
+            " * Extendable item ids. Prefer these constants over raw strings.",
+            " * Gameplay: Items.has(ItemId.HINT), Items.grant(ItemId.ANIMAL_1), etc.",
+            " */",
+            "const ItemId = {",
+            enumBlock,
+            "};",
+            "",
+            "/**",
+            " * Authored item definitions.",
+            " * kind: \"consumable\" | \"unlock\"",
+            " * characterId (unlock): optional CHARACTER_CATALOG id",
+            " * startingAmount (consumable): fresh-save count",
+            " */",
+            "const ITEM_CATALOG = {",
+            catalogBlock,
+            "};",
+            "",
+            "window.ItemId = ItemId;",
+            "window.ITEM_CATALOG = ITEM_CATALOG;",
+            ""
+        ].join("\n");
+    }
+
+    function refreshExport() {
+        const errors = validate();
+        setMsg(errors.length ? errors.join(" ") : "Looks good.", !errors.length);
+        exportPreview.value = buildExport();
+    }
+
+    function renderItems() {
+        itemList.innerHTML = "";
+        items.forEach((item, index) => {
+            const card = document.createElement("div");
+            card.className = "item";
+
+            const head = document.createElement("div");
+            head.className = "item-head";
+            const title = document.createElement("span");
+            title.textContent = item.id || ("Item " + (index + 1));
+            const chip = document.createElement("span");
+            chip.className = "chip " + (item.kind || "");
+            chip.textContent = item.kind || "?";
+            const rm = document.createElement("button");
+            rm.type = "button";
+            rm.className = "danger";
+            rm.textContent = "Remove";
+            rm.addEventListener("click", () => {
+                items.splice(index, 1);
+                renderAll();
+            });
+            const right = document.createElement("span");
+            right.style.display = "inline-flex";
+            right.style.gap = "8px";
+            right.style.alignItems = "center";
+            right.appendChild(chip);
+            right.appendChild(rm);
+            head.appendChild(title);
+            head.appendChild(right);
+            card.appendChild(head);
+
+            function row(label, el) {
+                const r = document.createElement("div");
+                r.className = "row";
+                const lab = document.createElement("label");
+                lab.textContent = label;
+                r.appendChild(lab);
+                r.appendChild(el);
+                card.appendChild(r);
+            }
+
+            const idInput = document.createElement("input");
+            idInput.type = "text";
+            idInput.value = item.id || "";
+            idInput.addEventListener("change", () => {
+                item.id = sanitizeId(idInput.value);
+                idInput.value = item.id;
+                renderAll();
+            });
+            row("Id", idInput);
+
+            const kindSelect = document.createElement("select");
+            ["consumable", "unlock"].forEach((k) => {
+                const opt = document.createElement("option");
+                opt.value = k;
+                opt.textContent = k;
+                if (item.kind === k) opt.selected = true;
+                kindSelect.appendChild(opt);
+            });
+            kindSelect.addEventListener("change", () => {
+                item.kind = kindSelect.value;
+                if (item.kind === "consumable") {
+                    delete item.characterId;
+                    if (item.startingAmount == null) item.startingAmount = 0;
+                } else {
+                    delete item.startingAmount;
+                }
+                renderAll();
+            });
+            row("Kind", kindSelect);
+
+            const labelInput = document.createElement("input");
+            labelInput.type = "text";
+            labelInput.value = item.label || "";
+            labelInput.addEventListener("input", () => {
+                item.label = labelInput.value;
+                refreshExport();
+            });
+            row("Label", labelInput);
+
+            const descInput = document.createElement("input");
+            descInput.type = "text";
+            descInput.value = item.description || "";
+            descInput.addEventListener("input", () => {
+                item.description = descInput.value;
+                refreshExport();
+            });
+            row("Description", descInput);
+
+            if (item.kind === "consumable") {
+                const startInput = document.createElement("input");
+                startInput.type = "number";
+                startInput.min = "0";
+                startInput.value = item.startingAmount != null ? item.startingAmount : 0;
+                startInput.addEventListener("change", () => {
+                    item.startingAmount = Math.max(0, parseInt(startInput.value, 10) || 0);
+                    refreshExport();
+                });
+                row("Starting amount", startInput);
+            } else {
+                const charInput = document.createElement("input");
+                charInput.type = "text";
+                charInput.placeholder = "Cat";
+                charInput.value = item.characterId || "";
+                charInput.addEventListener("input", () => {
+                    item.characterId = String(charInput.value || "").trim();
+                    refreshExport();
+                });
+                row("Character id", charInput);
+            }
+
+            const spriteRow = document.createElement("div");
+            spriteRow.className = "row";
+            const spriteLab = document.createElement("label");
+            spriteLab.textContent = "Sprite";
+            const spriteInput = document.createElement("input");
+            spriteInput.type = "text";
+            spriteInput.value = item.sprite || "";
+            const img = document.createElement("img");
+            img.className = "preview";
+            img.alt = "";
+            img.src = resolvePreviewSrc(item.sprite);
+            img.addEventListener("error", () => img.classList.add("is-missing"));
+            img.addEventListener("load", () => img.classList.remove("is-missing"));
+            spriteInput.addEventListener("input", () => {
+                item.sprite = spriteInput.value;
+                img.src = resolvePreviewSrc(item.sprite);
+                refreshExport();
+            });
+            spriteRow.appendChild(spriteLab);
+            spriteRow.appendChild(spriteInput);
+            spriteRow.appendChild(img);
+            card.appendChild(spriteRow);
+
+            itemList.appendChild(card);
+        });
+    }
+
+    function renderAll() {
+        renderItems();
+        refreshExport();
+    }
+
+    document.getElementById("itemAdd").addEventListener("click", () => {
+        let n = items.length + 1;
+        let id = "ITEM_" + n;
+        while (items.some((i) => i.id === id)) {
+            n += 1;
+            id = "ITEM_" + n;
+        }
+        items.push({
+            id: id,
+            kind: "unlock",
+            label: id,
+            description: "",
+            sprite: "DailyStreak/Assets/animal_sample.png",
+            characterId: ""
+        });
+        renderAll();
+    });
+
+    function download() {
+        const errors = validate();
+        if (errors.length) {
+            setMsg(errors.join(" "), false);
+            return;
+        }
+        const blob = new Blob([buildExport()], { type: "text/javascript" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "items-data.js";
+        a.click();
+        URL.revokeObjectURL(a.href);
+        setMsg("Downloaded items-data.js", true);
+    }
+
+    document.getElementById("btnExport").addEventListener("click", download);
+    document.getElementById("btnCopy").addEventListener("click", async () => {
+        const errors = validate();
+        if (errors.length) {
+            setMsg(errors.join(" "), false);
+            return;
+        }
+        try {
+            await navigator.clipboard.writeText(buildExport());
+            setMsg("Copied to clipboard.", true);
+        } catch (err) {
+            setMsg("Copy failed: " + err.message, false);
+        }
+    });
+
+    document.getElementById("fileLoad").addEventListener("change", (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            try {
+                const text = String(reader.result || "");
+                if (file.name.endsWith(".json")) {
+                    const data = JSON.parse(text);
+                    const cat = data.ITEM_CATALOG || data.catalog || {};
+                    items = Object.keys(cat).map((id) => Object.assign({ id: id }, cat[id]));
+                } else {
+                    const catMatch = text.match(/const ITEM_CATALOG\s*=\s*\{([\s\S]*?)\n\};/);
+                    if (!catMatch) throw new Error("Unrecognized items-data.js");
+                    items = [];
+                    const body = catMatch[1];
+                    const re = /([A-Z0-9_]+)\s*:\s*\{([\s\S]*?)\n\s*\}/g;
+                    let m;
+                    while ((m = re.exec(body))) {
+                        const id = m[1];
+                        const block = m[2];
+                        const pick = (pattern, fallback) => {
+                            const mm = block.match(pattern);
+                            return mm ? mm[1] : fallback;
+                        };
+                        const kind = pick(/kind:\s*"([^"]*)"/, "unlock");
+                        const entry = {
+                            id: id,
+                            kind: kind,
+                            label: pick(/label:\s*"([^"]*)"/, id),
+                            description: pick(/description:\s*"([^"]*)"/, ""),
+                            sprite: pick(/sprite:\s*"([^"]*)"/, "")
+                        };
+                        if (kind === "consumable") {
+                            entry.startingAmount = parseInt(pick(/startingAmount:\s*(\d+)/, "0"), 10) || 0;
+                        } else {
+                            entry.characterId = pick(/characterId:\s*"([^"]*)"/, "");
+                        }
+                        items.push(entry);
+                    }
+                    if (!items.length) throw new Error("No items parsed.");
+                }
+                renderAll();
+                setMsg("Loaded " + file.name, true);
+            } catch (err) {
+                setMsg("Load failed: " + err.message, false);
+            }
+            e.target.value = "";
+        };
+        reader.readAsText(file);
+    });
+
+    renderAll();
+})();
+</script>
+</body>
+</html>

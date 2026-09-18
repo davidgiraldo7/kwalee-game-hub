@@ -17,7 +17,7 @@
       "heat": 99,
       "description": "Stretch colorful blocks until every tile on the grid is filled.",
       "cover": "covers/stretch-block.jpg",
-      "src": "stretch-block.html"
+      "src": "stretch-block/index.html"
     },
     {
       "id": "grid-filler",
