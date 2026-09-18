@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+  <title>Flock Feast</title>
+  <link rel="stylesheet" href="arcade.css">
+</head>
+<body>
+<script src="arcade.js"></script>
+<script>
+(function () {
+  var PAL = {
+    G: { color: "#22c55e", nest: "△", egg: "🥚" },
+    R: { color: "#ef4444", nest: "△", egg: "🥚" },
+    T: { color: "#d6b07c", nest: "△", egg: "🥚" },
+    P: { color: "#a855f7", nest: "○", egg: "🥚" },
+    B: { color: "#3b82f6", nest: "○", egg: "🥚" }
+  };
+  var LEVELS = [
+    { nests: ["G", "R"], piles: [["G"], ["R"]] },
+    { nests: ["G", "R", "P"], piles: [["R", "G"], ["P"], ["G", "R"]] },
+    { nests: ["G", "T", "P", "B"], piles: [["B", "G"], ["P", "T"], ["G", "B"], ["T", "P"]] },
+    { nests: ["G", "R", "T", "P", "B"], piles: [["P", "G", "R"], ["B", "T"], ["R", "P"], ["G", "B"], ["T"]] }
+  ];
+
+  Arcade.boot({
+    title: "Flock Feast",
+    theme: "wood",
+    hint: "Drag the front egg into the matching nest.",
+    levelCount: LEVELS.length,
+    start: function (index, api) {
+      var L = LEVELS[index];
+      var nests = L.nests.slice();
+      var piles = L.piles.map(function (p) { return p.slice(); });
+      var filled = nests.map(function () { return 0; });
+      var history = [];
+      var wrap = Arcade.el("div", { className: "nests" });
+      api.board.appendChild(wrap);
+      var ghost = null;
+
+      function topEgg(i) { return piles[i][piles[i].length - 1]; }
+
+      function solved() { return piles.every(function (p) { return !p.length; }); }
+
+      function paint() {
+        wrap.innerHTML = "";
+        var nestRow = Arcade.el("div", { className: "nest-row" });
+        nests.forEach(function (id, i) {
+          var spec = PAL[id];
+          var nest = Arcade.el("div", {
+            className: "nest",
+            text: filled[i] ? spec.egg : spec.nest,
+            style: { color: spec.color, background: filled[i] ? spec.color : "rgba(255,255,255,.12)" },
+            attrs: { "data-nest": String(i) }
+          });
+          nestRow.appendChild(nest);
+        });
+        wrap.appendChild(nestRow);
+        var eggRow = Arcade.el("div", { className: "egg-row" });
+        piles.forEach(function (pile, i) {
+          var id = topEgg(i);
+          var spec = id ? PAL[id] : null;
+          var egg = Arcade.el("div", {
+            className: "egg" + (id ? "" : " gone"),
+            text: spec ? spec.egg : "",
+            style: spec ? { background: spec.color } : {},
+            attrs: { "data-pile": String(i) }
+          });
+          if (id) bindEgg(egg, i, id);
+          eggRow.appendChild(egg);
+        });
+        wrap.appendChild(eggRow);
+      }
+
+      function bindEgg(node, pile, id) {
+        node.addEventListener("pointerdown", function (e) {
+          e.preventDefault();
+          node.setPointerCapture(e.pointerId);
+          ghost = { pile: pile, id: id, x: e.clientX, y: e.clientY };
+          node.style.opacity = "0.4";
+        });
+        node.addEventListener("pointerup", function (e) {
+          if (!ghost) return;
+          node.style.visibility = "hidden";
+          var hit = document.elementFromPoint(e.clientX, e.clientY);
+          node.style.visibility = "";
+          var nest = hit && hit.closest ? hit.closest("[data-nest]") : null;
+          if (nest) {
+            var ni = +nest.getAttribute("data-nest");
+            if (nests[ni] === ghost.id) {
+              history.push(JSON.stringify({ piles: piles, filled: filled }));
+              piles[ghost.pile].pop();
+              filled[ni] += 1;
+              paint();
+              if (solved()) api.win(130);
+              ghost = null;
+              return;
+            }
+          }
+          ghost = null;
+          paint();
+        });
+      }
+
+      api.onUndo(function () {
+        if (!history.length) return;
+        var prev = JSON.parse(history.pop());
+        piles = prev.piles;
+        filled = prev.filled;
+        paint();
+      });
+      paint();
+    }
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+  <title>Colour Smash</title>
+  <link rel="stylesheet" href="arcade.css">
+</head>
+<body>
+<script src="arcade.js"></script>
+<script>
+(function () {
+  var PAL = ["#ef476f", "#ffd166", "#06d6a0", "#118ab2", "#9b5de5", "#f78c6b"];
+  var LEVELS = [
+    { cols: 6, rows: 7, colors: 4 },
+    { cols: 7, rows: 8, colors: 5 },
+    { cols: 7, rows: 8, colors: 5 },
+    { cols: 8, rows: 9, colors: 6 }
+  ];
+  function hexKey(q, r) { return q + "," + r; }
+
+  function nbrs(q, r) {
+    var odd = r % 2;
+    return odd
+      ? [[q + 1, r], [q - 1, r], [q, r - 1], [q + 1, r - 1], [q, r + 1], [q + 1, r + 1]]
+      : [[q + 1, r], [q - 1, r], [q - 1, r - 1], [q, r - 1], [q - 1, r + 1], [q, r + 1]];
+  }
+
+  function makeMap(L) {
+    var map = {};
+    var r, q;
+    for (r = 0; r < L.rows; r++) {
+      for (q = 0; q < L.cols; q++) {
+        map[hexKey(q, r)] = Math.floor(Math.random() * L.colors);
+      }
+    }
+    Object.keys(map).forEach(function (k) {
+      if (Math.random() > 0.45) return;
+      var parts = k.split(",");
+      var q = +parts[0];
+      var r = +parts[1];
+      var n = nbrs(q, r)[Math.floor(Math.random() * 6)];
+      var nk = hexKey(n[0], n[1]);
+      if (map[nk] != null) map[nk] = map[k];
+    });
+    return map;
+  }
+
+  Arcade.boot({
+    title: "Colour Smash",
+    theme: "navy",
+    hint: "Swipe matching hexes. Two or more smash.",
+    levelCount: LEVELS.length,
+    start: function (index, api) {
+      var L = LEVELS[index];
+      var map = makeMap(L);
+      var drag = [];
+      var history = [];
+      var canvas = Arcade.el("canvas", { className: "stage" });
+      api.board.appendChild(canvas);
+      var ctx = canvas.getContext("2d");
+
+      function layout() {
+        var dpr = Math.min(window.devicePixelRatio || 1, 2);
+        var w = api.board.clientWidth;
+        var h = api.board.clientHeight;
+        canvas.width = Math.max(1, Math.round(w * dpr));
+        canvas.height = Math.max(1, Math.round(h * dpr));
+        canvas.style.width = w + "px";
+        canvas.style.height = h + "px";
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        var size = Math.min(w / (L.cols * 1.85 + 1), h / (L.rows * 1.6 + 1));
+        var ox = (w - size * Math.sqrt(3) * (L.cols + 0.5)) / 2 + size;
+        var oy = (h - size * 1.5 * L.rows) / 2 + size;
+        return { size: size, ox: ox, oy: oy, w: w, h: h };
+      }
+
+      function pixel(q, r, m) {
+        return {
+          x: m.ox + m.size * Math.sqrt(3) * (q + 0.5 * (r % 2)),
+          y: m.oy + m.size * 1.5 * r
+        };
+      }
+
+      function hexAt(pt, m) {
+        var best = null;
+        var bestD = m.size * 0.92;
+        Object.keys(map).forEach(function (k) {
+          if (map[k] < 0) return;
+          var parts = k.split(",");
+          var p = pixel(+parts[0], +parts[1], m);
+          var d = Math.hypot(pt.x - p.x, pt.y - p.y);
+          if (d < bestD) { bestD = d; best = { q: +parts[0], r: +parts[1], k: k }; }
+        });
+        return best;
+      }
+
+      function neighbor(a, b) {
+        return nbrs(a.q, a.r).some(function (n) { return n[0] === b.q && n[1] === b.r; });
+      }
+
+      function gravity() {
+        var q, r, write, k;
+        for (q = 0; q < L.cols; q++) {
+          write = L.rows - 1;
+          for (r = L.rows - 1; r >= 0; r--) {
+            k = hexKey(q, r);
+            if (map[k] >= 0) {
+              var val = map[k];
+              map[k] = -1;
+              map[hexKey(q, write)] = val;
+              write -= 1;
+            }
+          }
+        }
+      }
+
+      function hasMove() {
+        var keys = Object.keys(map);
+        var i, j;
+        for (i = 0; i < keys.length; i++) {
+          if (map[keys[i]] < 0) continue;
+          var a = keys[i].split(",");
+          var aq = +a[0], ar = +a[1], col = map[keys[i]];
+          var around = nbrs(aq, ar);
+          for (j = 0; j < around.length; j++) {
+            var nk = hexKey(around[j][0], around[j][1]);
+            if (map[nk] === col) return true;
+          }
+        }
+        return false;
+      }
+
+      function empty() {
+        return Object.keys(map).every(function (k) { return map[k] < 0; });
+      }
+
+      function drawHex(x, y, s, color, glow) {
+        ctx.beginPath();
+        var i;
+        for (i = 0; i < 6; i++) {
+          var ang = Math.PI / 180 * (60 * i - 30);
+          var px = x + s * Math.cos(ang);
+          var py = y + s * Math.sin(ang);
+          if (i === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+        if (glow) {
+          ctx.lineWidth = 4;
+          ctx.strokeStyle = "#fff";
+          ctx.stroke();
+        }
+      }
+
+      function draw() {
+        var m = layout();
+        ctx.fillStyle = "#1b2156";
+        ctx.fillRect(0, 0, m.w, m.h);
+        Object.keys(map).forEach(function (k) {
+          if (map[k] < 0) return;
+          var parts = k.split(",");
+          var p = pixel(+parts[0], +parts[1], m);
+          var glow = drag.some(function (d) { return d.k === k; });
+          drawHex(p.x, p.y, m.size * 0.92, PAL[map[k]], glow);
+        });
+      }
+
+      function smash() {
+        if (drag.length < 2) { drag = []; draw(); return; }
+        var color = map[drag[0].k];
+        if (drag.some(function (d) { return map[d.k] !== color; })) { drag = []; draw(); return; }
+        history.push(JSON.stringify(map));
+        drag.forEach(function (d) { map[d.k] = -1; });
+        drag = [];
+        gravity();
+        draw();
+        if (empty()) api.win(160);
+        else if (!hasMove()) api.fail("No smash left. Restart the board.");
+      }
+
+      Arcade.pointer(canvas, {
+        down: function (pt) {
+          var hex = hexAt(pt, layout());
+          drag = hex ? [hex] : [];
+          draw();
+        },
+        move: function (pt) {
+          if (!drag.length) return;
+          var hex = hexAt(pt, layout());
+          if (!hex) return;
+          var last = drag[drag.length - 1];
+          if (hex.k === last.k) return;
+          if (drag.length >= 2 && drag[drag.length - 2].k === hex.k) {
+            drag.pop();
+            draw();
+            return;
+          }
+          if (!neighbor(last, hex)) return;
+          if (map[hex.k] !== map[last.k]) return;
+          if (drag.some(function (d) { return d.k === hex.k; })) return;
+          drag.push(hex);
+          draw();
+        },
+        up: smash
+      });
+
+      api.onUndo(function () {
+        if (!history.length) return;
+        map = JSON.parse(history.pop());
+        drag = [];
+        draw();
+      });
+      window.addEventListener("resize", draw);
+      draw();
+    }
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+  <title>Stretch Block</title>
+  <link rel="stylesheet" href="arcade.css">
+</head>
+<body>
+<script src="arcade.js"></script>
+<script>
+Arcade.rectFill({
+  title: "Stretch Block",
+  theme: "sand",
+  board: "#e8d3ae",
+  hint: "Drag a number until it fills exactly that many tiles.",
+  levels: [
+    {
+      cols: 3, rows: 2,
+      pieces: [
+        { r: 0, c: 0, n: 2, color: "#3dcc7a" },
+        { r: 0, c: 1, n: 4, color: "#f5a524" }
+      ]
+    },
+    {
+      cols: 4, rows: 4,
+      pieces: [
+        { r: 0, c: 0, n: 4, color: "#3dcc7a" },
+        { r: 0, c: 2, n: 4, color: "#f5a524" },
+        { r: 2, c: 0, n: 4, color: "#5aa7ff" },
+        { r: 2, c: 2, n: 4, color: "#ff6b8a" }
+      ]
+    },
+    {
+      cols: 5, rows: 4,
+      pieces: [
+        { r: 0, c: 0, n: 10, color: "#3dcc7a" },
+        { r: 2, c: 0, n: 4, color: "#c084fc" },
+        { r: 2, c: 2, n: 6, color: "#f5a524" }
+      ]
+    },
+    {
+      cols: 6, rows: 5,
+      pieces: [
+        { r: 0, c: 0, n: 9, color: "#3dcc7a" },
+        { r: 0, c: 3, n: 9, color: "#5aa7ff" },
+        { r: 3, c: 0, n: 6, color: "#f5a524" },
+        { r: 3, c: 3, n: 6, color: "#ff6b8a" }
+      ]
+    },
+    {
+      cols: 6, rows: 6,
+      pieces: [
+        { r: 0, c: 0, n: 12, color: "#3dcc7a" },
+        { r: 0, c: 4, n: 4, color: "#f5a524" },
+        { r: 2, c: 4, n: 8, color: "#c084fc" },
+        { r: 3, c: 0, n: 12, color: "#5aa7ff" }
+      ]
+    }
+  ]
+});
+</script>
+</body>
+</html>

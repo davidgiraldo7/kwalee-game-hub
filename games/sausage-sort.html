@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+  <title>Sausage Sort</title>
+  <link rel="stylesheet" href="arcade.css">
+</head>
+<body>
+<script src="arcade.js"></script>
+<script>
+(function () {
+  var PAL = { R: "#ef476f", B: "#3b82f6", G: "#22c55e", O: "#f59e0b", P: "#a855f7", W: "#f8fafc" };
+  var CAP = 4;
+  var LEVELS = [
+    [["R", "R", "B", "B"], ["B", "B", "R", "R"], [], []],
+    [["R", "G", "R", "G"], ["G", "R", "G", "R"], ["B", "B", "B", "B"], [], []],
+    [["R", "G", "B", "R"], ["G", "B", "R", "G"], ["B", "R", "G", "B"], [], []],
+    [["R", "O", "P", "R"], ["O", "P", "R", "O"], ["P", "R", "O", "P"], ["G", "G", "G", "G"], [], []]
+  ];
+
+  Arcade.boot({
+    title: "Sausage Sort",
+    theme: "mint",
+    hint: "Pour sausages of one color. Fill every tray.",
+    levelCount: LEVELS.length,
+    start: function (index, api) {
+      var tubes = LEVELS[index].map(function (t) { return t.slice(); });
+      var hold = null;
+      var history = [];
+      var wrap = Arcade.el("div", { className: "tubes" });
+      api.board.appendChild(wrap);
+
+      function topRun(arr) {
+        if (!arr.length) return [];
+        var c = arr[arr.length - 1];
+        var n = 1;
+        for (var i = arr.length - 2; i >= 0 && arr[i] === c; i--) n += 1;
+        return arr.slice(arr.length - n);
+      }
+
+      function solved() {
+        return tubes.every(function (t) {
+          if (!t.length) return true;
+          return t.length === CAP && t.every(function (x) { return x === t[0]; });
+        });
+      }
+
+      function paint() {
+        wrap.innerHTML = "";
+        tubes.forEach(function (t, i) {
+          var tube = Arcade.el("div", { className: "tube" + (hold === i ? " sel" : "") });
+          t.forEach(function (c) {
+            tube.appendChild(Arcade.el("div", { className: "sausage", style: { background: PAL[c] } }));
+          });
+          tube.addEventListener("click", function () { tap(i); });
+          wrap.appendChild(tube);
+        });
+      }
+
+      function tap(i) {
+        if (hold == null) {
+          if (!tubes[i].length) return;
+          history.push(JSON.stringify(tubes));
+          hold = i;
+          paint();
+          return;
+        }
+        if (hold === i) { hold = null; paint(); return; }
+        var run = topRun(tubes[hold]);
+        var dest = tubes[i];
+        var space = CAP - dest.length;
+        if (!run.length || space <= 0) { hold = null; paint(); return; }
+        if (dest.length && dest[dest.length - 1] !== run[0]) { hold = null; paint(); return; }
+        var n = Math.min(run.length, space);
+        for (var k = 0; k < n; k++) dest.push(tubes[hold].pop());
+        hold = null;
+        paint();
+        if (solved()) api.win(130);
+      }
+
+      api.onUndo(function () {
+        if (!history.length) return;
+        tubes = JSON.parse(history.pop());
+        hold = null;
+        paint();
+      });
+      paint();
+    }
+  });
+})();
+</script>
+</body>
+</html>

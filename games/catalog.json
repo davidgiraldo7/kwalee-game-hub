@@ -16,7 +16,8 @@
       "genre": "Puzzle",
       "heat": 99,
       "description": "Stretch colorful blocks until every tile on the grid is filled.",
-      "cover": "covers/stretch-block.jpg"
+      "cover": "covers/stretch-block.jpg",
+      "src": "stretch-block.html"
     },
     {
       "id": "grid-filler",
@@ -24,7 +25,8 @@
       "genre": "Puzzle",
       "heat": 98,
       "description": "Divide the grid into tiles. Each number is the size of its rectangle.",
-      "cover": "covers/grid-filler.jpg"
+      "cover": "covers/grid-filler.jpg",
+      "src": "grid-filler.html"
     },
     {
       "id": "pixel-blocks",
@@ -32,7 +34,8 @@
       "genre": "Puzzle",
       "heat": 97,
       "description": "Sort colors, collect blocks, and keep the waiting tray clear.",
-      "cover": "covers/pixel-blocks.jpg"
+      "cover": "covers/pixel-blocks.jpg",
+      "src": "pixel-blocks.html"
     },
     {
       "id": "link-flow",
@@ -40,7 +43,8 @@
       "genre": "Puzzle",
       "heat": 96,
       "description": "Connect matching colors, tiles, and paths without crossing the flow.",
-      "cover": "covers/link-flow.jpg"
+      "cover": "covers/link-flow.jpg",
+      "src": "link-flow.html"
     },
     {
       "id": "blade-flow",
@@ -48,7 +52,8 @@
       "genre": "Puzzle",
       "heat": 95,
       "description": "Grind the cubes, carve a path, and clear every colorful slice.",
-      "cover": "covers/blade-flow.jpg"
+      "cover": "covers/blade-flow.jpg",
+      "src": "blade-flow.html"
     },
     {
       "id": "colour-smash",
@@ -56,7 +61,8 @@
       "genre": "Puzzle",
       "heat": 94,
       "description": "Connect the dots and smash matching color blocks off the board.",
-      "cover": "covers/colour-smash.jpg"
+      "cover": "covers/colour-smash.jpg",
+      "src": "colour-smash.html"
     },
     {
       "id": "sausage-sort",
@@ -64,7 +70,8 @@
       "genre": "Puzzle",
       "heat": 93,
       "description": "Sort sausages by color before the tray jams.",
-      "cover": "covers/sausage-sort.jpg"
+      "cover": "covers/sausage-sort.jpg",
+      "src": "sausage-sort.html"
     },
     {
       "id": "aqua-block-jam",
@@ -72,7 +79,8 @@
       "genre": "Puzzle",
       "heat": 92,
       "description": "Slide the water blocks and sort every drop into its tube.",
-      "cover": "covers/aqua-block-jam.jpg"
+      "cover": "covers/aqua-block-jam.jpg",
+      "src": "aqua-block-jam.html"
     },
     {
       "id": "claw-sort",
@@ -80,7 +88,8 @@
       "genre": "Puzzle",
       "heat": 91,
       "description": "Grab, sort, and clear the claw machine one color at a time.",
-      "cover": "covers/claw-sort.jpg"
+      "cover": "covers/claw-sort.jpg",
+      "src": "claw-sort.html"
     },
     {
       "id": "flock-feast",
@@ -88,7 +97,8 @@
       "genre": "Casual",
       "heat": 90,
       "description": "Feed the flock in the right order and keep the line moving.",
-      "cover": "covers/flock-feast.jpg"
+      "cover": "covers/flock-feast.jpg",
+      "src": "flock-feast.html"
     }
   ]
 }
