@@ -1,6 +1,15 @@
 {
-  "featuredId": "star-tap",
+  "featuredId": "hexiword",
   "games": [
+    {
+      "id": "hexiword",
+      "title": "Hexiword",
+      "genre": "Word",
+      "heat": 100,
+      "description": "Swipe hex letters, capture 7 hexicons, beat the bot.",
+      "cover": "covers/hexiword.svg",
+      "src": "hexiword.html"
+    },
     {
       "id": "star-tap",
       "title": "Tap Star Tap",

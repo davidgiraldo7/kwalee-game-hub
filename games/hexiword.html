@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Hexiword</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@700;800;900&display=swap');
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      font-family: 'Nunito', sans-serif;
+      background-color: #1e1b4b;
+      background-image: radial-gradient(circle at 50% 50%, #312e81 0%, #1e1b4b 100%);
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+      height: 100%;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
+      overscroll-behavior: none;
+    }
+
+    .font-cartoon {
+      font-family: 'Lilita One', cursive;
+      letter-spacing: 1px;
+    }
+
+    .device-frame {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(180deg, #38bdf8 0%, #3b82f6 100%);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .board-container {
+      position: relative;
+      width: 100%;
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      touch-action: none;
+      min-height: 0;
+    }
+
+    .hex {
+      position: absolute;
+      width: 34px;
+      height: 39.26px;
+      -webkit-clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Lilita One', cursive;
+      font-size: 20px;
+      transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s, filter 0.2s;
+      cursor: pointer;
+      z-index: 5;
+      filter: drop-shadow(0px 3px 0px rgba(15, 23, 42, 0.8));
+    }
+
+    .hex::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      right: 2px;
+      bottom: 2px;
+      -webkit-clip-path: inherit;
+      clip-path: inherit;
+      z-index: -1;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 100%);
+    }
+
+    .hex.neutral { background-color: #f1f5f9; color: #334155; }
+    .hex.p1 { background-color: #0ea5e9; color: white; }
+    .hex.p2 { background-color: #f43f5e; color: white; }
+    .hex.captured.p1 { background-color: #0369a1; }
+    .hex.captured.p2 { background-color: #be123c; }
+    .hex.selected {
+      transform: scale(1.15) translateY(-2px);
+      z-index: 15;
+      filter: drop-shadow(0px 6px 0px rgba(15, 23, 42, 0.9));
+    }
+    .hex.selected.neutral { background-color: #facc15; color: #0f172a; }
+    .hex.selected.p1 { background-color: #38bdf8; color: #0f172a; }
+    .hex.selected.p2 { background-color: #fb7185; color: #0f172a; }
+    .hex.swapping {
+      background-color: #a855f7 !important;
+      color: white;
+      transform: scale(1.2) translateY(-4px);
+      z-index: 20;
+      filter: drop-shadow(0px 8px 0px rgba(15, 23, 42, 0.9)) drop-shadow(0 0 10px #c084fc);
+    }
+
+    #line-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .btn-cartoon {
+      font-family: 'Lilita One', cursive;
+      border: 4px solid #0f172a;
+      box-shadow: 0 6px 0 #0f172a;
+      transition: transform 0.1s, box-shadow 0.1s, opacity 0.2s;
+      text-transform: uppercase;
+    }
+    .btn-cartoon:active:not(:disabled) {
+      transform: translateY(6px);
+      box-shadow: 0 0 0 #0f172a;
+    }
+    .btn-cartoon:disabled {
+      opacity: 0.6;
+      filter: grayscale(0.5);
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: 0 6px 0 #0f172a;
+    }
+
+    .text-stroke {
+      -webkit-text-stroke: 2px #0f172a;
+      color: white;
+      text-shadow: 0 4px 0 #0f172a;
+    }
+    .text-stroke-yellow {
+      -webkit-text-stroke: 2px #0f172a;
+      color: #fde047;
+      text-shadow: 0 4px 0 #0f172a;
+    }
+
+    #toast-container {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding-top: 120px;
+      z-index: 400;
+    }
+
+    .toast {
+      background: #facc15;
+      color: #0f172a;
+      padding: 12px 28px;
+      border-radius: 40px;
+      font-family: 'Lilita One', cursive;
+      font-size: 1.25rem;
+      border: 4px solid #0f172a;
+      box-shadow: 0 6px 0 #0f172a;
+      margin-bottom: 8px;
+      animation: bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    @keyframes bounceIn {
+      0% { opacity: 0; transform: translateY(-40px) scale(0.8); }
+      50% { opacity: 1; transform: translateY(10px) scale(1.05); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes toastOut {
+      from { opacity: 1; transform: translateY(0) scale(1); }
+      to { opacity: 0; transform: translateY(-20px) scale(0.8); }
+    }
+    @keyframes pulse-radar {
+      0% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7); border: 4px solid white; }
+      70% { transform: scale(1.2); box-shadow: 0 0 0 30px rgba(255, 255, 255, 0); border: 4px solid transparent; }
+      100% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); border: 4px solid transparent; }
+    }
+
+    .tut-hex {
+      position: absolute;
+      width: 34px;
+      height: 39.26px;
+      -webkit-clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Lilita One', cursive;
+      font-size: 20px;
+      color: #334155;
+      margin-left: -17px;
+      margin-top: -19.63px;
+      transition: all 0.2s;
+      filter: drop-shadow(0 3px 0 #0f172a);
+    }
+    .anim-hex-1 { left: calc(50% - 33px); top: calc(50% + 10px); animation: hexSelect1 4s infinite; }
+    .anim-hex-2 { left: 50%; top: calc(50% - 9px); animation: hexSelect2 4s infinite; }
+    .anim-hex-3 { left: calc(50% + 33px); top: calc(50% + 10px); animation: hexSelect3 4s infinite; }
+    .anim-hand {
+      position: absolute;
+      width: 44px;
+      height: 44px;
+      left: 50%;
+      top: 50%;
+      margin-left: -6px;
+      margin-top: -2px;
+      z-index: 50;
+      animation: handSwipe 4s infinite;
+      filter: drop-shadow(0 6px 4px rgba(0, 0, 0, 0.4));
+      transform-origin: top left;
+    }
+    .anim-line { stroke-dasharray: 90; stroke-dashoffset: 90; animation: drawLine 4s infinite; }
+
+    @keyframes handSwipe {
+      0%, 5% { transform: translate(-33px, 10px) scale(1.2); opacity: 0; }
+      10% { transform: translate(-33px, 10px) scale(1); opacity: 1; }
+      35% { transform: translate(0px, -9px) scale(1); opacity: 1; }
+      60% { transform: translate(33px, 10px) scale(1); opacity: 1; }
+      75% { transform: translate(33px, 10px) scale(1.2); opacity: 0; }
+      100% { transform: translate(-33px, 10px) scale(1.2); opacity: 0; }
+    }
+    @keyframes hexSelect1 {
+      0%, 9% { background-color: #f1f5f9; transform: scale(1); filter: drop-shadow(0 3px 0 #0f172a); color: #334155; }
+      10%, 74% { background-color: #facc15; transform: scale(1.15) translateY(-2px); filter: drop-shadow(0 6px 0 #0f172a); color: #0f172a; z-index: 10; }
+      75%, 85% { background-color: #0ea5e9; transform: scale(1); filter: drop-shadow(0 3px 0 #0f172a); color: white; z-index: 1; }
+      86%, 100% { background-color: #f1f5f9; transform: scale(1); filter: drop-shadow(0 3px 0 #0f172a); color: #334155; z-index: 1; }
+    }
+    @keyframes hexSelect2 {
+      0%, 34% { background-color: #f1f5f9; transform: scale(1); filter: drop-shadow(0 3px 0 #0f172a); color: #334155; }
+      35%, 74% { background-color: #facc15; transform: scale(1.15) translateY(-2px); filter: drop-shadow(0 6px 0 #0f172a); color: #0f172a; z-index: 10; }
+      75%, 85% { background-color: #0ea5e9; transform: scale(1); filter: drop-shadow(0 3px 0 #0f172a); color: white; z-index: 1; }
+      86%, 100% { background-color: #f1f5f9; transform: scale(1); filter: drop-shadow(0 3px 0 #0f172a); color: #334155; z-index: 1; }
+    }
+    @keyframes hexSelect3 {
+      0%, 59% { background-color: #f1f5f9; transform: scale(1); filter: drop-shadow(0 3px 0 #0f172a); color: #334155; }
+      60%, 74% { background-color: #facc15; transform: scale(1.15) translateY(-2px); filter: drop-shadow(0 6px 0 #0f172a); color: #0f172a; z-index: 10; }
+      75%, 85% { background-color: #0ea5e9; transform: scale(1); filter: drop-shadow(0 3px 0 #0f172a); color: white; z-index: 1; }
+      86%, 100% { background-color: #f1f5f9; transform: scale(1); filter: drop-shadow(0 3px 0 #0f172a); color: #334155; z-index: 1; }
+    }
+    @keyframes drawLine {
+      0%, 10% { stroke-dashoffset: 90; opacity: 1; }
+      35% { stroke-dashoffset: 45; opacity: 1; }
+      60%, 74% { stroke-dashoffset: 0; opacity: 1; }
+      75%, 100% { stroke-dashoffset: 0; opacity: 0; }
+    }
+    @keyframes liveAvatar {
+      0%, 100% { transform: scale(1) rotate(-3deg); }
+      50% { transform: scale(1.1) rotate(3deg); }
+    }
+    .anim-avatar { animation: liveAvatar 3s ease-in-out infinite; }
+    .hidden { display: none !important; }
+    .hud-card { border: 4px solid #0f172a; box-shadow: 0 4px 0 #0f172a; }
+  </style>
+</head>
+<body>
+  <div class="device-frame pt-4 pb-4 px-3 flex flex-col relative">
+
+    <div id="main-menu" class="absolute inset-0 z-[200] flex flex-col items-center justify-center p-6 bg-gradient-to-b from-sky-400 to-indigo-600">
+      <div class="absolute inset-0 opacity-20 pointer-events-none" style="background-image: radial-gradient(circle at center, white 2px, transparent 2px); background-size: 30px 30px;"></div>
+
+      <div class="mb-10 relative flex justify-center items-center w-full h-48">
+        <div class="absolute inset-0 flex justify-center items-center opacity-40 z-0 pointer-events-none scale-125">
+          <div class="absolute w-[44px] h-[50px] flex justify-center items-center" style="clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); background-color: #0284c7;">
+            <svg class="w-5 h-5 text-white drop-shadow-md" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+          </div>
+          <div class="absolute w-[44px] h-[50px] bg-sky-400" style="clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); transform: translate(0, -52px);"></div>
+          <div class="absolute w-[44px] h-[50px] bg-sky-400" style="clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); transform: translate(45px, -26px);"></div>
+          <div class="absolute w-[44px] h-[50px] bg-rose-500" style="clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); transform: translate(45px, 26px);"></div>
+          <div class="absolute w-[44px] h-[50px] bg-sky-400" style="clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); transform: translate(0, 52px);"></div>
+          <div class="absolute w-[44px] h-[50px] bg-rose-500" style="clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); transform: translate(-45px, 26px);"></div>
+          <div class="absolute w-[44px] h-[50px] bg-sky-400" style="clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); transform: translate(-45px, -26px);"></div>
+        </div>
+        <h1 class="font-cartoon text-5xl md:text-6xl text-stroke-yellow z-10 text-center w-full rotate-[-2deg] scale-110">HEXIWORD</h1>
+      </div>
+
+      <p class="text-white font-black tracking-widest uppercase mb-12 text-sm z-10 text-center drop-shadow-md bg-black/20 px-4 py-2 rounded-full">Multiplayer Territory Word Battle Game</p>
+      <div id="loading-dict" class="w-full text-center text-white font-bold text-sm mb-4 animate-pulse">Connecting to dictionary...</div>
+      <button id="btn-play-menu" disabled class="btn-cartoon w-full max-w-[250px] bg-green-400 text-white rounded-full p-4 text-2xl mb-5 z-10">PLAY GAME</button>
+      <button id="btn-rules-menu" class="btn-cartoon w-full max-w-[250px] bg-sky-300 text-slate-900 rounded-full p-4 text-xl z-10">HOW TO PLAY</button>
+    </div>
+
+    <div id="rules-screen" class="hidden absolute inset-0 bg-indigo-500 z-[210] flex flex-col p-6 overflow-y-auto pb-12">
+      <div class="flex justify-between items-center mb-6 mt-6 shrink-0">
+        <h2 class="font-cartoon text-stroke text-4xl">HOW TO PLAY</h2>
+        <button id="btn-close-rules" class="btn-cartoon bg-rose-400 text-white p-2 rounded-full h-12 w-12 flex justify-center items-center">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+      <div class="space-y-6 text-white font-bold text-base leading-relaxed pb-8">
+        <p class="bg-black/10 p-4 rounded-2xl">Hexiword is a competitive territory control game. The goal is to capture <span class="text-yellow-300 font-black">7 Hexicons</span> before your opponent.</p>
+        <ul class="space-y-6">
+          <li class="bg-indigo-600 p-5 rounded-3xl border-4 border-slate-900 shadow-[0_4px_0_#0f172a]">
+            <strong class="font-cartoon text-xl flex items-center gap-2 mb-2 text-yellow-300">Playing Words</strong>
+            <p>Swipe adjacent <span class="text-slate-200 font-black">Neutral</span> or <span class="text-sky-300 font-black">Your Own</span> tiles to spell words. You cannot use your opponent's tiles.</p>
+            <div class="relative w-full h-32 bg-indigo-800 rounded-2xl border-[3px] border-slate-900 shadow-inner mt-4 overflow-hidden flex justify-center items-center">
+              <svg class="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 200 128" style="z-index: 5;">
+                <path class="anim-line" d="M 67 73 L 100 54 L 133 73" stroke="#facc15" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              <div class="tut-hex anim-hex-1">W</div>
+              <div class="tut-hex anim-hex-2">I</div>
+              <div class="tut-hex anim-hex-3">N</div>
+              <svg class="anim-hand" fill="#facc15" stroke="#0f172a" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M12 3a2 2 0 0 0-2 2v5.5l-1.5-1.5a2.12 2.12 0 0 0-3 3l5 5a4.95 4.95 0 0 0 3.5 1.5h1a5 5 0 0 0 5-5V8a2 2 0 0 0-2-2a2 2 0 0 0-1.5.65V6a2 2 0 0 0-2-2a2 2 0 0 0-1.5.65V5a2 2 0 0 0-2-2z" />
+              </svg>
+            </div>
+          </li>
+          <li class="bg-indigo-600 p-5 rounded-3xl border-4 border-slate-900 shadow-[0_4px_0_#0f172a]">
+            <strong class="font-cartoon text-xl flex items-center gap-2 mb-2 text-yellow-300">Swapping Letters</strong>
+            <p><span class="text-purple-300 font-black">Long-press (hold)</span> any uncaptured tile until it glows purple, then drag it to swap. (Free action once per turn!)</p>
+          </li>
+          <li class="bg-indigo-600 p-5 rounded-3xl border-4 border-slate-900 shadow-[0_4px_0_#0f172a]">
+            <strong class="font-cartoon text-xl flex items-center gap-2 mb-2 text-yellow-300">Capturing Hexicons</strong>
+            <p>When a tile and its 6 surrounding neighbors are completely played, whoever owns the <span class="text-yellow-300 font-black">Majority (4+)</span> permanently captures the center tile!</p>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div id="matchmaking-screen" class="hidden absolute inset-0 bg-indigo-600 z-[205] flex flex-col items-center justify-center p-6">
+      <div class="relative w-40 h-40 flex justify-center items-center mb-8">
+        <div class="absolute inset-0 rounded-full bg-sky-300/30" style="animation: pulse-radar 1.5s ease-out infinite;"></div>
+        <div class="absolute inset-4 rounded-full bg-sky-300/40" style="animation: pulse-radar 1.5s ease-out infinite 0.4s;"></div>
+        <div class="w-20 h-20 bg-sky-400 rounded-full flex justify-center items-center z-10 border-4 border-white shadow-xl">
+          <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
+        </div>
+      </div>
+      <h2 id="match-status" class="font-cartoon text-3xl text-white mb-2 text-center text-stroke">Searching...</h2>
+      <p class="text-sky-200 font-bold bg-black/20 px-4 py-2 rounded-full">Estimated wait: 0:03</p>
+    </div>
+
+    <div class="flex justify-between items-center bg-white/20 p-2 rounded-3xl backdrop-blur-md border-[3px] border-white/40 shadow-lg z-10 shrink-0">
+      <div id="p1-card" class="hud-card flex flex-col items-center px-2 py-2 rounded-2xl bg-sky-400 transition-all w-[95px]">
+        <div class="w-10 h-10 rounded-full border-[3px] border-white flex justify-center items-center mb-1 overflow-hidden shrink-0 bg-white">
+          <img src="https://randomuser.me/api/portraits/men/32.jpg" class="w-full h-full object-cover anim-avatar" alt="DavidG7">
+        </div>
+        <span class="text-[11px] text-white font-black uppercase tracking-wide truncate w-full text-center drop-shadow-md">DavidG7</span>
+        <span id="p1-score" class="font-cartoon text-3xl text-white leading-none mt-1 drop-shadow-md">0</span>
+      </div>
+      <div class="flex flex-col items-center justify-center mx-2">
+        <span id="timer-display" class="font-cartoon text-stroke-yellow text-5xl w-14 text-center transition-colors">30</span>
+        <span class="text-[10px] text-white font-black uppercase tracking-widest mt-1 bg-black/20 px-2 py-1 rounded-lg">7 Caps</span>
+      </div>
+      <div id="p2-card" class="hud-card flex flex-col items-center px-2 py-2 rounded-2xl bg-slate-300 transition-all w-[95px]">
+        <div class="w-10 h-10 rounded-full border-[3px] border-white flex justify-center items-center mb-1 overflow-hidden shrink-0 bg-white">
+          <img id="p2-avatar" src="https://randomuser.me/api/portraits/women/44.jpg" class="w-full h-full object-cover anim-avatar" alt="Opponent">
+        </div>
+        <span id="p2-name" class="text-[11px] text-white font-black uppercase tracking-wide truncate w-full text-center drop-shadow-md">Opponent</span>
+        <span id="p2-score" class="font-cartoon text-3xl text-white leading-none mt-1 drop-shadow-md">0</span>
+      </div>
+    </div>
+
+    <div class="mt-3 h-12 flex items-center justify-center z-10 shrink-0 bg-black/10 rounded-full mx-6">
+      <h2 id="current-word" class="font-cartoon text-4xl tracking-wide text-white drop-shadow-md empty:before:content-['SWIPE_TO_PLAY'] empty:before:text-white/60 empty:before:text-xl empty:before:tracking-normal"></h2>
+    </div>
+
+    <div class="board-container mt-2 mb-3" id="board">
+      <svg id="line-layer">
+        <path id="selection-path" fill="none" stroke="#facc15" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 4px 0px rgba(15,23,42,0.5));" />
+      </svg>
+    </div>
+
+    <div class="mt-auto grid grid-cols-4 gap-3 z-10 shrink-0">
+      <button id="btn-hint" class="btn-cartoon col-span-1 bg-sky-200 text-sky-800 rounded-2xl p-3 flex justify-center items-center relative overflow-hidden">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+        <span id="hint-count" class="absolute top-1 right-2 text-sm font-cartoon text-rose-500">5</span>
+      </button>
+      <button id="btn-submit" disabled class="btn-cartoon col-span-3 bg-yellow-400 text-yellow-900 rounded-2xl p-4 text-2xl">SUBMIT</button>
+    </div>
+
+    <div id="toast-container"></div>
+    <div id="game-over" class="hidden absolute inset-0 bg-indigo-900/95 z-[300] flex flex-col items-center justify-center p-6 backdrop-blur-sm">
+      <h1 id="winner-text" class="font-cartoon text-stroke-yellow text-6xl mb-4 text-center rotate-[-2deg] scale-110">YOU WIN!</h1>
+      <p id="final-score" class="font-cartoon text-white text-3xl mb-10 bg-black/20 px-6 py-2 rounded-full">7 to 4</p>
+      <button id="btn-play-again" class="btn-cartoon bg-green-400 text-white rounded-full px-10 py-5 text-2xl">Play Again</button>
+    </div>
+  </div>
+
+<script src="hexiword-words.js"></script>
+<script src="play.js"></script>
+<script>
+const BOARD_RADIUS = 4;
+const HEX_WIDTH = 34;
+const HEX_HEIGHT = 39.26;
+const STATE_NEUTRAL = 0;
+const STATE_PLAYED = 1;
+const STATE_CAPTURED = 2;
+const WIN_SCORE = 7;
+const TURN_TIME = 30;
+const LETTERS = "EEEEEEEEEEEEAAAAAAAIIIIIIIOOOOOONNNNNNRRRRRRTTTTTTLLLLSSSSUUUUDDDDGGGBBCCMMPPFFHHVVWWYYKJXQZ";
+const FALLBACK_WORDS = ["the","and","you","that","was","for","are","with","his","they","this","have","from","one","had","word","but","not","what","all","were","when","your","can","said","there","use","each","which","she","how","their","will","other","about","many","then","them","these","some","her","would","make","like","him","into","time","has","look","two","more","write","go","see","number","no","way","could","people","been","call","who","oil","its","now","find","long","down","day","did","get","come","made","may","part","hex","bot","zap","zip","qat","win","game","play","run","cat","dog"];
+
+let board = [];
+let currentPlayer = 1;
+let selectedPath = [];
+let isDragging = false;
+let scores = { 1: 0, 2: 0 };
+let isProcessing = false;
+let trieRoot = {};
+let dictLoaded = false;
+let turnTimer;
+let timeLeft = TURN_TIME;
+let isTimerActive = false;
+let pressTimer;
+let longPressedHex = null;
+let isSwapMode = false;
+let hintsRemaining = 5;
+let hasSwappedThisTurn = false;
+let playedPaths = new Set();
+let hubScoreSent = false;
+
+const boardEl = document.getElementById('board');
+const selectionPath = document.getElementById('selection-path');
+const currentWordEl = document.getElementById('current-word');
+const submitBtn = document.getElementById('btn-submit');
+const hintBtn = document.getElementById('btn-hint');
+const timerDisplay = document.getElementById('timer-display');
+const toastContainer = document.getElementById('toast-container');
+const btnPlayMenu = document.getElementById('btn-play-menu');
+
+function sendHubScore() {
+  if (hubScoreSent) return;
+  hubScoreSent = true;
+  try {
+    if (window.Play && typeof Play.sendScore === "function") Play.sendScore(scores[1], scores[1]);
+  } catch (err) { /* ignore */ }
+}
+
+function loadDictionary() {
+  function ready(label) {
+    dictLoaded = true;
+    document.getElementById('loading-dict').innerText = label;
+    btnPlayMenu.disabled = false;
+  }
+  if (window.HEXIWORD_WORDS && HEXIWORD_WORDS.length) {
+    buildTrie(HEXIWORD_WORDS);
+    ready("Dictionary Loaded!");
+  }
+  var extra = fetch("https://raw.githubusercontent.com/dolph/dictionary/master/enable1.txt");
+  var timer = extra.then(function (response) {
+    if (!response.ok) throw new Error("Primary dict failed");
+    return response.text();
+  }).then(function (text) {
+    buildTrie(text.split("\n"));
+    ready("Dictionary Loaded!");
+  }).catch(function () {
+    return fetch("https://raw.githubusercontent.com/first20hours/google-10000-english/master/google-10000-english-no-swears.txt")
+      .then(function (res) { return res.text(); })
+      .then(function (text) {
+        buildTrie(text.split("\n"));
+        ready("Dictionary Loaded!");
+      });
+  }).catch(function () {
+    if (!dictLoaded) {
+      buildTrie(FALLBACK_WORDS);
+      ready("Offline Mode (Limited words)");
+    }
+  });
+  setTimeout(function () {
+    if (!dictLoaded) {
+      buildTrie(FALLBACK_WORDS);
+      ready("Offline Mode (Limited words)");
+    }
+  }, 2500);
+}
+
+function buildTrie(wordArray) {
+  wordArray.forEach(function (word) {
+    word = String(word).trim().toLowerCase();
+    if (word.length >= 3) {
+      var node = trieRoot;
+      for (var i = 0; i < word.length; i++) {
+        var ch = word[i];
+        if (!node[ch]) node[ch] = {};
+        node = node[ch];
+      }
+      node.isWord = true;
+    }
+  });
+  dictLoaded = true;
+}
+
+function generateBoard() {
+  board = [];
+  for (var q = -BOARD_RADIUS; q <= BOARD_RADIUS; q++) {
+    for (var r = -BOARD_RADIUS; r <= BOARD_RADIUS; r++) {
+      if (Math.abs(q + r) <= BOARD_RADIUS) {
+        board.push({
+          id: "hex-" + q + "-" + r, q: q, r: r,
+          letter: getRandomLetter(),
+          owner: 0, state: STATE_NEUTRAL, element: null
+        });
+      }
+    }
+  }
+}
+
+function renderBoard() {
+  boardEl.querySelectorAll(".hex").forEach(function (h) { h.remove(); });
+  var rect = boardEl.getBoundingClientRect();
+  var centerX = (rect.width > 0 ? rect.width : 350) / 2;
+  var centerY = (rect.height > 0 ? rect.height : 400) / 2;
+  board.forEach(function (hex) {
+    var el = document.createElement("div");
+    el.className = "hex neutral";
+    el.id = hex.id;
+    hex.x = centerX + HEX_WIDTH * (hex.q + hex.r / 2);
+    hex.y = centerY + HEX_HEIGHT * 0.75 * hex.r;
+    el.style.left = (hex.x - HEX_WIDTH / 2) + "px";
+    el.style.top = (hex.y - HEX_HEIGHT / 2) + "px";
+    hex.element = el;
+    boardEl.appendChild(el);
+  });
+  updateBoardVisuals();
+  drawConnectingLine();
+}
+
+function getRandomLetter() { return LETTERS[Math.floor(Math.random() * LETTERS.length)]; }
+
+function initGame() {
+  generateBoard();
+  renderBoard();
+  setupEvents();
+  setTimeout(renderBoard, 100);
+}
+
+function setupEvents() {
+  boardEl.addEventListener("touchstart", handleStart, { passive: false });
+  boardEl.addEventListener("touchmove", handleMove, { passive: false });
+  boardEl.addEventListener("touchend", handleEnd);
+  boardEl.addEventListener("mousedown", handleStart);
+  document.addEventListener("mousemove", handleMove, { passive: false });
+  document.addEventListener("mouseup", handleEnd);
+  submitBtn.addEventListener("click", function () { if (!submitBtn.disabled) playSelectedWord(); });
+  hintBtn.addEventListener("click", function () { if (currentPlayer === 1 && !isProcessing) showHint(1); });
+  window.addEventListener("resize", function () { if (board.length > 0) renderBoard(); });
+}
+
+function getHexFromEvent(e) {
+  var clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  var clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  var el = document.elementFromPoint(clientX, clientY);
+  if (el && el.classList.contains("hex")) return board.find(function (h) { return h.id === el.id; });
+  return null;
+}
+
+function isAdjacent(h1, h2) {
+  if (!h1 || !h2) return false;
+  var dq = h1.q - h2.q;
+  var dr = h1.r - h2.r;
+  return [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]].some(function (d) { return d[0] === dq && d[1] === dr; });
+}
+
+function handleStart(e) {
+  if (isProcessing || currentPlayer !== 1 || e.target.closest("button")) return;
+  var hex = getHexFromEvent(e);
+  if (!hex || hex.owner === 2) { clearSelection(); return; }
+  if (e.cancelable) e.preventDefault();
+  if (hex.state !== STATE_CAPTURED && !hasSwappedThisTurn) {
+    pressTimer = setTimeout(function () {
+      isSwapMode = true;
+      longPressedHex = hex;
+      hex.element.classList.add("swapping");
+      if (navigator.vibrate) navigator.vibrate(50);
+    }, 500);
+  }
+  isDragging = true;
+  clearSelection();
+  addToSelection(hex);
+}
+
+function handleMove(e) {
+  if (!isDragging || !isTimerActive) return;
+  if (e.cancelable) e.preventDefault();
+  var hex = getHexFromEvent(e);
+  if (!hex) return;
+  if (isSwapMode) return;
+  clearTimeout(pressTimer);
+  var index = selectedPath.indexOf(hex);
+  if (index !== -1) {
+    if (index < selectedPath.length - 1) {
+      selectedPath.splice(index + 1);
+      updateWordDisplay();
+    }
+  } else {
+    var lastHex = selectedPath[selectedPath.length - 1];
+    if (isAdjacent(lastHex, hex) && hex.owner !== 2) addToSelection(hex);
+  }
+}
+
+function handleEnd(e) {
+  if (!isDragging) return;
+  isDragging = false;
+  clearTimeout(pressTimer);
+  if (isSwapMode && longPressedHex) {
+    var hex = getHexFromEvent(e);
+    if (hex && hex !== longPressedHex && isAdjacent(longPressedHex, hex) && hex.state !== STATE_CAPTURED) {
+      var tempLetter = longPressedHex.letter;
+      longPressedHex.letter = hex.letter;
+      hex.letter = tempLetter;
+      updateBoardVisuals();
+      clearSelection();
+      showToast("Swapped!");
+      hasSwappedThisTurn = true;
+    } else {
+      longPressedHex.element.classList.remove("swapping");
+      clearSelection();
+    }
+    isSwapMode = false;
+    longPressedHex = null;
+  }
+}
+
+function addToSelection(hex) { selectedPath.push(hex); updateWordDisplay(); }
+function clearSelection() { selectedPath = []; updateWordDisplay(); }
+
+function updateWordDisplay() {
+  var word = selectedPath.map(function (h) { return h.letter; }).join("");
+  currentWordEl.innerText = word;
+  board.forEach(function (h) { h.element.classList.remove("selected"); });
+  selectedPath.forEach(function (h) { h.element.classList.add("selected"); });
+  drawConnectingLine();
+  submitBtn.disabled = word.length < 3;
+}
+
+function drawConnectingLine() {
+  if (selectedPath.length < 2) { selectionPath.setAttribute("d", ""); return; }
+  var d = "M " + selectedPath[0].x + " " + selectedPath[0].y;
+  for (var i = 1; i < selectedPath.length; i++) d += " L " + selectedPath[i].x + " " + selectedPath[i].y;
+  selectionPath.setAttribute("d", d);
+  selectionPath.setAttribute("stroke", currentPlayer === 1 ? "#38bdf8" : "#fb7185");
+}
+
+function updateBoardVisuals() {
+  board.forEach(function (hex) {
+    var classes = ["hex"];
+    if (hex.state === STATE_NEUTRAL) classes.push("neutral");
+    if (hex.owner === 1) classes.push("p1");
+    if (hex.owner === 2) classes.push("p2");
+    if (hex.state === STATE_CAPTURED) classes.push("captured");
+    if (selectedPath.includes(hex)) classes.push("selected");
+    if (hex === longPressedHex && isSwapMode) classes.push("swapping");
+    hex.element.className = classes.join(" ");
+    if (hex.state === STATE_CAPTURED && !hex.element.querySelector("svg")) {
+      hex.element.innerHTML = hex.letter + '<svg class="absolute w-4 h-4 opacity-70 text-yellow-300 drop-shadow-md" style="bottom: 2px;" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>';
+    } else if (hex.state !== STATE_CAPTURED) {
+      hex.element.innerHTML = hex.letter;
+    }
+  });
+}
+
+function checkWordValid(word) {
+  word = word.toLowerCase();
+  var node = trieRoot;
+  for (var i = 0; i < word.length; i++) {
+    if (!node[word[i]]) return false;
+    node = node[word[i]];
+  }
+  return node.isWord === true;
+}
+
+function playSelectedWord() {
+  var word = selectedPath.map(function (h) { return h.letter; }).join("");
+  var pathId = selectedPath.map(function (h) { return h.id; }).join(",");
+  if (!checkWordValid(word)) {
+    showToast("Invalid Word!");
+    currentWordEl.classList.add("text-rose-500");
+    setTimeout(function () { currentWordEl.classList.remove("text-rose-500"); }, 500);
+    return;
+  }
+  if (playedPaths.has(pathId)) {
+    showToast("Path already played!");
+    currentWordEl.classList.add("text-rose-500");
+    setTimeout(function () { currentWordEl.classList.remove("text-rose-500"); }, 500);
+    return;
+  }
+  playedPaths.add(pathId);
+  isProcessing = true;
+  pauseTimer();
+  selectedPath.forEach(function (hex, i) {
+    setTimeout(function () {
+      if (hex.state !== STATE_CAPTURED) {
+        hex.state = STATE_PLAYED;
+        hex.owner = currentPlayer;
+      }
+      updateBoardVisuals();
+      hex.element.style.transform = "scale(1.3)";
+      setTimeout(function () { hex.element.style.transform = ""; }, 200);
+    }, i * 100);
+  });
+  setTimeout(function () {
+    checkHexicons();
+    clearSelection();
+    if (scores[1] >= WIN_SCORE || scores[2] >= WIN_SCORE) endGame();
+    else { isProcessing = false; switchTurn(); }
+  }, selectedPath.length * 100 + 300);
+}
+
+function getNeighbors(hex) {
+  return [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]]
+    .map(function (d) { return board.find(function (h) { return h.q === hex.q + d[0] && h.r === hex.r + d[1]; }); })
+    .filter(function (h) { return h; });
+}
+
+function checkHexicons() {
+  board.forEach(function (center) {
+    if (center.state === STATE_CAPTURED) return;
+    var neighbors = getNeighbors(center);
+    if (neighbors.length < 6) return;
+    var allSeven = [center].concat(neighbors);
+    if (allSeven.every(function (h) { return h.state !== STATE_NEUTRAL; })) {
+      var p1Count = allSeven.filter(function (h) { return h.owner === 1; }).length;
+      var p2Count = allSeven.filter(function (h) { return h.owner === 2; }).length;
+      var winner = p1Count > p2Count ? 1 : 2;
+      center.state = STATE_CAPTURED;
+      center.owner = winner;
+      scores[winner]++;
+      showToast((winner === 1 ? "Blue" : "Red") + " Captures!");
+      center.element.style.transform = "scale(1.8) rotate(15deg)";
+      setTimeout(function () { center.element.style.transform = ""; }, 400);
+      neighbors.forEach(function (n) {
+        if (n.state !== STATE_CAPTURED) {
+          n.state = STATE_NEUTRAL;
+          n.owner = 0;
+          n.letter = getRandomLetter();
+        }
+      });
+      updateUI();
+      updateBoardVisuals();
+    }
+  });
+}
+
+function switchTurn() {
+  currentPlayer = currentPlayer === 1 ? 2 : 1;
+  hasSwappedThisTurn = false;
+  updateUI();
+  startTimer();
+  if (currentPlayer === 2) setTimeout(playAI, 1000);
+}
+
+function startTimer() {
+  clearInterval(turnTimer);
+  timeLeft = TURN_TIME;
+  isTimerActive = true;
+  timerDisplay.innerText = timeLeft;
+  timerDisplay.classList.remove("text-rose-500");
+  turnTimer = setInterval(function () {
+    if (!isTimerActive) return;
+    timeLeft--;
+    timerDisplay.innerText = timeLeft;
+    if (timeLeft <= 5) timerDisplay.classList.add("text-rose-500");
+    if (timeLeft <= 0) {
+      pauseTimer();
+      showToast("Time's Up!");
+      clearSelection();
+      isProcessing = true;
+      setTimeout(function () { isProcessing = false; switchTurn(); }, 1500);
+    }
+  }, 1000);
+}
+
+function pauseTimer() { isTimerActive = false; }
+
+function updateUI() {
+  document.getElementById("p1-score").innerText = scores[1];
+  document.getElementById("p2-score").innerText = scores[2];
+  var p1Card = document.getElementById("p1-card");
+  var p2Card = document.getElementById("p2-card");
+  if (currentPlayer === 1) {
+    p1Card.classList.replace("bg-slate-300", "bg-sky-400");
+    p2Card.classList.replace("bg-rose-400", "bg-slate-300");
+  } else {
+    p2Card.classList.replace("bg-slate-300", "bg-rose-400");
+    p1Card.classList.replace("bg-sky-400", "bg-slate-300");
+  }
+}
+
+function playAI() {
+  isProcessing = true;
+  pauseTimer();
+  var moves = findAllValidWords(2);
+  if (moves.length === 0) {
+    showToast("Opponent passes!");
+    setTimeout(function () { isProcessing = false; switchTurn(); }, 1500);
+    return;
+  }
+  moves.sort(function (a, b) { return b.score - a.score; });
+  var bestMove = moves[0].path;
+  selectedPath = [];
+  bestMove.forEach(function (hex, i) {
+    setTimeout(function () {
+      addToSelection(hex);
+      if (i === bestMove.length - 1) setTimeout(playSelectedWord, 500);
+    }, i * 300);
+  });
+}
+
+function showHint(playerId) {
+  if (hintsRemaining <= 0) { showToast("No hints left!"); return; }
+  var moves = findAllValidWords(playerId);
+  if (moves.length > 0) {
+    moves.sort(function (a, b) { return b.score - a.score; });
+    clearSelection();
+    moves[0].path.forEach(function (h) { addToSelection(h); });
+    hintsRemaining--;
+    document.getElementById("hint-count").innerText = hintsRemaining;
+    if (hintsRemaining === 0) hintBtn.disabled = true;
+    showToast("Hint applied!");
+  } else {
+    showToast("No words found!");
+  }
+}
+
+function findAllValidWords(playerId) {
+  var moves = [];
+  var visitedPaths = new Set();
+  for (var i = 0; i < board.length; i++) {
+    var hex = board[i];
+    if (hex.owner === 0 || hex.owner === playerId) {
+      var start = trieRoot[hex.letter.toLowerCase()];
+      dfsFindWords(hex, [hex], start, moves, visitedPaths, playerId);
+    }
+  }
+  return moves;
+}
+
+function dfsFindWords(currentHex, path, trieNode, moves, visitedPaths, playerId) {
+  if (!trieNode || path.length >= 7) return;
+  if (trieNode.isWord && path.length >= 3) {
+    var pathId = path.map(function (h) { return h.id; }).join(",");
+    if (!visitedPaths.has(pathId) && !playedPaths.has(pathId)) {
+      visitedPaths.add(pathId);
+      moves.push({ path: path.slice(), score: evaluateMove(path, playerId) });
+    }
+  }
+  getNeighbors(currentHex).forEach(function (n) {
+    if (path.indexOf(n) === -1 && (n.owner === 0 || n.owner === playerId)) {
+      dfsFindWords(n, path.concat([n]), trieNode[n.letter.toLowerCase()], moves, visitedPaths, playerId);
+    }
+  });
+}
+
+function evaluateMove(path, playerId) {
+  var score = path.length;
+  var simState = board.map(function (h) { return { id: h.id, owner: h.owner, state: h.state }; });
+  path.forEach(function (ph) {
+    var sHex = simState.find(function (s) { return s.id === ph.id; });
+    if (sHex.state !== STATE_CAPTURED) { sHex.state = STATE_PLAYED; sHex.owner = playerId; }
+  });
+  board.forEach(function (center) {
+    if (center.state === STATE_CAPTURED) return;
+    var neighbors = getNeighbors(center);
+    if (neighbors.length < 6) return;
+    var allSevenIds = [center.id].concat(neighbors.map(function (n) { return n.id; }));
+    var allSevenSim = allSevenIds.map(function (id) { return simState.find(function (s) { return s.id === id; }); });
+    if (allSevenSim.every(function (h) { return h.state !== STATE_NEUTRAL; })) {
+      var myCount = allSevenSim.filter(function (h) { return h.owner === playerId; }).length;
+      var oppCount = allSevenSim.filter(function (h) { return h.owner !== playerId && h.owner !== 0; }).length;
+      if (myCount > oppCount) score += 50;
+    }
+  });
+  return score;
+}
+
+function showToast(msg) {
+  var el = document.createElement("div");
+  el.className = "toast";
+  el.innerText = msg;
+  toastContainer.appendChild(el);
+  setTimeout(function () {
+    el.style.animation = "toastOut 0.3s forwards";
+    setTimeout(function () { el.remove(); }, 300);
+  }, 2000);
+}
+
+function endGame() {
+  isProcessing = true;
+  pauseTimer();
+  sendHubScore();
+  document.getElementById("game-over").classList.remove("hidden");
+  document.getElementById("final-score").innerText = scores[1] + " to " + scores[2];
+  if (scores[1] >= WIN_SCORE) {
+    document.getElementById("winner-text").innerText = "YOU WIN!";
+    document.getElementById("winner-text").className = "font-cartoon text-stroke-yellow text-6xl mb-4 text-center rotate-[-4deg] scale-125";
+  } else {
+    document.getElementById("winner-text").innerText = "OPPONENT WINS!";
+    document.getElementById("winner-text").className = "font-cartoon text-stroke text-rose-500 text-6xl mb-4 text-center rotate-[4deg] scale-110";
+  }
+}
+
+var names = ["LexiMaster", "WordNinja", "VowelOwl", "HexagonHero", "SpellyBelly"];
+
+document.getElementById("btn-play-menu").addEventListener("click", function () {
+  document.getElementById("main-menu").classList.add("hidden");
+  document.getElementById("matchmaking-screen").classList.remove("hidden");
+  setTimeout(function () {
+    var fakeName = names[Math.floor(Math.random() * names.length)];
+    var rType = Math.random() < 0.5 ? "men" : "women";
+    var rNum = Math.floor(Math.random() * 90) + 1;
+    document.getElementById("p2-avatar").src = "https://randomuser.me/api/portraits/" + rType + "/" + rNum + ".jpg";
+    document.getElementById("match-status").innerText = "Found: " + fakeName;
+    document.getElementById("p2-name").innerText = fakeName;
+    setTimeout(function () {
+      document.getElementById("matchmaking-screen").classList.add("hidden");
+      initGame();
+      startTimer();
+    }, 1500);
+  }, 3000);
+});
+
+document.getElementById("btn-play-again").addEventListener("click", function () { location.reload(); });
+document.getElementById("btn-rules-menu").addEventListener("click", function () { document.getElementById("rules-screen").classList.remove("hidden"); });
+document.getElementById("btn-close-rules").addEventListener("click", function () { document.getElementById("rules-screen").classList.add("hidden"); });
+
+loadDictionary();
+</script>
+</body>
+</html>
