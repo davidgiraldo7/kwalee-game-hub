@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Kwalee catalog</title>
+</head>
+<body>
+<script>
+(function () {
+  function send(payload) {
+    try { parent.postMessage(payload, "*"); } catch (err) { /* ignore */ }
+  }
+
+  fetch("catalog.json?v=" + Date.now(), { cache: "no-store", credentials: "omit" })
+    .then(function (res) {
+      if (!res.ok) throw new Error(String(res.status));
+      return res.json();
+    })
+    .then(function (data) {
+      send({ type: "kwalee.catalog", data: data });
+    })
+    .catch(function () {
+      send({ type: "kwalee.catalog", data: null });
+    });
+})();
+</script>
+</body>
+</html>
