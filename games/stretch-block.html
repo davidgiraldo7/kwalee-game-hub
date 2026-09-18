@@ -1,468 +1,64 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <title>Stretch Block: Color Out</title>
-    <link rel="stylesheet" href="styles/kpf.css" />
-    <link rel="stylesheet" href="styles/game.css" />
-    <link rel="stylesheet" href="ProgressRewards/styles/progress-rewards.css" />
-    <link rel="stylesheet" href="ProgressRewards/js/vendor/spine-player.min.css" />
-    <link rel="stylesheet" href="DailyStreak/styles/daily-streak.css" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+  <title>Stretch Block</title>
+  <link rel="stylesheet" href="arcade.css">
 </head>
-
 <body>
-    <div class="app">
-
-        <!-- ===== Splash Screen ===== -->
-        <div class="screen active" id="splashScreen">
-            <div class="splash-content">
-                <img src="Assets/Home_Title_D9.png" alt="Stretch Block" class="splash-title" id="splashTitle" />
-                <img src="Graphic-Pocket-Spark-Logo.png" alt="Pocket Spark" class="splash-logo" id="splashLogo" />
-                <div class="splash-bar-wrap">
-                    <div class="splash-bar-track">
-                        <div class="splash-bar-fill" id="splashBarFill"></div>
-                    </div>
-                    <span class="splash-bar-label" id="splashBarLabel" data-i18n="splashLoading">Loading...</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- ===== Start Screen ===== -->
-        <div class="screen" id="startScreen">
-            <!-- Video / static art kept for A/B; hidden while .home-board-mode is on. -->
-            <img class="bg-scroll bg-scroll-fallback" src="Assets/Home_Art.png" alt="" aria-hidden="true" />
-            <video class="bg-scroll" autoplay loop muted playsinline aria-hidden="true" poster="Assets/Home_Art.png">
-                <source src="Assets/Home_Art_Anim.webm" type="video/webm" />
-            </video>
-            <canvas id="homeBoardCanvas" class="home-board-canvas" aria-hidden="true"></canvas>
-            <button class="iconbtn settingsbtn" id="settingsBtnStart" aria-label="Settings"></button>
-            <div class="game-logo">
-                <img src="Assets/Home_Title_Home.png" alt="Game logo" class="logo-img" />
-            </div>
-            <button class="playbtn" id="playBtn">
-            <span class="play-level" id="playLevel">Level 1</span>
-        </button>
-
-            <nav class="home-bar">
-                <button class="tab locked" aria-label="Locked">
-                <span class="tab-icon" style="--icon: url('../Icon-Lock.png')"></span>
-                <span class="tab-label" data-i18n="tabLocked">Locked</span>
-            </button>
-                <button class="tab active" aria-current="page">
-                <span class="tab-icon" style="--icon: url('../Icon-Home.png')"></span>
-                <span class="tab-label" data-i18n="tabHome">Home</span>
-            </button>
-                <button class="tab locked" aria-label="Locked">
-                <span class="tab-icon" style="--icon: url('../Icon-Lock.png')"></span>
-                <span class="tab-label" data-i18n="tabLocked">Locked</span>
-            </button>
-            </nav>
-        </div>
-
-        <!-- ===== Game Screen ===== -->
-        <div class="screen" id="gameScreen">
-            <button class="iconbtn settingsbtn" id="settingsBtnGame" aria-label="Settings"></button>
-            <button class="iconbtn backbtn" id="backBtnGame" type="button" aria-label="Back"></button>
-            <div class="header" id="gameHeader">Level 1</div>
-            <!-- Color Stretch HUD (timer) -->
-            <div class="cs-hud" id="csHud">
-                <div class="cs-pill" id="csMovesPill">
-                    <svg class="cs-timer-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <circle cx="12" cy="13" r="8"></circle>
-                        <path d="M12 13V8.5"></path>
-                        <path d="M12 13l3 2"></path>
-                        <path d="M9.5 3.5h5"></path>
-                    </svg>
-                    <span class="cs-pill-value" id="csMovesValue">0:00</span>
-                </div>
-            </div>
-            <div class="cs-tutorial-slot" aria-hidden="true"></div>
-            <div class="play-area"></div>
-            <div class="cs-tutorial" id="csTutorial" aria-live="polite">
-                <svg class="cs-tutorial-dimmer" id="csTutorialDimmer" aria-hidden="true">
-                    <defs>
-                        <mask id="csTutorialMask" maskUnits="userSpaceOnUse">
-                            <rect id="csTutorialMaskBase" fill="#fff"></rect>
-                            <g id="csTutorialMaskHoles"></g>
-                        </mask>
-                    </defs>
-                    <rect width="100%" height="100%" fill="#140f25" fill-opacity=".62" mask="url(#csTutorialMask)">
-                    </rect>
-                </svg>
-                <div class="cs-tutorial-title" id="csTutorialTitle"></div>
-                <div class="cs-tutorial-copy" id="csTutorialCopy"></div>
-                <div class="cs-tutorial-targets" id="csTutorialTargets">
-                    <div class="cs-tutorial-target" id="csTutorialTarget"></div>
-                    <div class="cs-tutorial-target" id="csTutorialDestination"></div>
-                </div>
-                <div class="cs-tutorial-continue" data-i18n="tutorialContinue">Tap to Continue</div>
-                <img class="cs-tutorial-hand" id="csTutorialHand" src="Assets/TappyHand.png" alt="">
-            </div>
-
-            <!-- Hint FTUE: New Feature card, then finger-tap tutorial on Claim. -->
-            <div class="hint-feature-intro" id="hintFeatureIntro" hidden aria-hidden="true">
-                <div class="hint-feature-backdrop" aria-hidden="true"></div>
-                <div class="hint-feature-card" role="dialog" aria-modal="true" aria-labelledby="hintFeatureTitle">
-                    <h2 class="hint-feature-title" id="hintFeatureTitle"></h2>
-                    <div class="hint-feature-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" focusable="false">
-                            <path d="M9 18h6"></path>
-                            <path d="M10 21h4"></path>
-                            <path
-                                d="M8.3 15.2C7.5 14.2 7 13 7 11.5a5 5 0 0 1 10 0c0 1.5-.5 2.7-1.3 3.7-.8.9-1.3 1.8-1.4 2.8H9.7c-.1-1-.6-1.9-1.4-2.8Z">
-                            </path>
-                            <path d="M12 2V1"></path>
-                            <path d="m4.9 4.9-.7-.7"></path>
-                            <path d="m19.8 4.2-.7.7"></path>
-                        </svg>
-                    </div>
-                    <p class="hint-feature-label" id="hintFeatureLabel"></p>
-                    <p class="hint-feature-desc" id="hintFeatureDesc"></p>
-                    <button type="button" class="hint-feature-claim" id="hintFeatureClaim"></button>
-                </div>
-            </div>
-
-            <!-- Hint button: always available below the board after the configured
-                 unlock level; each press spends one inventory hint and reveals
-                 where one block should end up. -->
-            <button class="cs-hint-btn" id="csHintBtn" type="button" hidden aria-label="Hint">
-            <span class="cs-hint-count" id="csHintCount" aria-hidden="true">0</span>
-        </button>
-            <img class="cs-hint-tutorial-hand" id="csHintTutorialHand" src="Assets/TappyHand.png" alt="">
-
-            <!-- Flavour text (shown briefly on level complete) — black bar + green vignette -->
-            <div class="flavour-text" id="flavourText">
-                <div class="flavour-vignette" aria-hidden="true"></div>
-                <span class="flavour-label" id="flavourLabel">Well Done!</span>
-            </div>
-
-            <!-- Fail text (shown briefly on level failed) -->
-            <div class="fail-text" id="failText"><span></span></div>
-
-            <!-- Result overlay -->
-            <div class="overlay" id="overlay">
-                <div class="burst"></div>
-                <div class="overlay-card" id="overlayCard">
-                    <h2 id="overlayTitle">Level Complete!</h2>
-                    <div class="overlay-board-slot" id="overlayBoardSlot" aria-hidden="true"></div>
-                    <div class="overlay-bottom" id="overlayBottom">
-                        <p id="overlayPercentile" class="overlay-percentile" hidden></p>
-                        <p id="overlaySubtitle">Great job.</p>
-                        <div class="overlay-progress" id="overlayProgress"></div>
-                        <button class="nextbtn" id="overlayBtn">Next Level</button>
-                    </div>
-                </div>
-                <canvas class="confetti" id="confetti"></canvas>
-            </div>
-
-            <!-- Debug controls -->
-            <div class="debug collapsed" id="debugPanel">
-                <button class="debug-label" id="debugToggle" data-i18n="debug">Debug</button>
-                <div class="debug-icon-row">
-                    <button class="debug-icon-btn" id="debugMixerToggle" title="Mixer">&#x1F50A;</button>
-                    <button class="debug-icon-btn" id="debug3dToggle" title="Soft 3D controls">3D</button>
-                    <button class="debug-icon-btn" id="debugFpsToggle" title="FPS / draw-call counter">FPS</button>
-                </div>
-
-                <div class="debug-body">
-                    <div class="debug-section">
-                        <span class="debug-section-label">View</span>
-                        <div class="debug-row">
-                            <button class="debugbtn debug-view" id="debugHidePanel" data-i18n="debugHidePanel" title="Hide debug menu (press H to show again)">Hide Debug</button>
-                            <button class="debugbtn debug-view" id="debugHideUi" data-i18n="debugHideUi" title="Hide all HUD / settings / hints (press U to show again)">Hide UI</button>
-                        </div>
-                    </div>
-
-                    <div class="debug-section">
-                        <span class="debug-section-label">Level</span>
-                        <div class="debug-row">
-                            <button class="debugbtn debug-win" id="debugWin" data-i18n="debugComplete">Level Complete</button>
-                            <button class="debugbtn debug-fail" id="debugFail" data-i18n="debugFail">Level Failed</button>
-                        </div>
-                        <div class="debug-skip">
-                            <input type="number" id="debugLevelInput" min="1" placeholder="#" />
-                            <button class="debugbtn debug-lang" id="debugSkipLevel" data-i18n="debugGo">Go</button>
-                        </div>
-                        <button class="debugbtn debug-lang" id="debugProgress" data-i18n="debugProgress">Progress Reward</button>
-                        <button class="debugbtn debug-lang" id="debugRewardFlow" data-i18n="debugRewardFlow" title="Arm the next progress reward and play the full unlock flow">Reward Flow</button>
-                    </div>
-
-                    <div class="debug-section">
-                        <span class="debug-section-label">Streak</span>
-                        <div class="debug-skip">
-                            <input type="number" id="debugStreakInput" min="0" placeholder="day" title="Streak day" />
-                            <button class="debugbtn debug-lang" id="debugSetStreak" data-i18n="debugSetStreak">Set Streak</button>
-                        </div>
-                        <button class="debugbtn debug-lang" id="debugStreakAdvance" data-i18n="debugStreakAdvance" title="Add 1 day and play the celebrate overlay">Streak +1</button>
-                    </div>
-
-                    <div class="debug-section">
-                        <span class="debug-section-label">Characters</span>
-                        <button class="debugbtn debug-lang" id="debugFaceCycle" title="Cycle all block faces">Face: —</button>
-                        <button class="debugbtn debug-lang" id="debugCharCycle" title="Cycle block characters (Cat / Dog)">Char: —</button>
-                        <div class="debug-row">
-                            <button class="debugbtn debug-lang" id="debugSpineToggle" title="Toggle Spine faces vs static PNG">Spine: On</button>
-                            <button class="debugbtn debug-lang" id="debugLang">Polski</button>
-                        </div>
-                    </div>
-
-                    <div class="debug-section">
-                        <span class="debug-section-label">Reset</span>
-                        <div class="debug-row">
-                            <button class="debugbtn debug-lang" id="debugResetFtue" data-i18n="debugResetFtue" title="Clear tutorial / FTUE flags so they play again">Reset FTUE</button>
-                            <button class="debugbtn debug-reset" id="debugReset" data-i18n="debugDeleteProgress">Delete Progress</button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Mixer Panel -->
-                <div class="mixer-panel" id="mixerPanel">
-                    <span class="mixer-section-label">Master</span>
-                    <div class="mixer-row">
-                        <label>Master</label>
-                        <input type="range" min="0" max="500" value="302" id="mixerMaster" />
-                        <span class="mixer-val" id="mixerMasterVal">302</span>
-                    </div>
-
-                    <span class="mixer-section-label">Channels</span>
-                    <div class="mixer-row">
-                        <label>SFX</label>
-                        <input type="range" min="0" max="100" value="100" id="mixerSFX" />
-                        <span class="mixer-val" id="mixerSFXVal">100</span>
-                    </div>
-                    <div class="mixer-toggles">
-                        <button class="mixer-tog" id="mixerSFXMute">M</button>
-                        <button class="mixer-tog" id="mixerSFXSolo">S</button>
-                    </div>
-
-                    <div class="mixer-row">
-                        <label>Music</label>
-                        <input type="range" min="0" max="100" value="78" id="mixerMusic" />
-                        <span class="mixer-val" id="mixerMusicVal">78</span>
-                    </div>
-                    <div class="mixer-toggles">
-                        <button class="mixer-tog" id="mixerMusicMute">M</button>
-                        <button class="mixer-tog" id="mixerMusicSolo">S</button>
-                    </div>
-
-                    <span class="mixer-section-label">Sounds</span>
-                    <div class="mixer-sounds-scroll" id="mixerSoundsScroll"></div>
-
-                    <button class="mixer-save-btn" id="mixerSave">Save</button>
-                </div>
-            </div>
-
-            <!-- Loudness Meter (pinned left) -->
-            <div class="meter-panel" id="meterPanel">
-                <h4>Loudness Meter</h4>
-                <div class="meter-row">
-                    <span class="meter-label">Short-term LUFS</span><span class="meter-value" id="meterShort">— </span>
-                </div>
-                <div class="meter-row">
-                    <span class="meter-label">Integrated LUFS</span><span class="meter-value" id="meterIntegrated">— </span>
-                </div>
-                <div class="meter-row">
-                    <span class="meter-label">True Peak dBTP</span><span class="meter-value" id="meterPeak">— </span>
-                </div>
-                <button class="meter-reset-btn" id="meterReset">Reset</button>
-            </div>
-        </div>
-
-        <!-- ===== Settings Menu (shared) ===== -->
-        <div class="settings-overlay" id="settingsOverlay">
-            <div class="settings-card">
-                <button class="settings-close" id="settingsClose" aria-label="Close">&times;</button>
-                <h2 data-i18n="settings">Settings</h2>
-
-                <div class="setting-row">
-                    <span data-i18n="music">Music</span>
-                    <label class="toggle toggle--green">
-                    <input type="checkbox" id="toggleMusic" checked>
-                    <span class="track"></span>
-                    <span class="toggle-socket" aria-hidden="true"></span>
-                    <canvas class="knob" width="156" height="80" aria-hidden="true"></canvas>
-                </label>
-                </div>
-
-                <div class="setting-row">
-                    <span data-i18n="sound">Sound</span>
-                    <label class="toggle toggle--blue">
-                    <input type="checkbox" id="toggleSound" checked>
-                    <span class="track"></span>
-                    <span class="toggle-socket" aria-hidden="true"></span>
-                    <canvas class="knob" width="156" height="80" aria-hidden="true"></canvas>
-                </label>
-                </div>
-
-                <div class="setting-row">
-                    <span data-i18n="haptics">Haptics</span>
-                    <label class="toggle toggle--purple">
-                    <input type="checkbox" id="toggleHaptics" checked>
-                    <span class="track"></span>
-                    <span class="toggle-socket" aria-hidden="true"></span>
-                    <canvas class="knob" width="156" height="80" aria-hidden="true"></canvas>
-                </label>
-                </div>
-
-                <button class="settings-quit" id="settingsQuit" data-i18n="restart">Restart</button>
-            </div>
-        </div>
-
-        <!-- Quit confirmation (shown from the game back button) -->
-        <div class="quit-confirm" id="quitConfirm">
-            <div class="quit-confirm-card">
-                <h3 id="quitConfirmTitle" data-i18n="quitConfirmTitle">Are you sure?</h3>
-                <p id="quitConfirmMsg" data-i18n="quitConfirmMsg">You will lose level progress</p>
-                <div class="quit-confirm-btns">
-                    <button class="quit-confirm-btn quit-no" id="quitNo" data-i18n="quitCancel">Cancel</button>
-                    <button class="quit-confirm-btn quit-yes" id="quitYes" data-i18n="quitYes">Quit</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Fireworks VFX layer (plays over the whole app) -->
-        <canvas class="fireworks" id="fireworks"></canvas>
-
-        <!-- Transition cover — matches splash/loading look while swapping WebGL -->
-        <div class="fade-black" id="fadeBlack" aria-hidden="true">
-            <div class="fade-splash-content">
-                <img src="Assets/Home_Title_D9.png" alt="" class="fade-splash-title" />
-                <img src="Graphic-Pocket-Spark-Logo.png" alt="" class="fade-splash-logo" />
-            </div>
-        </div>
-
-    </div>
-
-    <script src="translations.js"></script>
-    <!-- 3D renderer (Three.js). Bundled locally for offline APK use. -->
-    <script src="three.min.js"></script>
-    <script src="js/game-feel.js"></script>
-    <script src="js/game-render.js"></script>
-    <script src="js/game-sim.js"></script>
-    <script src="js/settings-block-toggles.js"></script>
-    <script src="ProgressRewards/js/vendor/spine-player.min.js"></script>
-    <script src="Characters/js/block-characters-config.js"></script>
-    <script src="Characters/js/block-characters-data.js"></script>
-    <script src="Characters/js/block-characters.js"></script>
-    <script src="Items/js/items-config.js"></script>
-    <script src="Items/js/items-data.js"></script>
-    <script src="Inventory/js/inventory-config.js"></script>
-    <script src="Items/js/items.js"></script>
-    <script src="Inventory/js/inventory.js"></script>
-    <script src="ProgressRewards/js/progress-rewards-config.js"></script>
-    <script src="ProgressRewards/js/progress-rewards-data.js"></script>
-    <script src="ProgressRewards/js/progress-rewards.js"></script>
-    <script src="DailyStreak/js/daily-streak-config.js"></script>
-    <script src="DailyStreak/js/daily-streak-data.js"></script>
-    <script src="DailyStreak/js/daily-streak.js"></script>
-    <script src="WinFeedback/js/win-feedback-config.js"></script>
-    <script src="WinFeedback/js/win-feedback.js"></script>
-    <script src="js/home-board.js"></script>
-    <script src="js/kpf-app.js"></script>
-    <script src="js/analyticsPayload.js"></script>
-    <script>
-        /**
- * KPF / analytics lifecycle hooks.
- * The build pipeline injects tracking into these function bodies by name.
- * They MUST live in index.html (not an external script). Do not rename.
- *
- * Delegate events (detail.level / detail.completedLevel):
- *   kpf:levelStarted | kpf:levelCompleted | kpf:levelFailed | kpf:contentCompleted
- * (kpf:levelComplete is reserved for ProgressRewards / DailyStreak modules.)
- *
- * See analytics.md for game_action(context, event_payload) + payload mutation/hash.
- */
-// ▶ ANALYTICS HOOK: trackStartTrial (first call), trackLevelStart(level)
-function startGame() {
-    try {
-        document.dispatchEvent(new CustomEvent("kpf:levelStarted", {
-            detail: { level: window.level }
-        }));
-    } catch (_) { /* ignore */ }
-    if (window.KPFApp && typeof KPFApp.startGame === "function") KPFApp.startGame();
-}
-
-// ▶ ANALYTICS HOOK: trackLevelComplete(level)
-function levelComplete() {
-    try {
-        document.dispatchEvent(new CustomEvent("kpf:levelCompleted", {
-            detail: { completedLevel: window.level, level: window.level }
-        }));
-    } catch (_) { /* ignore */ }
-        if (window.parent !== window) {
-            try {
-                window.parent.postMessage({
-                    type: "kwalee.score",
-                    score: Number(window.level) || 1,
-                    streak: Number(window.level) || 1
-                }, "*");
-            } catch (_) { /* ignore */ }
-        }
-
-    if (window.KPFApp && typeof KPFApp.levelComplete === "function") KPFApp.levelComplete();
-}
-
-// ▶ ANALYTICS HOOK: (level failed tracking)
-function levelFailed() {
-    try {
-        document.dispatchEvent(new CustomEvent("kpf:levelFailed", {
-            detail: { level: window.level }
-        }));
-    } catch (_) { /* ignore */ }
-    if (window.KPFApp && typeof KPFApp.levelFailed === "function") KPFApp.levelFailed();
-}
-
-// ▶ ANALYTICS HOOK: trackContentComplete — all authored levels cleared; play loops
-function contentCompleted() {
-    try {
-        // Caller fires this before advancing window.level, so level === completed.
-        const completed = window.level | 0;
-        document.dispatchEvent(new CustomEvent("kpf:contentCompleted", {
-            detail: { level: completed, completedLevel: completed }
-        }));
-    } catch (_) { /* ignore */ }
-}
-
-// Payload / game_action stubs: update_payload + send_game_action stay IIFE-local
-// (not on window). game_action is the public call-site API.
-(function () {
-    // ▶ ANALYTICS HOOK: update_payload(hash, clientId, eventPayload)
-    // Fired only when payload JSON mutates. Maps to host "payload" event
-    // (hash, client_id, event_payload). Pipeline populates this body.
-    function update_payload(hash, clientId, eventPayload) {
+<script src="arcade.js"></script>
+<script>
+Arcade.rectFill({
+  title: "Stretch Block",
+  theme: "sand",
+  board: "#e8d3ae",
+  hint: "Drag a number until it fills exactly that many tiles.",
+  levels: [
+    {
+      cols: 3, rows: 2,
+      pieces: [
+        { r: 0, c: 0, n: 2, color: "#3dcc7a" },
+        { r: 0, c: 1, n: 4, color: "#f5a524" }
+      ]
+    },
+    {
+      cols: 4, rows: 4,
+      pieces: [
+        { r: 0, c: 0, n: 4, color: "#3dcc7a" },
+        { r: 0, c: 2, n: 4, color: "#f5a524" },
+        { r: 2, c: 0, n: 4, color: "#5aa7ff" },
+        { r: 2, c: 2, n: 4, color: "#ff6b8a" }
+      ]
+    },
+    {
+      cols: 5, rows: 4,
+      pieces: [
+        { r: 0, c: 0, n: 10, color: "#3dcc7a" },
+        { r: 2, c: 0, n: 4, color: "#c084fc" },
+        { r: 2, c: 2, n: 6, color: "#f5a524" }
+      ]
+    },
+    {
+      cols: 6, rows: 5,
+      pieces: [
+        { r: 0, c: 0, n: 9, color: "#3dcc7a" },
+        { r: 0, c: 3, n: 9, color: "#5aa7ff" },
+        { r: 3, c: 0, n: 6, color: "#f5a524" },
+        { r: 3, c: 3, n: 6, color: "#ff6b8a" }
+      ]
+    },
+    {
+      cols: 6, rows: 6,
+      pieces: [
+        { r: 0, c: 0, n: 12, color: "#3dcc7a" },
+        { r: 0, c: 4, n: 4, color: "#f5a524" },
+        { r: 2, c: 4, n: 8, color: "#c084fc" },
+        { r: 3, c: 0, n: 12, color: "#5aa7ff" }
+      ]
     }
-
-    // ▶ ANALYTICS HOOK: send_game_action(context, payloadHash)
-    // Host "game_action" event — context + payload HASH only (not full JSON).
-    // Pipeline populates this body.
-    function send_game_action(context, payloadHash) {
-    }
-
-    // Public call-site API. Pass JSON.stringify(...) (or "{}"). Syncs payload
-    // (may call update_payload), then send_game_action with the hash.
-    function game_action(context, event_payload) {
-        if (window.AnalyticsPayload && typeof window.AnalyticsPayload.gameAction === "function") {
-            window.AnalyticsPayload.gameAction(
-                context,
-                event_payload,
-                function (hash, clientId, eventPayload) {
-                    update_payload(hash, clientId, eventPayload);
-                },
-                function (ctx, payloadHash) {
-                    send_game_action(ctx, payloadHash);
-                }
-            );
-            return;
-        }
-        send_game_action(context, event_payload);
-    }
-
-    window.game_action = game_action;
-})();
-    </script>
+  ]
+});
+</script>
 </body>
-
 </html>
