@@ -40,6 +40,22 @@
       overflow: hidden;
       display: flex;
       flex-direction: column;
+      isolation: isolate;
+    }
+
+    #main-menu,
+    #rules-screen,
+    #matchmaking-screen,
+    #game-over {
+      position: absolute;
+      inset: 0;
+      z-index: 200;
+    }
+    #matchmaking-screen { z-index: 205; }
+    #rules-screen { z-index: 210; }
+    #game-over { z-index: 300; }
+    #main-menu {
+      background: linear-gradient(180deg, #38bdf8 0%, #4f46e5 100%);
     }
 
     @media (min-width: 640px) {
