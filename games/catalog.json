@@ -7,73 +7,88 @@
       "genre": "Word",
       "heat": 100,
       "description": "Swipe hex letters, capture 7 hexicons, beat other players.",
-      "cover": "covers/hexiword.svg",
+      "cover": "covers/hexiword.jpg",
       "src": "hexiword.html"
     },
     {
-      "id": "star-tap",
-      "title": "Tap Star Tap",
-      "genre": "Reflex",
-      "heat": 99,
-      "description": "Mash the star for 10 seconds.",
-      "cover": "covers/star-tap.svg",
-      "src": "star-tap.html"
-    },
-    {
-      "id": "tap-rush",
-      "title": "Tap Rush",
-      "genre": "Reflex",
-      "heat": 98,
-      "description": "10 seconds. Hit the pad as hard as you can.",
-      "cover": "covers/tap-rush.svg",
-      "src": "tap-rush.html"
-    },
-    {
-      "id": "reaction-lab",
-      "title": "Reaction Game",
-      "genre": "Timing",
-      "heat": 91,
-      "description": "Wait for green. Not a millisecond early.",
-      "lowerIsBetter": true,
-      "unit": "ms",
-      "cover": "covers/reaction-lab.svg",
-      "src": "reaction-lab.html"
-    },
-    {
-      "id": "snake-sprint",
-      "title": "Snake Sprint",
-      "genre": "Arcade",
-      "heat": 87,
-      "description": "Classic snake with portrait controls.",
-      "cover": "covers/snake-sprint.svg",
-      "src": "snake-sprint.html"
-    },
-    {
-      "id": "bubble-pop",
-      "title": "Bubble Pop",
-      "genre": "Casual",
-      "heat": 84,
-      "description": "Clear rising bubbles before they escape.",
-      "cover": "covers/bubble-pop.svg",
-      "src": "bubble-pop.html"
-    },
-    {
-      "id": "memory-match",
-      "title": "Memory Match",
+      "id": "stretch-block",
+      "title": "Stretch Block",
       "genre": "Puzzle",
-      "heat": 76,
-      "description": "Flip eight pairs. Fewer moves score higher.",
-      "cover": "covers/memory-match.svg",
-      "src": "memory-match.html"
+      "heat": 99,
+      "description": "Stretch colorful blocks until every tile on the grid is filled.",
+      "cover": "covers/stretch-block.jpg"
     },
     {
-      "id": "orbit-dodge",
-      "title": "Orbit Dodge",
-      "genre": "Action",
-      "heat": 72,
-      "description": "Drag to steer. Survive the falling orbit.",
-      "cover": "covers/orbit-dodge.svg",
-      "src": "orbit-dodge.html"
+      "id": "grid-filler",
+      "title": "Grid Filler",
+      "genre": "Puzzle",
+      "heat": 98,
+      "description": "Divide the grid into tiles. Each number is the size of its rectangle.",
+      "cover": "covers/grid-filler.jpg"
+    },
+    {
+      "id": "pixel-blocks",
+      "title": "Pixel Blocks",
+      "genre": "Puzzle",
+      "heat": 97,
+      "description": "Sort colors, collect blocks, and keep the waiting tray clear.",
+      "cover": "covers/pixel-blocks.jpg"
+    },
+    {
+      "id": "link-flow",
+      "title": "Link Flow",
+      "genre": "Puzzle",
+      "heat": 96,
+      "description": "Connect matching colors, tiles, and paths without crossing the flow.",
+      "cover": "covers/link-flow.jpg"
+    },
+    {
+      "id": "blade-flow",
+      "title": "Blade Flow",
+      "genre": "Puzzle",
+      "heat": 95,
+      "description": "Grind the cubes, carve a path, and clear every colorful slice.",
+      "cover": "covers/blade-flow.jpg"
+    },
+    {
+      "id": "colour-smash",
+      "title": "Colour Smash",
+      "genre": "Puzzle",
+      "heat": 94,
+      "description": "Connect the dots and smash matching color blocks off the board.",
+      "cover": "covers/colour-smash.jpg"
+    },
+    {
+      "id": "sausage-sort",
+      "title": "Sausage Sort",
+      "genre": "Puzzle",
+      "heat": 93,
+      "description": "Sort sausages by color before the tray jams.",
+      "cover": "covers/sausage-sort.jpg"
+    },
+    {
+      "id": "aqua-block-jam",
+      "title": "Aqua Block Jam",
+      "genre": "Puzzle",
+      "heat": 92,
+      "description": "Slide the water blocks and sort every drop into its tube.",
+      "cover": "covers/aqua-block-jam.jpg"
+    },
+    {
+      "id": "claw-sort",
+      "title": "Claw Sort",
+      "genre": "Puzzle",
+      "heat": 91,
+      "description": "Grab, sort, and clear the claw machine one color at a time.",
+      "cover": "covers/claw-sort.jpg"
+    },
+    {
+      "id": "flock-feast",
+      "title": "Flock Feast",
+      "genre": "Casual",
+      "heat": 90,
+      "description": "Feed the flock in the right order and keep the line moving.",
+      "cover": "covers/flock-feast.jpg"
     }
   ]
 }
