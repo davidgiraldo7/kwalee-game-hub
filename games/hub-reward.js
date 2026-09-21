@@ -17,12 +17,33 @@
 
   var unlocking = false;
   var silenced = false;
+  var nativeHiddenGet = null;
+  var nativeVisGet = null;
+  try {
+    var hiddenDesc = Object.getOwnPropertyDescriptor(w.Document.prototype, "hidden")
+      || Object.getOwnPropertyDescriptor(w.HTMLDocument.prototype, "hidden");
+    nativeHiddenGet = hiddenDesc && hiddenDesc.get;
+    var visDesc = Object.getOwnPropertyDescriptor(w.Document.prototype, "visibilityState")
+      || Object.getOwnPropertyDescriptor(w.HTMLDocument.prototype, "visibilityState");
+    nativeVisGet = visDesc && visDesc.get;
+  } catch (err) { /* ignore */ }
+
+  function nativeDocHidden() {
+    try {
+      if (nativeHiddenGet) return !!nativeHiddenGet.call(w.document);
+    } catch (err) { /* ignore */ }
+    return false;
+  }
 
   function parentHidden() {
     try {
       if (w.parent && w.parent !== w) return !!w.parent.document.hidden;
-    } catch (err) { /* cross-origin */ }
-    return !!(w.document && w.document.hidden);
+    } catch (err) {
+      // Cross-origin hub (Game Vault wrapping GitHub games). Never read
+      // this document.hidden here — the patched getter would recurse.
+      return false;
+    }
+    return nativeDocHidden();
   }
 
   if (w.parent && w.parent !== w) {
@@ -33,7 +54,13 @@
       });
       Object.defineProperty(w.document, "visibilityState", {
         configurable: true,
-        get: function () { return parentHidden() ? "hidden" : "visible"; }
+        get: function () {
+          if (parentHidden()) return "hidden";
+          try {
+            if (nativeVisGet) return nativeVisGet.call(w.document) || "visible";
+          } catch (err) { /* ignore */ }
+          return "visible";
+        }
       });
     } catch (err) { /* ignore */ }
     w.addEventListener("pagehide", function (e) {
