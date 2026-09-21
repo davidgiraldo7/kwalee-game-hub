@@ -541,7 +541,7 @@
       position: absolute;
       right: 12px;
       bottom: calc(72px + env(safe-area-inset-bottom, 0px));
-      display: none;
+      display: none !important;
       flex-direction: column;
       gap: 8px;
       align-items: flex-end;
@@ -683,7 +683,7 @@
     }
 
     .debug.debug-enabled {
-      display: flex;
+      display: none !important;
     }
 
     .mixer-section-label {
@@ -1875,6 +1875,7 @@
   const debugLevelInput = document.getElementById("debugLevelInput");
   const debugSkipLevel = document.getElementById("debugSkipLevel");
   const debugReset = document.getElementById("debugReset");
+  if (debugPanel) debugPanel.style.display = "none";
   const settingsBtnStart = document.getElementById("settingsBtnStart");
   const settingsBtnGame  = document.getElementById("settingsBtnGame");
   const settingsOverlay  = document.getElementById("settingsOverlay");

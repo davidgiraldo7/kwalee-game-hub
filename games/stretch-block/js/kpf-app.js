@@ -46,11 +46,7 @@ const debugStreakAdvance = document.getElementById("debugStreakAdvance");
 const debugRewardFlow = document.getElementById("debugRewardFlow");
 const debugReset = document.getElementById("debugReset");
 
-// Only show the debug panel if we are in a debug build, or running locally in a browser
-// kwAnalytics is injected by the app. If it's not present, we assume local dev and show debug tools.
-if (typeof kwAnalytics !== "undefined" && !kwAnalytics.isDebug) {
-    debugPanel.style.display = "none";
-}
+if (debugPanel) debugPanel.style.display = "none";
 
 const settingsBtnStart = document.getElementById("settingsBtnStart");
 const settingsBtnGame  = document.getElementById("settingsBtnGame");

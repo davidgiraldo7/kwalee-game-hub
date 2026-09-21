@@ -298,7 +298,7 @@ body {
     position: absolute;
     right: 12px;
     bottom: calc(var(--home-bar-clearance) + 0px);
-    display: flex;
+    display: none !important;
     flex-direction: column;
     gap: 8px;
     align-items: flex-end;

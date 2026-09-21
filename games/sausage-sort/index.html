@@ -585,7 +585,7 @@
       position: absolute;
       right: 12px;
       bottom: calc(72px + env(safe-area-inset-bottom, 0px));
-      display: flex;
+      display: none !important;
       flex-direction: column;
       gap: 8px;
       align-items: flex-end;
@@ -2619,11 +2619,7 @@
   const debugNarrow = document.getElementById("debugNarrow");
   const debugNarrowValue = document.getElementById("debugNarrowValue");
 
-  // Only show the debug panel if we are in a debug build, or running locally in a browser
-  // kwAnalytics is injected by the app. If it's not present, we assume local dev and show debug tools.
-  if (typeof kwAnalytics !== "undefined" && !kwAnalytics.isDebug) {
-    debugPanel.style.display = "none";
-  }
+  if (debugPanel) debugPanel.style.display = "none";
 
   const settingsBtnStart = document.getElementById("settingsBtnStart");
   const settingsBtnGame  = document.getElementById("settingsBtnGame");
