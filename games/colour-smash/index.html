@@ -1510,7 +1510,7 @@
             opacity: 1;
         }
     </style>
-    <script src="../hub-reward.js"></script>
+    <script src="../hub-reward.js?v=vis2"></script>
 </head>
 
 <body>
@@ -7996,8 +7996,8 @@ if (uSheenStrength > 0.001 && uSheenBand > 0.0001) {
     }
   }, 2200);
 
-  // Start BGM on first user interaction (browsers require a gesture to play audio)
-  document.addEventListener("pointerdown", () => {
+  window.playBackgroundAudio = playBackgroundAudio;
+  document.addEventListener("pointerdown", function () {
     playBackgroundAudio();
   }, { once: true });
 })();

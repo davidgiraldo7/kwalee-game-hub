@@ -510,6 +510,7 @@ let _bgInstances = [];
 let _bgPlaying = false;
 
 async function playBackgroundAudio() {
+    window.playBackgroundAudio = playBackgroundAudio;
     if (_bgPlaying || !playerSettings.music) return;
     _bgPlaying = true;
     const ctx = getAudioContext();

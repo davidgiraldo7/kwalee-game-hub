@@ -15,33 +15,109 @@
     if ("webkitAudioContext" in w) w.webkitAudioContext = WrappedAudioContext;
   }
 
+  var unlocking = false;
+  var silenced = false;
+
+  function parentHidden() {
+    try {
+      if (w.parent && w.parent !== w) return !!w.parent.document.hidden;
+    } catch (err) { /* cross-origin */ }
+    return !!(w.document && w.document.hidden);
+  }
+
+  if (w.parent && w.parent !== w) {
+    try {
+      Object.defineProperty(w.document, "hidden", {
+        configurable: true,
+        get: function () { return parentHidden(); }
+      });
+      Object.defineProperty(w.document, "visibilityState", {
+        configurable: true,
+        get: function () { return parentHidden() ? "hidden" : "visible"; }
+      });
+    } catch (err) { /* ignore */ }
+    w.addEventListener("pagehide", function (e) {
+      if (!parentHidden()) e.stopImmediatePropagation();
+    }, true);
+  }
+
+  function eachMedia(fn) {
+    try {
+      var media = w.document && w.document.querySelectorAll("audio, video");
+      if (!media) return;
+      var i;
+      for (i = 0; i < media.length; i++) fn(media[i]);
+    } catch (err) { /* ignore */ }
+  }
+
+  function pingChildFrames(type) {
+    try {
+      var frames = w.document && w.document.querySelectorAll("iframe");
+      if (!frames) return;
+      var i;
+      for (i = 0; i < frames.length; i++) {
+        try { frames[i].contentWindow.postMessage({ type: type }, "*"); } catch (err) { /* ignore */ }
+      }
+    } catch (err) { /* ignore */ }
+  }
+
+  function suspendAudio() {
+    silenced = true;
+    var i;
+    for (i = 0; i < contexts.length; i++) {
+      try {
+        if (contexts[i] && contexts[i].state !== "closed") contexts[i].suspend();
+      } catch (err) { /* ignore */ }
+    }
+    eachMedia(function (el) {
+      try { el.pause(); } catch (err) { /* ignore */ }
+      try { el.currentTime = 0; } catch (err) { /* ignore */ }
+    });
+    pingChildFrames("kwalee.suspendAudio");
+  }
+
   function unlockAudio() {
+    if (unlocking || silenced) return;
+    unlocking = true;
     var i;
     for (i = 0; i < contexts.length; i++) {
       try {
         if (contexts[i] && contexts[i].state === "suspended") contexts[i].resume();
       } catch (err) { /* ignore */ }
     }
-    try {
-      var media = w.document && w.document.querySelectorAll("audio, video");
-      if (media) {
-        for (i = 0; i < media.length; i++) {
-          var el = media[i];
-          if (el.paused) el.play().catch(function () { /* autoplay still blocked */ });
-        }
+    eachMedia(function (el) {
+      if (el.paused && el.hasAttribute("autoplay")) {
+        el.play().catch(function () { /* autoplay still blocked */ });
       }
+    });
+    pingChildFrames("kwalee.unlockAudio");
+    try {
+      if (typeof w.playBackgroundAudio === "function") w.playBackgroundAudio();
     } catch (err) { /* ignore */ }
+    try {
+      var opts = { bubbles: true, cancelable: true };
+      if (w.PointerEvent) w.document.dispatchEvent(new w.PointerEvent("pointerdown", opts));
+      else w.document.dispatchEvent(new w.Event("pointerdown", opts));
+    } catch (err) { /* ignore */ }
+    unlocking = false;
   }
+
   w.KwaleeUnlockAudio = unlockAudio;
+  w.KwaleeSuspendAudio = suspendAudio;
 
   w.addEventListener("message", function (e) {
     var data = e.data;
-    if (data && data.type === "kwalee.unlockAudio") unlockAudio();
+    if (!data || typeof data !== "object") return;
+    if (data.type === "kwalee.unlockAudio") {
+      silenced = false;
+      unlockAudio();
+    }
+    if (data.type === "kwalee.suspendAudio") suspendAudio();
   });
   if (w.document) {
-    w.document.addEventListener("pointerdown", unlockAudio, true);
-    w.document.addEventListener("touchstart", unlockAudio, true);
-    w.document.addEventListener("click", unlockAudio, true);
+    w.document.addEventListener("pointerdown", function () {
+      if (!silenced) unlockAudio();
+    }, true);
   }
 
   var last = 0;

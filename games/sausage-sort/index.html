@@ -2033,7 +2033,7 @@
       opacity: 1;
     }
   </style>
-    <script src="../hub-reward.js"></script>
+    <script src="../hub-reward.js?v=vis2"></script>
 </head>
 
 <body>
@@ -2475,7 +2475,7 @@
         <div class="setting-row">
           <span data-i18n="music">Music</span>
           <label class="toggle">
-            <input type="checkbox" id="toggleMusic">
+            <input type="checkbox" id="toggleMusic" checked>
             <span class="track"></span>
             <span class="knob"></span>
           </label>
@@ -2813,6 +2813,7 @@
   }
 
   loadSettingsPreferences();
+  if (window.parent !== window) toggleMusic.checked = true;
 
   let _actx = null;
   function getAudioContext() {
@@ -8730,7 +8731,7 @@
     }
   });
 
-  // Audio unlock handled by _unlockAndPlayAudio listeners above
+  window.playBackgroundAudio = playBackgroundAudio;
 })();
   </script>
 </body>

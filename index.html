@@ -1246,11 +1246,14 @@
    * the iframe is allowed to autoplay.
    * ------------------------------------------------------------------ */
 
+  var HUB_BED_FILE = "assets/audio/between-moments-inspired-20s.mp3?v=2";
+
   var HubAudio = (function () {
     var ctx = null;
-    var bedGain = null;
-    var bedTimer = null;
+    var bedEl = null;
+    var bedFade = null;
     var bedOn = false;
+    var bedGen = 0;
     var unlocked = false;
 
     function ensure() {
@@ -1259,6 +1262,7 @@
       if (!ctx) ctx = new AC();
       if (ctx.state === "suspended") ctx.resume().catch(function () { /* wait for a gesture */ });
       unlocked = true;
+      ensureBedEl();
       return ctx;
     }
 
@@ -1268,80 +1272,122 @@
       var t0 = c.currentTime + (delay || 0);
       var osc = c.createOscillator();
       var gain = c.createGain();
-      osc.type = type || "triangle";
+      var filter = c.createBiquadFilter();
+      osc.type = type || "sine";
       osc.frequency.setValueAtTime(freq, t0);
+      filter.type = "lowpass";
+      filter.frequency.setValueAtTime(Math.min(freq * 2.2, 720), t0);
       gain.gain.setValueAtTime(0.0001, t0);
-      gain.gain.exponentialRampToValueAtTime(Math.max(vol || 0.1, 0.0002), t0 + 0.012);
+      gain.gain.exponentialRampToValueAtTime(Math.max(vol || 0.04, 0.0002), t0 + 0.02);
       gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-      osc.connect(gain);
+      osc.connect(filter);
+      filter.connect(gain);
       gain.connect(c.destination);
       osc.start(t0);
-      osc.stop(t0 + dur + 0.02);
+      osc.stop(t0 + dur + 0.04);
     }
 
     function click() {
-      tone(920, 0.055, "triangle", 0.11);
-      tone(1380, 0.04, "sine", 0.05, 0.012);
+      tone(392, 0.11, "sine", 0.035);
     }
 
     function confirm() {
-      tone(660, 0.07, "triangle", 0.12);
-      tone(990, 0.09, "sine", 0.08, 0.04);
+      tone(330, 0.14, "sine", 0.032);
+      tone(392, 0.18, "sine", 0.024, 0.08);
+    }
+
+    function bedSrc() {
+      var host = location.hostname;
+      if (host === "127.0.0.1" || host === "localhost") return HUB_BED_FILE;
+      if (location.origin === GAMES_ORIGIN) return HUB_BED_FILE;
+      return GAMES_ORIGIN + "/" + HUB_BED_FILE;
+    }
+
+    function ensureBedEl() {
+      if (bedEl) return bedEl;
+      bedEl = new Audio();
+      bedEl.preload = "auto";
+      bedEl.loop = true;
+      bedEl.playsInline = true;
+      bedEl.crossOrigin = "anonymous";
+      bedEl.src = bedSrc();
+      bedEl.volume = 0;
+      return bedEl;
+    }
+
+    function clearBedFade() {
+      if (bedFade) {
+        clearInterval(bedFade);
+        bedFade = null;
+      }
+    }
+
+    function fadeBedVolume(target, ms) {
+      var el = bedEl;
+      if (!el) return;
+      clearBedFade();
+      var start = el.volume;
+      var steps = Math.max(1, Math.round((ms || 180) / 30));
+      var n = 0;
+      bedFade = setInterval(function () {
+        n += 1;
+        var t = n / steps;
+        if (t >= 1) {
+          el.volume = target;
+          clearBedFade();
+          if (target <= 0.001 && !bedOn) {
+            try { el.pause(); } catch (err) { /* ignore */ }
+          }
+          return;
+        }
+        el.volume = start + (target - start) * t;
+      }, 30);
     }
 
     function stopBed() {
+      bedGen += 1;
       bedOn = false;
-      if (bedTimer) {
-        clearTimeout(bedTimer);
-        bedTimer = null;
-      }
-      if (bedGain && ctx) {
-        try {
-          bedGain.gain.cancelScheduledValues(ctx.currentTime);
-          bedGain.gain.setTargetAtTime(0.0001, ctx.currentTime, 0.08);
-        } catch (err) { /* ignore */ }
-      }
+      if (!bedEl) return;
+      fadeBedVolume(0, 160);
     }
 
     function startBed() {
       if (bedOn) return;
-      var c = ensure();
-      if (!c) return;
+      ensure();
+      var gen = ++bedGen;
       bedOn = true;
-      if (!bedGain) {
-        bedGain = c.createGain();
-        bedGain.gain.value = 0.0001;
-        bedGain.connect(c.destination);
-      }
-      bedGain.gain.setTargetAtTime(0.045, c.currentTime, 0.25);
-      var notes = [262, 330, 392, 494, 392, 330];
-      var step = 0;
-      function pluck() {
-        if (!bedOn || !ctx) return;
-        var t0 = ctx.currentTime;
-        var osc = ctx.createOscillator();
-        var gain = ctx.createGain();
-        osc.type = "sine";
-        osc.frequency.value = notes[step % notes.length];
-        step += 1;
-        gain.gain.setValueAtTime(0.0001, t0);
-        gain.gain.exponentialRampToValueAtTime(0.55, t0 + 0.03);
-        gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.55);
-        osc.connect(gain);
-        gain.connect(bedGain);
-        osc.start(t0);
-        osc.stop(t0 + 0.58);
-        bedTimer = setTimeout(pluck, 640);
-      }
-      pluck();
+      var el = ensureBedEl();
+      clearBedFade();
+      el.volume = 0;
+      var play = el.play();
+      if (play && play.catch) play.catch(function () { /* wait for a gesture */ });
+      fadeBedVolume(0.42, 500);
+      if (gen !== bedGen) stopBed();
+    }
+
+    function postFrame(frame, type) {
+      if (!frame) return;
+      try { frame.contentWindow.postMessage({ type: type }, "*"); } catch (err) { /* ignore */ }
     }
 
     function unlockIframe(frame) {
       if (!frame || !frame.contentWindow) return;
-      try { frame.contentWindow.postMessage({ type: "kwalee.unlockAudio" }, "*"); } catch (err) { /* ignore */ }
+      postFrame(frame, "kwalee.unlockAudio");
       try {
         if (frame.contentWindow.KwaleeUnlockAudio) frame.contentWindow.KwaleeUnlockAudio();
       } catch (err) { /* cross-origin */ }
+    }
+
+    function silenceFrame(frame) {
+      if (!frame) return;
+      postFrame(frame, "kwalee.suspendAudio");
+      try {
+        if (frame.contentWindow.KwaleeSuspendAudio) frame.contentWindow.KwaleeSuspendAudio();
+      } catch (err) { /* cross-origin */ }
+      try {
+        frame.removeAttribute("srcdoc");
+        frame.src = "about:blank";
+      } catch (err) { /* ignore */ }
     }
 
     return {
@@ -1351,6 +1397,7 @@
       startBed: startBed,
       stopBed: stopBed,
       unlockIframe: unlockIframe,
+      silenceFrame: silenceFrame,
       isUnlocked: function () { return unlocked; }
     };
   })();
@@ -1366,6 +1413,7 @@
   var PLAYER_UNLOCK_LEVEL = 8;
 
   function show(view, arg) {
+    if (view === "game") HubAudio.stopBed();
     currentView = view;
     closeUnlockPopup();
     if (teardown) { teardown(); teardown = null; }
@@ -1380,8 +1428,7 @@
     else if (view === "howto") renderHowTo();
     else if (view === "hub") renderHub();
     else renderGame(arg);
-    if (view === "game") HubAudio.stopBed();
-    else if (HubAudio.isUnlocked()) HubAudio.startBed();
+    if (view !== "game" && HubAudio.isUnlocked()) HubAudio.startBed();
   }
 
   function openMenu() { show("menu"); }
@@ -2088,7 +2135,7 @@
       attrs: {
         title: meta.title,
         sandbox: "allow-scripts allow-same-origin",
-        allow: "autoplay; fullscreen",
+        allow: "autoplay *; fullscreen *",
         loading: "eager"
       }
     });
@@ -2106,18 +2153,29 @@
       api.submit(Number(data.score) || 0, Number(data.streak) || 0);
     }
     window.addEventListener("message", onMsg);
+    var alive = true;
+    var unlockTimers = [];
     function pingUnlock() {
+      if (!alive) return;
       HubAudio.unlockIframe(frame);
     }
     frame.addEventListener("load", function () {
+      if (!alive) return;
+      if ((frame.getAttribute("src") || "") === "about:blank") return;
       pingUnlock();
-      setTimeout(pingUnlock, 150);
-      setTimeout(pingUnlock, 500);
-      setTimeout(pingUnlock, 1200);
+      unlockTimers.push(setTimeout(pingUnlock, 200));
+      unlockTimers.push(setTimeout(pingUnlock, 800));
+      unlockTimers.push(setTimeout(pingUnlock, 2400));
+      unlockTimers.push(setTimeout(pingUnlock, 4000));
     });
     root.appendChild(frame);
     pingUnlock();
-    return function () { window.removeEventListener("message", onMsg); };
+    return function () {
+      alive = false;
+      unlockTimers.forEach(function (id) { clearTimeout(id); });
+      HubAudio.silenceFrame(frame);
+      window.removeEventListener("message", onMsg);
+    };
   }
 
   /* ------------------------------------------------------------------ *

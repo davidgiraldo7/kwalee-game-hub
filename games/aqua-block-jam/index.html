@@ -1383,7 +1383,7 @@
       opacity: 1;
     }
   </style>
-    <script src="../hub-reward.js"></script>
+    <script src="../hub-reward.js?v=vis2"></script>
 </head>
 
 <body>
@@ -5699,12 +5699,16 @@ const GAME_W = Math.round(GAME_H * Math.min(0.75, Math.max(0.55, (innerWidth || 
       startGame();
     } else {
       showScreen(startScreen);
+      wbjAudio.playBgm();
     }
   }, 2200);
 
-  // Start BGM on first user interaction (browsers require a gesture to play audio)
-  document.addEventListener("pointerdown", () => {
+  window.playBackgroundAudio = function () {
     playBackgroundAudio();
+    try { wbjAudio.playBgm(); } catch (err) { /* ignore */ }
+  };
+  document.addEventListener("pointerdown", function () {
+    window.playBackgroundAudio();
   }, { once: true });
 })();
   </script>
