@@ -7,7 +7,7 @@
       "genre": "Word",
       "heat": 100,
       "description": "Swipe hex letters, capture 7 hexicons, beat other players.",
-      "cover": "covers/hexiword.jpg",
+      "cover": "covers/hexiword.png",
       "src": "hexiword.html"
     },
     {
