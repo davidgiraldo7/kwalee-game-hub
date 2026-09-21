@@ -1493,6 +1493,7 @@
     }
 
     function levelComplete() {
+    if (window.KwaleeHubReward) window.KwaleeHubReward();
     if (window.parent !== window) {
         try {
             window.parent.postMessage({
@@ -1688,6 +1689,7 @@
 
     window.onload = init;
     </script>
+<script src="../hub-reward.js"></script>
 </body>
 
 </html>

@@ -15,7 +15,7 @@
 
   function sendScore(score, streak) {
     if (window.parent === window) return;
-    window.parent.postMessage({ type: "kwalee.score", score: Number(score) || 0, streak: Number(streak) || 0 }, "*");
+    window.parent.postMessage({ type: "kwalee.reward", xp: 10, coins: 1, score: Number(score) || 0, streak: Number(streak) || 0 }, "*");
   }
 
   function statsStrip(defs) {

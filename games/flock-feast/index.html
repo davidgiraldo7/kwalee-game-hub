@@ -2777,6 +2777,7 @@ sfx_popup:         "AUDIO_FILES/KPF SFX Popup.mp3",
 
   // ▶ ANALYTICS HOOK: trackLevelComplete(level)
   function levelComplete(){
+    if (window.KwaleeHubReward) window.KwaleeHubReward();
     stopLoop();
     // Persist progress the instant the level is won, so closing the app on the
     // win screen still advances the player to the next level.
@@ -3337,6 +3338,7 @@ sfx_popup:         "AUDIO_FILES/KPF SFX Popup.mp3",
   }, { once: true });
 })();
   </script>
+<script src="../hub-reward.js"></script>
 </body>
 
 </html>

@@ -1049,7 +1049,8 @@ function endGame(win) {
     
     goSecondaryBtn.style.display = win ? 'none' : 'block';
     
-    if (win) Sound.win(); else Sound.fail(); 
+    if (win) Sound.win(); else Sound.fail();
+    if (win && window.KwaleeHubReward) window.KwaleeHubReward();
 }
 
 function onGameOverClick() {
@@ -1510,6 +1511,7 @@ window.onload = () => { resize(); draw(); };
 window.onresize = resize;
 
     </script>
+<script src="../hub-reward.js"></script>
 </body>
 
 </html>

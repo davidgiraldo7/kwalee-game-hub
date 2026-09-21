@@ -633,7 +633,12 @@
                 updateBars(document.getElementById(`col-target-${x}`), targets, count, 'h', colOverflow[x]);
                 if (count.blue !== targets.blue || count.green !== targets.green) allComplete = false;
             }
-            if (allComplete && placedShapes.length === currentInventoryShapes.length) setTimeout(() => document.getElementById('win-message').classList.remove('hidden'), 400);
+            if (allComplete && placedShapes.length === currentInventoryShapes.length) setTimeout(() => {
+                const win = document.getElementById('win-message');
+                if (!win || !win.classList.contains('hidden')) return;
+                win.classList.remove('hidden');
+                if (window.KwaleeHubReward) window.KwaleeHubReward();
+            }, 400);
         }
 
         function updateBars(container, target, current, orient, overflow) {
@@ -650,5 +655,6 @@
         function clearBoard() { if (!currentLevel) return; board = JSON.parse(JSON.stringify(currentLevel.initialBoard)); placedShapes = []; rowOverflow = Array(gridSizeY).fill(false); colOverflow = Array(gridSizeX).fill(false); renderInventory(); updateLogic(); updateBoardUI(); }
         window.onresize = () => { if (currentLevel) { renderBoard(); updateBoardUI(); updateLogic(); } };
     </script>
+<script src="../hub-reward.js"></script>
 </body>
 </html>

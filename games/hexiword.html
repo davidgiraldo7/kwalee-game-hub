@@ -450,7 +450,7 @@ function sendHubScore() {
   hubScoreSent = true;
   try {
     if (window.parent === window) return;
-    window.parent.postMessage({ type: "kwalee.score", score: Number(scores[1]) || 0, streak: Number(scores[1]) || 0 }, "*");
+    window.parent.postMessage({ type: "kwalee.reward", xp: 10, coins: 1, score: Number(scores[1]) || 0, streak: Number(scores[1]) || 0 }, "*");
   } catch (err) { /* ignore */ }
 }
 

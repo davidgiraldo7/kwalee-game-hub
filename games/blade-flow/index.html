@@ -869,6 +869,7 @@
         document.getElementById('gameover-modal').classList.remove('hidden');
         document.getElementById('gameover-reason').innerText = reason;
         document.getElementById('final-score').innerText = score.toString().padStart(5, '0');
+        if (reason && /level clear/i.test(reason) && window.KwaleeHubReward) window.KwaleeHubReward();
     }
 
     function checkStalemate() {
@@ -944,6 +945,7 @@
     window.onload = init; 
     window.onresize = resize;
     </script>
+<script src="../hub-reward.js"></script>
 </body>
 
 </html>

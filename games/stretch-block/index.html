@@ -457,6 +457,7 @@ function startGame() {
 
 // ▶ ANALYTICS HOOK: trackLevelComplete(level)
 function levelComplete() {
+    if (window.KwaleeHubReward) window.KwaleeHubReward();
     try {
         document.dispatchEvent(new CustomEvent("kpf:levelCompleted", {
             detail: { completedLevel: window.level, level: window.level }
@@ -532,5 +533,6 @@ function contentCompleted() {
     window.game_action = game_action;
 })();
 </script>
+<script src="../hub-reward.js"></script>
 </body>
 </html>

@@ -13298,6 +13298,7 @@
     // celebration animation (and the final tray slide-off finishes). The
     // loop is stopped when the win overlay appears (showLevelCompleteUI).
     if (_cwState === 'CELEBRATE') return;
+    if (window.KwaleeHubReward) window.KwaleeHubReward();
     // ▶ ANALYTICS HOOK: trackLevelComplete(completedLevel)
     // Use completedLevel (pre-increment). After saveProgress(), `level` is next.
     var completedLevel = level;
@@ -14220,6 +14221,7 @@
   _ensureClawModel();
 })();
   </script>
+<script src="../hub-reward.js"></script>
 </body>
 
 </html>

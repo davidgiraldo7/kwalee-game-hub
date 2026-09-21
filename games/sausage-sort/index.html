@@ -7621,6 +7621,7 @@
 
   // ▶ ANALYTICS HOOK: trackLevelComplete(level)
   function levelComplete(){
+    if (window.KwaleeHubReward) window.KwaleeHubReward();
     stopLoop();
     stopBackgroundAudio();
     // 1. Slide header out, hide settings, show flavour text, dark tint, fireworks + sausage burst
@@ -8735,6 +8736,7 @@
   // Audio unlock handled by _unlockAndPlayAudio listeners above
 })();
   </script>
+<script src="../hub-reward.js"></script>
 </body>
 
 </html>

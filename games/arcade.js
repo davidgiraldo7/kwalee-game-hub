@@ -17,7 +17,9 @@
   function sendScore(score, streak) {
     if (window.parent === window) return;
     window.parent.postMessage({
-      type: "kwalee.score",
+      type: "kwalee.reward",
+      xp: 10,
+      coins: 1,
       score: Number(score) || 0,
       streak: Number(streak) || 0
     }, "*");
