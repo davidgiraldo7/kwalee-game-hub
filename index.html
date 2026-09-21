@@ -1247,6 +1247,17 @@
    * ------------------------------------------------------------------ */
 
   var HUB_BED_FILE = "assets/audio/between-moments-inspired-20s.mp3?v=3";
+  var GAMEPLAY_BED_FILE = "games/audio/gameplay-loop.mp3";
+  var FALLBACK_BGM_GAMES = {
+    hexiword: true,
+    "grid-filler": true,
+    "pixel-blocks": true,
+    "link-flow": true,
+    "blade-flow": true,
+    "colour-smash": true,
+    "claw-sort": true,
+    "flock-feast": true
+  };
 
   var HubAudio = (function () {
     var ctx = null;
@@ -1254,6 +1265,8 @@
     var bedFade = null;
     var bedOn = false;
     var bedGen = 0;
+    var playEl = null;
+    var playOn = false;
     var unlocked = false;
 
     function ensure() {
@@ -1352,6 +1365,7 @@
     }
 
     function startBed() {
+      stopGameplayBed();
       if (bedOn) return;
       ensure();
       var gen = ++bedGen;
@@ -1363,6 +1377,41 @@
       if (play && play.catch) play.catch(function () { /* wait for a gesture */ });
       fadeBedVolume(0.42, 500);
       if (gen !== bedGen) stopBed();
+    }
+
+    function gameplaySrc() {
+      var host = location.hostname;
+      if (host === "127.0.0.1" || host === "localhost") return GAMEPLAY_BED_FILE;
+      if (location.origin === GAMES_ORIGIN) return GAMEPLAY_BED_FILE;
+      return GAMES_ORIGIN + "/" + GAMEPLAY_BED_FILE;
+    }
+
+    function ensurePlayEl() {
+      if (playEl) return playEl;
+      playEl = new Audio();
+      playEl.preload = "auto";
+      playEl.loop = true;
+      playEl.playsInline = true;
+      playEl.setAttribute("data-hub-gameplay", "1");
+      playEl.src = gameplaySrc();
+      playEl.volume = 0.48;
+      if (document.body) document.body.appendChild(playEl);
+      return playEl;
+    }
+
+    function stopGameplayBed() {
+      playOn = false;
+      if (!playEl) return;
+      try { playEl.pause(); } catch (err) { /* ignore */ }
+    }
+
+    function startGameplayBed() {
+      stopBed();
+      playOn = true;
+      ensure();
+      var el = ensurePlayEl();
+      var play = el.play();
+      if (play && play.catch) play.catch(function () { /* wait for a gesture */ });
     }
 
     function postFrame(frame, type) {
@@ -1396,6 +1445,8 @@
       confirm: confirm,
       startBed: startBed,
       stopBed: stopBed,
+      startGameplayBed: startGameplayBed,
+      stopGameplayBed: stopGameplayBed,
       unlockIframe: unlockIframe,
       silenceFrame: silenceFrame,
       isUnlocked: function () { return unlocked; }
@@ -1409,12 +1460,15 @@
   var teardown = null;
   var hubTab = "games";
   var currentView = "menu";
+  var currentGameId = null;
   var SHOP_UNLOCK_LEVEL = 3;
   var PLAYER_UNLOCK_LEVEL = 8;
 
   function show(view, arg) {
     if (view === "game") HubAudio.stopBed();
+    else HubAudio.stopGameplayBed();
     currentView = view;
+    currentGameId = view === "game" ? arg : null;
     closeUnlockPopup();
     if (teardown) { teardown(); teardown = null; }
     app.innerHTML = "";
@@ -1428,7 +1482,8 @@
     else if (view === "howto") renderHowTo();
     else if (view === "hub") renderHub();
     else renderGame(arg);
-    if (view !== "game" && HubAudio.isUnlocked()) HubAudio.startBed();
+    if (view === "game" && FALLBACK_BGM_GAMES[arg]) HubAudio.startGameplayBed();
+    else if (view !== "game" && HubAudio.isUnlocked()) HubAudio.startBed();
   }
 
   function openMenu() { show("menu"); }
@@ -2792,8 +2847,16 @@
     }
   }, true);
   document.addEventListener("visibilitychange", function () {
-    if (document.hidden) HubAudio.stopBed();
-    else if (currentView !== "game" && HubAudio.isUnlocked()) HubAudio.startBed();
+    if (document.hidden) {
+      HubAudio.stopBed();
+      HubAudio.stopGameplayBed();
+      return;
+    }
+    if (currentView === "game" && FALLBACK_BGM_GAMES[currentGameId]) {
+      HubAudio.startGameplayBed();
+    } else if (currentView !== "game" && HubAudio.isUnlocked()) {
+      HubAudio.startBed();
+    }
   });
 
   openMenu();

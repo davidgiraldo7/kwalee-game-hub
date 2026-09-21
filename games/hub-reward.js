@@ -154,4 +154,14 @@
     n += 1;
     if (n > 40) w.clearInterval(timer);
   }, 200);
+
+  w.setInterval(function () {
+    if (silenced || parentHidden()) return;
+    var i;
+    for (i = 0; i < contexts.length; i++) {
+      try {
+        if (contexts[i] && contexts[i].state === "suspended") contexts[i].resume();
+      } catch (err) { /* ignore */ }
+    }
+  }, 400);
 })(window);
