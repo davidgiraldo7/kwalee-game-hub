@@ -286,7 +286,7 @@
     height: 100%;
     border: 0;
     border-radius: 0;
-    background: #141414;
+    background: var(--game, #141414);
     display: block;
   }
 
@@ -546,6 +546,25 @@
   .play-stage {
     overflow: auto;
     background: #141414;
+  }
+  .play-stage.is-booting::after {
+    content: "Loading";
+    position: absolute;
+    top: var(--play-chrome-h);
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 4;
+    display: grid;
+    place-items: center;
+    background: #141414;
+    color: #cecece;
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    pointer-events: none;
   }
   .play-stage:has(.game-frame) { overflow: hidden; }
   .play-stage .game-frame {
@@ -826,6 +845,7 @@
   var GAMES_ORIGIN = "https://davidgiraldo7.github.io/kwalee-game-hub";
   var GAMES_CATALOG_URL = GAMES_ORIGIN + "/games/catalog.json";
   var GAMES_BRIDGE_URL = GAMES_ORIGIN + "/games/catalog-bridge.html";
+  var GAMES_ASSET_V = "boot2";
 
   /* Fallback if the GitHub catalog cannot be fetched (Canvas srcdoc, file://, CSP).
      Heat order matches games/catalog.json so Game of the week still ranks correctly. */
@@ -903,6 +923,16 @@
     try {
       var u = new URL(url, location.href);
       u.searchParams.set("v", String(Date.now()));
+      return u.href;
+    } catch (err) {
+      return url;
+    }
+  }
+
+  function gameFrameSrc(url) {
+    try {
+      var u = new URL(url, location.href);
+      u.searchParams.set("v", GAMES_ASSET_V);
       return u.href;
     } catch (err) {
       return url;
@@ -2140,49 +2170,8 @@
     teardown = BUILDERS[id](mount, api) || null;
   }
 
-  function inlineGameAssets(html, baseHref, cssText, jsText) {
-    var base = '<base href="' + baseHref + '">';
-    if (/<head[^>]*>/i.test(html)) html = html.replace(/<head[^>]*>/i, function (tag) { return tag + base; });
-    else html = base + html;
-    if (cssText) {
-      html = html.replace(/<link\s+rel="stylesheet"\s+href="arcade\.css">/i, "<style>\n" + cssText + "\n</style>");
-    }
-    if (jsText) {
-      html = html.replace(
-        /<script\s+src="arcade\.js"><\/script>/i,
-        "<script>\n" + jsText + "\n<" + "/script>"
-      );
-    }
-    return html;
-  }
-
   function loadGameSrcdoc(meta, frame) {
-    var src = withCacheBust(meta.src);
-    var baseHref = new URL(".", meta.src).href;
-    return fetch(src, { credentials: "omit", cache: "no-store", mode: "cors" }).then(function (res) {
-      if (!res.ok) throw new Error("html " + res.status);
-      return res.text();
-    }).then(function (html) {
-      var needCss = /href="arcade\.css"/i.test(html);
-      var needJs = /src="arcade\.js"/i.test(html);
-      if (!needCss && !needJs) {
-        frame.src = src;
-        return null;
-      }
-      var jobs = [Promise.resolve(html)];
-      jobs.push(needCss
-        ? fetch(new URL("arcade.css", meta.src).href, { credentials: "omit", cache: "no-store", mode: "cors" }).then(function (r) { return r.ok ? r.text() : ""; })
-        : Promise.resolve(""));
-      jobs.push(needJs
-        ? fetch(new URL("arcade.js", meta.src).href, { credentials: "omit", cache: "no-store", mode: "cors" }).then(function (r) { return r.ok ? r.text() : ""; })
-        : Promise.resolve(""));
-      return Promise.all(jobs);
-    }).then(function (parts) {
-      if (!parts) return;
-      frame.srcdoc = inlineGameAssets(parts[0], baseHref, parts[1], parts[2]);
-    }).catch(function () {
-      frame.src = src;
-    });
+    frame.src = gameFrameSrc(meta.src);
   }
 
   function mountRemoteGame(root, meta, api) {
@@ -2196,9 +2185,14 @@
       }
     });
     var html = EMBEDDED_GAMES[meta.id];
+    var clearBoot = function () { root.classList.remove("is-booting"); };
+    root.classList.add("is-booting");
     if (html) frame.setAttribute("srcdoc", html);
     else loadGameSrcdoc(meta, frame);
+    var bootTimer = setTimeout(clearBoot, 12000);
     frame.addEventListener("error", function () {
+      clearTimeout(bootTimer);
+      clearBoot();
       api.note("This game did not load. Check your connection and try again.");
     });
     function rewardPayload(data) {
@@ -2242,6 +2236,8 @@
       HubAudio.unlockIframe(frame);
     }
     frame.addEventListener("load", function () {
+      clearTimeout(bootTimer);
+      clearBoot();
       if (!alive) return;
       if ((frame.getAttribute("src") || "") === "about:blank") return;
       pingUnlock();

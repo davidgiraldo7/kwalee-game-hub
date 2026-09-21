@@ -8,7 +8,7 @@
   <title>Mobile Game UI</title>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@700;900&display=swap"
-    rel="stylesheet">
+    rel="stylesheet" media="print" onload="this.media='all'">
   <style>
     :root {
       --sat: env(safe-area-inset-top, 0px);
@@ -3203,14 +3203,8 @@ sfx_popup:         "AUDIO_FILES/KPF SFX Popup.mp3",
   initMixerControls();
   preloadAllAudio();
 
-  // Preload/boot the gameplay iframe during the splash so pressing Play doesn't
-  // stall on a white screen while the (large, self-contained) payload boots.
-  // The game screen is display:none while inactive, which makes browsers defer
-  // rendering the offscreen iframe (canvas can't size, first frame never paints).
-  // So we temporarily flip it into a "warming" state: rendered at full size but
-  // parked offscreen, letting the iframe lay out and paint its first frame. Once
-  // the feed reports ready (and we give it one more frame to paint), we drop the
-  // warming state so pressing Play reveals an already-painted game.
+  // Warm the 3D feed *after* Pocket Spark. feed.html + Three.js is large enough
+  // that parsing it on the main thread delayed the splash timers by ~a minute.
   function bootWarmup() {
     gameScreen.classList.add("warming");
     ensureFeedLoaded().then(() => {
@@ -3220,11 +3214,6 @@ sfx_popup:         "AUDIO_FILES/KPF SFX Popup.mp3",
         gameScreen.classList.remove("warming");
       }));
     });
-  }
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", bootWarmup, { once: true });
-  } else {
-    bootWarmup();
   }
 
   settingsBtnStart.addEventListener("click", openSettings);
@@ -3311,20 +3300,15 @@ sfx_popup:         "AUDIO_FILES/KPF SFX Popup.mp3",
   })();
 
   // ---------- Splash sequence ----------
-  // Fade in logo, hold, fade out, then show appropriate screen.
+  // Fade in logo, hold, fade out, then always land on the title screen.
+  // Do not boot feed.html until Splash is gone — compiling Three.js on a
+  // nested Game Vault iframe starved these timers for ~a minute.
   setTimeout(() => splashLogo.classList.add("visible"), 100);
   setTimeout(() => splashLogo.classList.remove("visible"), 1600);
   setTimeout(() => {
-    if (level === 1) {
-      // First-time player: skip home, go straight into level 1
-      enterGameplay();
-    } else {
-      unloadFeed();
-      showScreen(startScreen);
-      // Preload feed in background so Play has no white-screen delay
-      ensureFeedLoaded();
-    }
-  }, 2200);
+    showScreen(startScreen);
+    bootWarmup();
+  }, 2000);
 
   // Keep the gameplay frame's safe-area insets in sync with the device (rotation,
   // status-bar changes, split screen).
