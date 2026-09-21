@@ -2020,6 +2020,7 @@
   function renderGame(id) {
     var meta = game(id);
     if (!meta) { openHub(); return; }
+    lastClearAt = 0;
 
     var stats = playerStats();
     var chromeLevel = el("div", {
@@ -2104,6 +2105,7 @@
       wallet.xp += XP_PER_CLEAR;
       wallet.coins += COINS_PER_CLEAR;
       saveWallet();
+      refreshPlayChrome();
       flyRewardChip(chromeLevel, "reward-fly-xp", [
         el("span", { text: "+" + XP_PER_CLEAR + " XP" })
       ]);
@@ -2111,7 +2113,6 @@
         el("span", { className: "coin-dot" }),
         el("span", { text: "+" + COINS_PER_CLEAR })
       ]);
-      setTimeout(refreshPlayChrome, 700);
       var shown = meta.unit ? score + " " + meta.unit : score;
       if (score) {
         status.textContent = isBest
@@ -2200,12 +2201,38 @@
     frame.addEventListener("error", function () {
       api.note("This game did not load. Check your connection and try again.");
     });
+    function rewardPayload(data) {
+      if (!data) return null;
+      if (typeof data === "string") {
+        try { data = JSON.parse(data); } catch (err) { return null; }
+      }
+      if (!data || typeof data !== "object") return null;
+      if (data.type !== "kwalee.reward" && data.type !== "kwalee.score") return null;
+      return data;
+    }
+
+    function fromGameFrame(e) {
+      try {
+        if (frame.contentWindow && e.source === frame.contentWindow) return true;
+      } catch (err) { /* cross-origin */ }
+      try {
+        var win = e.source;
+        var hops = 0;
+        while (win && hops < 5) {
+          if (frame.contentWindow && win === frame.contentWindow) return true;
+          if (win === window) break;
+          win = win.parent;
+          hops += 1;
+        }
+      } catch (err) { /* nested / opaque origin */ }
+      if (e.origin === GAMES_ORIGIN || e.origin === location.origin || e.origin === "null") return true;
+      return false;
+    }
+
     function onMsg(e) {
-      if (e.source !== frame.contentWindow) return;
-      var data = e.data;
-      if (!data || typeof data !== "object") return;
-      if (data.type !== "kwalee.reward" && data.type !== "kwalee.score") return;
-      api.submit(Number(data.score) || 0, Number(data.streak) || 0);
+      var data = rewardPayload(e.data);
+      if (!data || !fromGameFrame(e)) return;
+      api.submit(Number(data.score) || Number(data.xp) || 0, Number(data.streak) || 0);
     }
     window.addEventListener("message", onMsg);
     var alive = true;

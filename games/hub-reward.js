@@ -107,7 +107,13 @@
 
   w.addEventListener("message", function (e) {
     var data = e.data;
+    if (typeof data === "string") {
+      try { data = JSON.parse(data); } catch (err) { return; }
+    }
     if (!data || typeof data !== "object") return;
+    if ((data.type === "kwalee.reward" || data.type === "kwalee.score") && w.parent !== w && e.source !== w.parent) {
+      try { w.parent.postMessage(data, "*"); } catch (err) { /* ignore */ }
+    }
     if (data.type === "kwalee.unlockAudio") {
       silenced = false;
       unlockAudio();
@@ -148,12 +154,7 @@
   if (w.document) {
     w.document.addEventListener("kpf:levelCompleted", send);
   }
-  var n = 0;
-  var timer = w.setInterval(function () {
-    tryWrap();
-    n += 1;
-    if (n > 40) w.clearInterval(timer);
-  }, 200);
+  w.setInterval(tryWrap, 500);
 
   w.setInterval(function () {
     if (silenced || parentHidden()) return;
