@@ -1,0 +1,16 @@
+CHANGELOG
+=========
+
+[2026-08-14]
+- Started template bug-fix log.
+- Fixed Android hardware-back softlock on level-complete and level-failed result popups by adding a non-observing CSS `result-locked` safeguard and unlocking it before intentional dismissal.
+- Fixed stale Quit confirmation appearing after Android back/swipe navigation by clearing the confirmation state whenever Settings is opened.
+- Fixed device-language localization by detecting supported browser/device locales at startup, including regional Polish locales such as `pl-PL`, with English as the fallback.
+- Fixed offline boot resilience by skipping audio preloading without connectivity and catching audio-context initialization failures so audio cannot block startup.
+- Fixed Android/browser Back minimizing the game by consuming Back through an optional Capacitor handler and a browser history fallback; result and Settings UI remain open.
+- Prevented long-press text selection and browser callout menus on in-game UI while preserving text selection for the debug level input.
+- Corrected Polish Home and Settings navigation wording, including `Strona główna` and `Wróć do strony głównej`.
+- Persisted Music, Sound, and Haptics toggle preferences across game reboots using a namespaced localStorage record.
+- Preserved level progress when rebooting on the level-complete screen by advancing and saving the next level once on boot, then clearing the pending completion marker.
+- Added a light-theme safeguard for Xiaomi/Redmi Android skins using `color-scheme: only light` and a white `theme-color`.
+- Added background-audio lifecycle handling to stop BGM when minimized/backgrounded and resume it when returning if Music remains enabled.

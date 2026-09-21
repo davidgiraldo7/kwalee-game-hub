@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Stretch — Level Editor</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap');
+
+        * { box-sizing: border-box; }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            min-height: 100%;
+            background-color: #1a1c29;
+            color: #fff;
+            font-family: 'Nunito', sans-serif;
+        }
+
+        #app {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+            padding: 24px;
+            align-items: flex-start;
+        }
+
+        h1 { font-weight: 900; text-transform: uppercase; letter-spacing: 2px; margin: 0 0 16px; }
+        h2 { font-weight: 900; font-size: 16px; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 10px; color: #9aa0b5; }
+
+        .panel {
+            background: #282a3a;
+            border-radius: 18px;
+            padding: 20px;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.35), inset 0 2px 0 rgba(255,255,255,0.05);
+        }
+
+        .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
+        label { font-weight: 700; font-size: 14px; color: #c7ccdd; }
+
+        input[type="text"], input[type="number"], textarea {
+            background: #1f2130;
+            border: 2px solid #3a3d52;
+            color: #fff;
+            border-radius: 10px;
+            padding: 8px 10px;
+            font-family: inherit;
+            font-weight: 700;
+            font-size: 14px;
+        }
+        input[type="number"] { width: 70px; }
+        input[type="text"] { min-width: 200px; }
+        textarea { width: 100%; min-height: 160px; resize: vertical; font-size: 12px; line-height: 1.4; }
+
+        button {
+            background: #05c46b;
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            font-size: 15px;
+            font-weight: 700;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #049451;
+            transition: transform 0.08s, box-shadow 0.08s;
+            font-family: inherit;
+        }
+        button:active { transform: translateY(4px); box-shadow: 0 0 0 #049451; }
+        button.secondary { background: #576574; box-shadow: 0 4px 0 #3c4653; }
+        button.secondary:active { box-shadow: 0 0 0 #3c4653; }
+
+        .tool-btn {
+            background: #1f2130;
+            box-shadow: none;
+            border: 2px solid #3a3d52;
+            padding: 8px 14px;
+        }
+        .tool-btn.active { border-color: #05c46b; background: #14361f; box-shadow: none; }
+        .tool-btn:active { transform: none; }
+
+        .swatch {
+            width: 34px; height: 34px;
+            border-radius: 9px;
+            cursor: pointer;
+            border: 3px solid transparent;
+            box-shadow: inset 0 2px 4px rgba(255,255,255,0.3);
+        }
+        .swatch.active { border-color: #ffffff; }
+
+        #grid-wrap { width: 100%; overflow: auto; }
+        #grid {
+            display: grid;
+            gap: 4px;
+            background: transparent;
+            touch-action: none;
+        }
+        .cell {
+            width: var(--cell-size, 64px); height: var(--cell-size, 64px);
+            border-radius: 8px;
+            background: #2f3547;
+            cursor: pointer;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: var(--cell-label-size, 16px);
+            color: rgba(0,0,0,0.55);
+            user-select: none;
+        }
+        .cell.wall { background: transparent; box-shadow: none; outline: 2px dashed #383c52; outline-offset: -4px; cursor: pointer; color: transparent; }
+        .cell.wall::after { content: ''; }
+        .cell.locked {
+            box-shadow: inset 0 0 0 3px rgba(255,255,255,0.72), inset 0 0 0 6px rgba(20,22,34,0.35);
+        }
+        .cell.pre-expanded {
+            box-shadow: inset 0 0 0 4px rgba(20,22,34,0.85);
+            border-radius: 4px;
+        }
+        .cell.axis-horizontal::before,
+        .cell.axis-horizontal::after,
+        .cell.axis-vertical::before,
+        .cell.axis-vertical::after {
+            position: absolute;
+            color: rgba(255,255,255,0.86);
+            font-size: calc(var(--cell-label-size, 16px) * 1.1);
+            line-height: 1;
+            pointer-events: none;
+        }
+        .cell.axis-horizontal::before,
+        .cell.axis-horizontal::after {
+            content: '↔';
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .cell.axis-horizontal::before { top: 2px; }
+        .cell.axis-horizontal::after { bottom: 2px; }
+        .cell.axis-vertical::before,
+        .cell.axis-vertical::after {
+            content: '↕';
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .cell.axis-vertical::before { left: 2px; }
+        .cell.axis-vertical::after { right: 2px; }
+        .cell.drag-source {
+            outline: 3px solid #ffffff;
+            outline-offset: -3px;
+        }
+
+        .hint { color: #8890a8; font-size: 13px; line-height: 1.5; max-width: 520px; }
+        .status { font-size: 13px; font-weight: 700; margin-top: 8px; min-height: 18px; }
+        .status.error { color: #ff6b5e; }
+        .status.ok { color: #05c46b; }
+        .spacer { flex: 1; }
+    </style>
+</head>
+<body>
+<div id="app">
+    <div class="panel" style="flex: 0 1 360px; min-width: 300px;">
+        <h1>Level Editor</h1>
+
+        <div class="row">
+            <label>Title</label>
+            <input type="text" id="title" value="Level: Custom">
+        </div>
+        <div class="row">
+            <label>Move limit</label>
+            <input type="number" id="moveLimit" value="10" min="1" max="9999" title="Maximum moves allowed">
+        </div>
+
+        <div class="row">
+            <label>Cols</label>
+            <input type="number" id="cols" value="5" min="1" max="20">
+            <label>Rows</label>
+            <input type="number" id="rows" value="5" min="1" max="20">
+            <button class="secondary" id="resize-btn">Resize Grid</button>
+            <button class="secondary" id="fill-btn">Fill Floor</button>
+            <button class="secondary" id="void-btn">Void All</button>
+        </div>
+
+        <h2>Tool</h2>
+        <div class="row" id="tools">
+            <button class="tool-btn active" data-tool="terrain">Floor / Void</button>
+            <button class="tool-btn" data-tool="block">Blocks</button>
+        </div>
+
+        <h2>Block Colour</h2>
+        <div class="row" id="swatches"></div>
+
+        <div class="row">
+            <label>Size</label>
+            <input type="number" id="size" value="4" min="1" max="20" title="Target cell count">
+            <span style="color:#8890a8;font-weight:700;font-size:12px;">cells</span>
+        </div>
+        <div class="row" id="preShapeRow" hidden>
+            <label>Shape</label>
+            <input type="number" id="preW" value="2" min="1" max="20" title="Pre-expanded width">
+            <span style="color:#c7ccdd;font-weight:700;">&times;</span>
+            <input type="number" id="preH" value="2" min="1" max="20" title="Pre-expanded height">
+        </div>
+        <div class="row">
+            <label><input type="checkbox" id="locked"> Locked in place (still expands)</label>
+        </div>
+        <div class="row">
+            <label><input type="checkbox" id="axisLocked"> Arrow block (moves on one axis)</label>
+        </div>
+        <div class="row" id="axisDirectionRow" hidden>
+            <label>Movement</label>
+            <select id="axisDirection">
+                <option value="horizontal">Horizontal</option>
+                <option value="vertical">Vertical</option>
+            </select>
+        </div>
+        <div class="row">
+            <label><input type="checkbox" id="preExpanded"> Pre-expanded (fixed shape, can't shrink)</label>
+        </div>
+
+        <div class="status" id="status"></div>
+    </div>
+
+    <div class="panel" style="flex: 3 1 560px; min-width: 380px;">
+        <h2>Board</h2>
+        <div id="grid-wrap"><div id="grid"></div></div>
+        <p class="hint">
+            <b>Floor / Void</b>: click (or drag) to carve the board into any custom shape. Void cells are removed from play and render as empty in-game.<br>
+            <b>Blocks</b>: tap an empty floor cell to add a block (using the chosen colour and target <b>size</b>). Normal blocks occupy one cell and expand in-game to fill their size as the widest rectangle that fits (filling horizontal space first, then wrapping). Tap an existing block to erase it. Enable <b>Locked in place</b> for a block that expands but cannot be dragged. Enable <b>Arrow block</b> to choose horizontal or vertical-only movement.<br>
+            <b>Pre-expanded</b>: a block that begins at a fixed <b>shape</b> (w×h) already full and can never shrink; its size equals w×h.<br>
+            <b>Move limit</b>: the maximum number of player moves and resizes allowed in-game.<br>
+            Each block shows its target <b>size</b> (e.g. <code>6</code>) &mdash; players double-tap to pop it out to fill that many cells. The level is solvable when every block's size can be packed (as some rectangle) into the floor at once.
+        </p>
+    </div>
+
+    <div class="panel" style="flex: 1 1 420px; min-width: 360px;">
+        <h2>Export / Import JSON</h2>
+        <div class="row">
+            <button id="export-btn">Export &#8595;</button>
+            <button id="copy-btn" class="secondary">Copy</button>
+            <div class="spacer"></div>
+            <button id="import-btn" class="secondary">Import &#8593;</button>
+        </div>
+        <textarea id="json" spellcheck="false" placeholder="Level JSON appears here on Export. Paste JSON here and click Import to load it."></textarea>
+        <p class="hint">
+            Exported JSON matches a single entry of the <code>LEVELS</code> array in
+            <code>index.html</code>. Colours are palette <b>names</b> (e.g.
+            <code>"red"</code>) drawn from the shared <code>PALETTE</code>, so the object
+            can be pasted straight into <code>LEVELS</code> and played immediately.
+        </p>
+
+        <h2 style="margin-top:18px;">LEVELS.json file</h2>
+        <div class="row">
+            <button id="push-btn" class="secondary">Push current &#8594; file</button>
+            <button id="download-btn" class="secondary">Download (<span id="file-count">0</span>)</button>
+            <div class="spacer"></div>
+            <button id="loadfile-btn" class="secondary">Load file</button>
+            <input type="file" id="file-input" accept=".json,application/json" style="display:none">
+        </div>
+        <p class="hint">
+            Build the game's <code>LEVELS.json</code> without touching the script.
+            <b>Load file</b> imports an existing <code>LEVELS.json</code> (its first
+            level opens on the board); <b>Push current</b> appends the level on the
+            board to the file; <b>Download</b> saves the whole file with
+            two-space indentation for easy editing. The game fetches
+            <code>LEVELS.json</code> on boot.
+        </p>
+    </div>
+</div>
+
+<script>
+    // Shared colour palette — identical to the game's PALETTE in index.html.
+    // Level data references these by name key (e.g. "red"); the game resolves
+    // the hex at load time.
+    const PALETTE = {
+        red:    '#f04e66',
+        blue:   '#627ce8',
+        green:  '#45c977',
+        orange: '#f09a42',
+        purple: '#a979de',
+        yellow: '#f3c33d',
+        cyan:   '#5bc6d5',
+        pink:   '#ed6e94'
+    };
+
+    // Reverse lookup: hex -> palette name, so legacy hex-coded levels still
+    // resolve to a named swatch on import.
+    const HEX_TO_NAME = {};
+    Object.keys(PALETTE).forEach(k => HEX_TO_NAME[PALETTE[k].toLowerCase()] = k);
+
+    // Normalise any block colour to a palette name (accepts a name or a hex).
+    function colorName(c) {
+        if (typeof c !== 'string') return 'red';
+        if (PALETTE[c]) return c;
+        return HEX_TO_NAME[c.toLowerCase()] || 'red';
+    }
+
+    let cols = 5;
+    let rows = 5;
+    let grid = [];                 // grid[r][c] => 1 floor / 0 wall
+    let blocks = {};               // key "x,y" (anchor) => { color, w, h, size, locked, preExpanded, moveAxis }
+                                   // w,h = editor footprint (1×1 normal; the fixed shape for pre-expanded).
+    let tool = 'terrain';
+    let currentColorName = 'red';
+    // While manipulating a block: { key, offX, offY, downKey, moved }. null otherwise.
+    let dragState = null;
+
+    const gridEl = document.getElementById('grid');
+    const statusEl = document.getElementById('status');
+
+    function setStatus(msg, kind) {
+        statusEl.textContent = msg || '';
+        statusEl.className = 'status' + (kind ? ' ' + kind : '');
+    }
+
+    function makeGrid(newCols, newRows, preserve) {
+        const old = grid;
+        cols = newCols;
+        rows = newRows;
+        grid = [];
+        for (let r = 0; r < rows; r++) {
+            grid[r] = [];
+            for (let c = 0; c < cols; c++) {
+                grid[r][c] = (preserve && old[r] && old[r][c] !== undefined) ? old[r][c] : 1;
+            }
+        }
+        // Drop any blocks now outside bounds or touching a wall.
+        removeBlocksTouching();
+        render();
+    }
+
+    // key "x,y" -> anchor key, for every cell covered by a block's footprint.
+    function occupancyMap() {
+        const occ = {};
+        for (const key in blocks) {
+            const [ax, ay] = key.split(',').map(Number);
+            const b = blocks[key];
+            for (let r = ay; r < ay + b.h; r++)
+                for (let c = ax; c < ax + b.w; c++)
+                    occ[c + ',' + r] = key;
+        }
+        return occ;
+    }
+
+    // Remove any block whose footprint falls off-grid or onto a void cell.
+    function removeBlocksTouching() {
+        for (const key in blocks) {
+            const [ax, ay] = key.split(',').map(Number);
+            const b = blocks[key];
+            let bad = false;
+            for (let r = ay; r < ay + b.h && !bad; r++)
+                for (let c = ax; c < ax + b.w && !bad; c++)
+                    if (r >= rows || c >= cols || !grid[r] || grid[r][c] === 0) bad = true;
+            if (bad) {
+                delete blocks[key];
+                if (dragState && dragState.key === key) dragState = null;
+            }
+        }
+    }
+
+    function render() {
+        // Fit the board to its panel while keeping very large grids scrollable
+        // and labels readable. The grid recalculates on every editor render.
+        const availableWidth = gridEl.parentElement.clientWidth;
+        const cellSize = Math.max(42, Math.min(96,
+            Math.floor((availableWidth - (cols - 1) * 4) / cols) || 64));
+        gridEl.style.setProperty('--cell-size', cellSize + 'px');
+        gridEl.style.setProperty('--cell-label-size',
+            Math.max(14, Math.min(24, Math.floor(cellSize * 0.32))) + 'px');
+        gridEl.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
+        gridEl.innerHTML = '';
+        const occ = occupancyMap();
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell' + (grid[r][c] === 0 ? ' wall' : '');
+                cell.dataset.x = c;
+                cell.dataset.y = r;
+
+                const anchorKey = occ[c + ',' + r];
+                if (grid[r][c] === 1 && anchorKey) {
+                    const b = blocks[anchorKey];
+                    cell.style.background = PALETTE[b.color] || b.color;
+                    if (b.locked) cell.classList.add('locked');
+                    if (b.preExpanded) cell.classList.add('pre-expanded');
+                    if (dragState && anchorKey === dragState.key) cell.classList.add('drag-source');
+                    if (anchorKey === c + ',' + r) {
+                        if (b.moveAxis) cell.classList.add('axis-' + b.moveAxis);
+                        const prefix = (b.locked ? 'L' : '') + (b.preExpanded ? 'P' : '');
+                        cell.textContent = (prefix ? prefix + ' ' : '') + b.size;
+                    }
+                }
+                gridEl.appendChild(cell);
+            }
+        }
+    }
+
+    function footprintValid(x, y, w, h, ignoreKey) {
+        if (x + w > cols || y + h > rows) return false;
+        const occ = occupancyMap();
+        for (let r = y; r < y + h; r++) {
+            for (let c = x; c < x + w; c++) {
+                if (grid[r][c] === 0) return false;
+                const a = occ[c + ',' + r];
+                if (a && a !== ignoreKey) return false;
+            }
+        }
+        return true;
+    }
+
+    // Add a new block anchored at the given "x,y" cell, using the current
+    // colour and the target size (or the fixed shape for pre-expanded).
+    function addBlockAt(key) {
+        const [x, y] = key.split(',').map(Number);
+        if (grid[y][x] === 0) { setStatus('Cannot place a block on a void cell.', 'error'); return; }
+        const preExpanded = document.getElementById('preExpanded').checked;
+        const s = readShape();
+        if (!footprintValid(x, y, s.w, s.h, null)) {
+            setStatus('A ' + s.w + '\u00d7' + s.h + ' footprint does not fit here (off-grid, on a void, or overlapping).', 'error');
+            return;
+        }
+        const locked = document.getElementById('locked').checked;
+        const moveAxis = document.getElementById('axisLocked').checked ?
+            document.getElementById('axisDirection').value : null;
+        blocks[key] = { color: currentColorName, w: s.w, h: s.h, size: s.size, locked, preExpanded, moveAxis };
+        const flags = [locked ? 'locked' : null, moveAxis ? moveAxis + '-only' : null,
+            preExpanded ? 'pre-expanded ' + s.w + '\u00d7' + s.h : null].filter(Boolean);
+        setStatus('Added size-' + s.size + ' block' + (flags.length ? ' (' + flags.join(', ') + ')' : '') + '.', 'ok');
+    }
+
+    function readNum(id, def) {
+        let t = parseInt(document.getElementById(id).value, 10);
+        if (isNaN(t) || t < 1) t = def;
+        return Math.min(20, t);
+    }
+
+    function readMoveLimit() {
+        let limit = parseInt(document.getElementById('moveLimit').value, 10);
+        if (isNaN(limit) || limit < 1) limit = 10;
+        return Math.min(9999, limit);
+    }
+
+    // Read the block spec from the inputs. Normal blocks have a 1×1 editor
+    // footprint and a target `size`; pre-expanded blocks use a fixed w×h shape
+    // whose size is that area.
+    function readShape() {
+        const preExpanded = document.getElementById('preExpanded').checked;
+        if (preExpanded) {
+            const w = readNum('preW', 1), h = readNum('preH', 1);
+            return { w, h, size: w * h };
+        }
+        return { w: 1, h: 1, size: readNum('size', 1) };
+    }
+
+    // --- Pointer interaction ---
+    // Terrain uses fixed-value drag painting (decide the value on press, then
+    // apply that same value to every cell dragged over).
+    // Blocks use one unified tool: tap empty floor = add, drag a block = move,
+    // tap a block = erase (tap vs. drag is decided by whether the pointer left
+    // the cell it started on).
+    let painting = false;
+    let paintValue = 1;
+    let lastPainted = null;
+
+    function setTerrain(x, y, value) {
+        if (grid[y][x] === value) return;
+        grid[y][x] = value;
+        if (value === 0) removeBlocksTouching(); // voids can't hold blocks
+        render();
+    }
+
+    function cellFromEvent(e) {
+        const el = document.elementFromPoint(e.clientX, e.clientY);
+        const cell = el && el.closest ? el.closest('.cell') : null;
+        return (cell && gridEl.contains(cell)) ? cell : null;
+    }
+
+    gridEl.addEventListener('pointerdown', e => {
+        const cell = e.target.closest('.cell');
+        if (!cell) return;
+        const x = +cell.dataset.x, y = +cell.dataset.y;
+
+        if (tool === 'terrain') {
+            painting = true;
+            paintValue = grid[y][x] === 1 ? 0 : 1; // flip the first cell, then paint that value
+            lastPainted = x + ',' + y;
+            setTerrain(x, y, paintValue);
+        } else { // unified block tool
+            const downKey = x + ',' + y;
+            const anchor = occupancyMap()[downKey];
+            if (anchor) {
+                const [ax, ay] = anchor.split(',').map(Number);
+                dragState = {
+                    key: anchor,
+                    offX: x - ax,
+                    offY: y - ay,
+                    downKey,
+                    moved: false,
+                    locked: blocks[anchor].locked,
+                    moveAxis: blocks[anchor].moveAxis
+                };
+                render(); // show the drag-source highlight
+            } else {
+                dragState = { key: null, offX: 0, offY: 0, downKey, moved: false };
+            }
+            if (gridEl.setPointerCapture) { try { gridEl.setPointerCapture(e.pointerId); } catch (_) {} }
+        }
+    });
+
+    window.addEventListener('pointermove', e => {
+        if (tool === 'terrain') {
+            if (!painting) return;
+            const cell = cellFromEvent(e);
+            if (!cell) return;
+            const key = cell.dataset.x + ',' + cell.dataset.y;
+            if (key === lastPainted) return; // already painted this tile in this stroke
+            lastPainted = key;
+            setTerrain(+cell.dataset.x, +cell.dataset.y, paintValue);
+            return;
+        }
+        // Block tool: live-drag a grabbed block, snapping so the grabbed cell
+        // stays under the pointer. Invalid destinations are simply skipped.
+        if (!dragState || !dragState.key) return;
+        const cell = cellFromEvent(e);
+        if (!cell) return;
+        const cx = +cell.dataset.x, cy = +cell.dataset.y;
+        if (cx + ',' + cy !== dragState.downKey) dragState.moved = true;
+        if (dragState.locked) return;
+        const b = blocks[dragState.key];
+        const [ax, ay] = dragState.key.split(',').map(Number);
+        const tx = dragState.moveAxis === 'vertical' ? ax : cx - dragState.offX;
+        const ty = dragState.moveAxis === 'horizontal' ? ay : cy - dragState.offY;
+        const targetKey = tx + ',' + ty;
+        if (targetKey === dragState.key) return; // no change
+        if (footprintValid(tx, ty, b.w, b.h, dragState.key)) {
+            delete blocks[dragState.key];
+            blocks[targetKey] = b;
+            dragState.key = targetKey;
+            render();
+        }
+    });
+
+    window.addEventListener('pointerup', () => {
+        if (tool === 'terrain') { painting = false; lastPainted = null; return; }
+        if (!dragState) return;
+        const ds = dragState;
+        dragState = null;
+        if (!ds.moved) {
+            if (ds.key) {
+                const b = blocks[ds.key];
+                delete blocks[ds.key];
+                setStatus('Erased ' + b.w + '\u00d7' + b.h + ' block.', 'ok');
+            } else {
+                addBlockAt(ds.downKey);
+            }
+        } else if (ds.locked) {
+            setStatus('Locked blocks cannot be moved.', 'error');
+        } else {
+            setStatus('Block moved.', 'ok');
+        }
+        render();
+    });
+
+    window.addEventListener('resize', render);
+
+    // --- Tool + swatch UI ---
+    document.getElementById('tools').addEventListener('click', e => {
+        const btn = e.target.closest('.tool-btn');
+        if (!btn) return;
+        tool = btn.dataset.tool;
+        dragState = null;
+        document.querySelectorAll('.tool-btn').forEach(b => b.classList.toggle('active', b === btn));
+    });
+
+    const swatchesEl = document.getElementById('swatches');
+    Object.keys(PALETTE).forEach((name, i) => {
+        const s = document.createElement('div');
+        s.className = 'swatch' + (i === 0 ? ' active' : '');
+        s.style.background = PALETTE[name];
+        s.title = name;
+        s.addEventListener('click', () => {
+            currentColorName = name;
+            document.querySelectorAll('.swatch').forEach(el => el.classList.toggle('active', el === s));
+        });
+        swatchesEl.appendChild(s);
+    });
+
+    document.getElementById('resize-btn').addEventListener('click', () => {
+        const nc = Math.max(1, Math.min(20, parseInt(document.getElementById('cols').value, 10) || 1));
+        const nr = Math.max(1, Math.min(20, parseInt(document.getElementById('rows').value, 10) || 1));
+        makeGrid(nc, nr, true);
+        setStatus('Grid resized to ' + nc + '×' + nr + '.', 'ok');
+    });
+
+    document.getElementById('fill-btn').addEventListener('click', () => {
+        for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) grid[r][c] = 1;
+        render();
+        setStatus('Filled all cells with floor.', 'ok');
+    });
+
+    document.getElementById('void-btn').addEventListener('click', () => {
+        blocks = {};
+        dragState = null;
+        for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) grid[r][c] = 0;
+        render();
+        setStatus('Board voided — paint floor cells to build a custom shape.', 'ok');
+    });
+
+    // --- Export / Import ---
+    function buildLevelObject() {
+        const orderedBlocks = [];
+        let id = 1;
+        // Deterministic order: top-to-bottom, left-to-right.
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                const b = blocks[c + ',' + r];
+                if (b) {
+                    orderedBlocks.push({
+                        id: String(id++),
+                        color: b.color,
+                        x: c,
+                        y: r,
+                        // Pre-expanded blocks store their fixed shape; all blocks store size.
+                        ...(b.preExpanded ? { w: b.w, h: b.h } : {}),
+                        size: b.size,
+                        ...(b.locked ? { locked: true } : {}),
+                        ...(b.moveAxis ? { moveAxis: b.moveAxis } : {}),
+                        ...(b.preExpanded ? { preExpanded: true } : {})
+                    });
+                }
+            }
+        }
+        return {
+            title: document.getElementById('title').value || 'Level: Custom',
+            moveLimit: readMoveLimit(),
+            grid: grid.map(row => row.slice()),
+            blocks: orderedBlocks
+        };
+    }
+
+    function validateLevel(level) {
+        const errors = [];
+        const totalFloor = level.grid.flat().filter(v => v === 1).length;
+        if (level.blocks.length === 0) { errors.push('No blocks placed.'); return errors; }
+        let areaSum = 0;
+        level.blocks.forEach(b => areaSum += (b.size || (b.w || 1) * (b.h || 1)));
+        if (areaSum > totalFloor) {
+            errors.push('Total block area (' + areaSum + ') exceeds floor cells (' + totalFloor + ') — unsolvable.');
+            return errors;
+        }
+        if (!canPack(level)) {
+            errors.push('The block sizes cannot all be packed into the floor at once — unsolvable.');
+        }
+        return errors;
+    }
+
+    // All factor rectangles (w,h) of area n. Each factorisation yields both
+    // orientations (a block may become any of them in-game).
+    function factorRects(n) {
+        const rects = [];
+        for (let w = 1; w <= n; w++) if (n % w === 0) rects.push([w, n / w]);
+        return rects;
+    }
+
+    // Backtracking packer: can every block simultaneously occupy the floor with
+    // no overlap? Each non-pre-expanded block may take ANY rectangle of its size
+    // (any factorisation/orientation); pre-expanded blocks have one fixed shape.
+    // Blocks move freely in-game, so a valid packing implies solvability.
+    function canPack(level) {
+        const R = level.grid.length, C = level.grid[0].length;
+        const occ = level.grid.map(row => row.map(v => v === 0 ? 1 : 0));
+        // Per-block candidate shape lists.
+        const items = level.blocks.map(b => {
+            const size = b.size || (b.w || 1) * (b.h || 1);
+            const shapes = b.preExpanded ? [[b.w || 1, b.h || 1]] : factorRects(size);
+            return { size, shapes };
+        }).sort((a, b) => b.size - a.size); // place large blocks first (prune sooner)
+        function fits(x, y, w, h) {
+            if (x + w > C || y + h > R) return false;
+            for (let r = y; r < y + h; r++)
+                for (let c = x; c < x + w; c++)
+                    if (occ[r][c]) return false;
+            return true;
+        }
+        function set(x, y, w, h, v) {
+            for (let r = y; r < y + h; r++)
+                for (let c = x; c < x + w; c++) occ[r][c] = v;
+        }
+        function bt(i) {
+            if (i >= items.length) return true;
+            for (const [w, h] of items[i].shapes) {
+                for (let y = 0; y < R; y++)
+                    for (let x = 0; x < C; x++)
+                        if (fits(x, y, w, h)) {
+                            set(x, y, w, h, 1);
+                            if (bt(i + 1)) return true;
+                            set(x, y, w, h, 0);
+                        }
+            }
+            return false;
+        }
+        return bt(0);
+    }
+
+    document.getElementById('export-btn').addEventListener('click', () => {
+        const level = buildLevelObject();
+        document.getElementById('json').value = JSON.stringify(level, null, 2);
+        const errors = validateLevel(level);
+        if (errors.length) setStatus('Exported (warnings: ' + errors.join(' '), 'error');
+        else setStatus('Exported ' + level.blocks.length + ' block(s). Looks solvable.', 'ok');
+    });
+
+    document.getElementById('copy-btn').addEventListener('click', async () => {
+        const text = document.getElementById('json').value;
+        if (!text) { setStatus('Nothing to copy — Export first.', 'error'); return; }
+        try {
+            await navigator.clipboard.writeText(text);
+            setStatus('Copied to clipboard.', 'ok');
+        } catch (err) {
+            document.getElementById('json').select();
+            setStatus('Auto-copy blocked — text selected, press Ctrl/Cmd+C.', 'error');
+        }
+    });
+
+    // Load a single level object onto the board (shared by textarea import and
+    // LEVELS.json file load).
+    function loadLevelObject(data) {
+        if (!data || !Array.isArray(data.grid) || !Array.isArray(data.grid[0])) {
+            setStatus('Parsed, but no valid "grid" array found.', 'error');
+            return false;
+        }
+        grid = data.grid.map(row => row.slice());
+        rows = grid.length;
+        cols = grid[0].length;
+        document.getElementById('rows').value = rows;
+        document.getElementById('cols').value = cols;
+        document.getElementById('title').value = data.title || 'Level: Custom';
+        document.getElementById('moveLimit').value =
+            (typeof data.moveLimit === 'number' && data.moveLimit > 0) ? Math.min(9999, data.moveLimit) : 10;
+
+        blocks = {};
+        dragState = null;
+        (data.blocks || []).forEach(b => {
+            if (typeof b.x === 'number' && typeof b.y === 'number') {
+                const preExpanded = b.preExpanded === true;
+                let w = (typeof b.w === 'number' && b.w > 0) ? b.w : 1;
+                let h = (typeof b.h === 'number' && b.h > 0) ? b.h : 1;
+                // size: prefer explicit `size`; fall back to legacy fw*fh, then w*h.
+                let size = (typeof b.size === 'number' && b.size > 0) ? b.size
+                    : (typeof b.fw === 'number' && typeof b.fh === 'number') ? b.fw * b.fh
+                    : w * h;
+                if (preExpanded) {
+                    // Pre-expanded blocks carry a fixed shape; derive it if absent.
+                    if (!(typeof b.w === 'number' && typeof b.h === 'number')) {
+                        w = (typeof b.fw === 'number' && b.fw > 0) ? b.fw : w;
+                        h = (typeof b.fh === 'number' && b.fh > 0) ? b.fh : h;
+                    }
+                    size = w * h;
+                } else {
+                    // Normal blocks have a 1×1 editor footprint.
+                    w = 1; h = 1;
+                }
+                blocks[b.x + ',' + b.y] = {
+                    color: colorName(b.color),
+                    w, h, size, locked: b.locked === true, preExpanded,
+                    moveAxis: b.moveAxis === 'horizontal' || b.moveAxis === 'vertical' ? b.moveAxis : null
+                };
+            }
+        });
+        removeBlocksTouching();
+        render();
+        return true;
+    }
+
+    document.getElementById('import-btn').addEventListener('click', () => {
+        let raw = document.getElementById('json').value.trim();
+        if (!raw) { setStatus('Paste JSON into the box first.', 'error'); return; }
+
+        // Tolerate a trailing comma/semicolon left over from copying out of the LEVELS array.
+        raw = raw.replace(/[;,]\s*$/, '');
+
+        let data;
+        try {
+            data = JSON.parse(raw);
+        } catch (err) {
+            // Fall back to the game's native format: JS object literals with
+            // unquoted keys and colour references like PALETTE.red.
+            try {
+                data = new Function('PALETTE', 'return (' + raw + ');')(PALETTE);
+            } catch (err2) {
+                setStatus('Could not parse — not valid JSON or a level object.', 'error');
+                return;
+            }
+        }
+
+        let note = '';
+        // Accept either a single level object or the whole LEVELS array.
+        if (Array.isArray(data)) {
+            if (data.length === 0) { setStatus('Level array is empty.', 'error'); return; }
+            const count = data.length;
+            data = data[0];
+            note = count > 1 ? ' (loaded first of ' + count + ' levels)' : '';
+        }
+
+        if (loadLevelObject(data)) {
+            setStatus('Imported "' + (data.title || 'Custom') + '"' + note + '.', 'ok');
+        }
+    });
+
+    // --- LEVELS.json file (accumulates multiple levels for the game) ---
+    let levelFile = [];
+    const fileCountEl = document.getElementById('file-count');
+    function updateFileCount() { fileCountEl.textContent = levelFile.length; }
+
+    document.getElementById('push-btn').addEventListener('click', () => {
+        const level = buildLevelObject();
+        const errors = validateLevel(level);
+        levelFile.push(level);
+        updateFileCount();
+        if (errors.length) setStatus('Pushed level ' + levelFile.length + ' (warnings: ' + errors.join(' ') + ')', 'error');
+        else setStatus('Pushed level ' + levelFile.length + ' to LEVELS.json.', 'ok');
+    });
+
+    document.getElementById('download-btn').addEventListener('click', () => {
+        const data = levelFile.length ? levelFile : [buildLevelObject()];
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'LEVELS.json';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        setStatus('Downloaded LEVELS.json (' + data.length + ' level' + (data.length === 1 ? '' : 's') + ').', 'ok');
+    });
+
+    document.getElementById('loadfile-btn').addEventListener('click', () =>
+        document.getElementById('file-input').click());
+
+    document.getElementById('file-input').addEventListener('change', e => {
+        const f = e.target.files && e.target.files[0];
+        if (!f) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            let data;
+            try { data = JSON.parse(reader.result); }
+            catch (err) { setStatus('LEVELS.json is not valid JSON.', 'error'); return; }
+            if (!Array.isArray(data)) { setStatus('LEVELS.json must be an array of levels.', 'error'); return; }
+            levelFile = data;
+            updateFileCount();
+            if (data.length && loadLevelObject(data[0])) {
+                setStatus('Loaded ' + data.length + ' level(s) from file; showing level 1.', 'ok');
+            } else {
+                setStatus('Loaded an empty LEVELS.json.', 'ok');
+            }
+        };
+        reader.readAsText(f);
+        e.target.value = ''; // allow re-loading the same file
+    });
+
+    // Pre-expanded blocks use a fixed shape (w×h); normal blocks use a size.
+    // Swap which inputs are visible accordingly.
+    const preExpandedEl = document.getElementById('preExpanded');
+    function syncPreExpandedUI() {
+        const on = preExpandedEl.checked;
+        document.getElementById('preShapeRow').hidden = !on;
+        document.getElementById('size').disabled = on;
+    }
+    preExpandedEl.addEventListener('change', syncPreExpandedUI);
+    syncPreExpandedUI();
+
+    // Only show the direction choice when authoring an arrow block.
+    const axisLockedEl = document.getElementById('axisLocked');
+    function syncAxisLockedUI() {
+        document.getElementById('axisDirectionRow').hidden = !axisLockedEl.checked;
+    }
+    axisLockedEl.addEventListener('change', syncAxisLockedUI);
+    syncAxisLockedUI();
+
+    // Init.
+    makeGrid(cols, rows, false);
+    updateFileCount();
+    setStatus('Ready. Design a level, then Export.', 'ok');
+</script>
+</body>
+</html>

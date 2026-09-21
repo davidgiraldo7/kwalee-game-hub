@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<!--
+  Element Jam — LEVEL EDITOR
+  A standalone, single-file editor for building Element Jam levels.
+
+  Level token legend (matches the game grid):
+    '.'      empty (liquid flows here)
+    '#'      wall / pipe casing
+    '1'..'4' liquid SOURCE  (colour 0..3 = Rose / Sky / Mint / Sun)
+    'A'..'D' matching DRAIN (colour 0..3)
+    'E'..'H' a SLIME GATE cell locked to colour 0..3 (blocks like a wall until that colour drains)
+    'a'..'z' a movable rigid block (same letter = one piece)
+
+  Features: tabbed placement (Setup / Walls / Blocks / Slime / Sources / Drains),
+  top-down + isometric views, drag to move blocks/sources/drains, wall painting,
+  undo/redo, autosaving cache, reorderable level list, per-level filename,
+  JSON + CSV export, "copy LEVELS array", folder(CSV) import, and in-editor testing
+  that launches the real ElementJam.html engine.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Element Jam — Level Editor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #1c2233; --bg2: #232b40; --panel: #2a3350; --panel2: #313c5e;
+    --ink: #eef2ff; --dim: #9aa6cc; --line: #3c476b; --accent: #c3b6e6;
+    --cta: #ffc46b; --good: #6bd6a0; --warn: #ff9f6b; --bad: #ff7d92;
+    --rose: #ff85a9; --sky: #5cbdf6; --mint: #54d19a; --sun: #ffca4d;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Nunito', system-ui, sans-serif; background: var(--bg); color: var(--ink);
+    display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, .display { font-family: 'Fredoka', sans-serif; font-weight: 600; }
+  button, select, input { font-family: inherit; font-size: 13px; color: var(--ink); }
+  button {
+    background: var(--panel2); border: 1px solid var(--line); border-radius: 8px;
+    padding: 7px 12px; cursor: pointer; transition: background .12s, border-color .12s;
+    display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+  }
+  button:hover { background: #3b466c; border-color: #55639a; }
+  button.primary { background: var(--cta); color: #402a08; border-color: #e0a94f; font-weight: 800; }
+  button.primary:hover { background: #ffce80; }
+  button.ghost { background: transparent; }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  input[type=number], input[type=text], select {
+    background: var(--bg2); border: 1px solid var(--line); border-radius: 7px; padding: 6px 8px;
+  }
+  input:focus, select:focus { outline: none; border-color: var(--accent); }
+  label.field { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--dim); }
+  label.field input, label.field select { color: var(--ink); }
+
+  /* ---- top toolbar ---- */
+  #toolbar {
+    display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+    background: linear-gradient(180deg,#242c44,#1e2539); border-bottom: 1px solid var(--line);
+    flex-wrap: wrap; z-index: 30;
+  }
+  #toolbar .brand { font-family: 'Fredoka'; font-size: 18px; font-weight: 700; color: var(--accent); margin-right: 6px; }
+  #toolbar .sep { width: 1px; align-self: stretch; background: var(--line); margin: 2px 4px; }
+  .menu-wrap { position: relative; display: inline-flex; }
+  .menu-wrap .split { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+  .menu-wrap .caret { border-top-left-radius: 0; border-bottom-left-radius: 0; border-left: none; padding: 7px 8px; }
+  .menu {
+    position: absolute; top: calc(100% + 4px); left: 0; min-width: 210px; z-index: 60;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 6px;
+    box-shadow: 0 12px 30px rgba(0,0,0,.4); display: none; flex-direction: column; gap: 2px;
+  }
+  .menu.open { display: flex; }
+  .menu button { width: 100%; justify-content: flex-start; background: transparent; border: none; border-radius: 6px; padding: 8px 10px; }
+  .menu button:hover { background: var(--panel2); }
+
+  /* ---- level selector (reorderable) ---- */
+  #levelSel { position: relative; }
+  #levelSelBtn { min-width: 190px; justify-content: space-between; }
+  #levelList {
+    position: absolute; top: calc(100% + 4px); left: 0; width: 280px; z-index: 60;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 6px;
+    box-shadow: 0 12px 30px rgba(0,0,0,.4); display: none; max-height: 420px; overflow-y: auto;
+  }
+  #levelList.open { display: block; }
+  .lvl-row {
+    display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 7px; cursor: pointer;
+    border: 1px solid transparent;
+  }
+  .lvl-row:hover { background: var(--panel2); }
+  .lvl-row.active { background: #39456d; border-color: var(--accent); }
+  .lvl-row.dragover { border-color: var(--cta); }
+  .lvl-row .grip { cursor: grab; color: var(--dim); font-size: 15px; }
+  .lvl-row .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lvl-row .meta { font-size: 11px; color: var(--dim); }
+
+  /* ---- main ---- */
+  #main { flex: 1; display: flex; min-height: 0; }
+  #sidebar {
+    width: 288px; background: var(--bg2); border-right: 1px solid var(--line);
+    display: flex; flex-direction: column; min-height: 0;
+  }
+  #tabs { display: flex; border-bottom: 1px solid var(--line); }
+  .tab {
+    flex: 1; text-align: center; padding: 10px 4px; cursor: pointer; font-size: 12px; font-weight: 700;
+    color: var(--dim); border-bottom: 2px solid transparent; user-select: none;
+  }
+  .tab:hover { color: var(--ink); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); background: var(--panel); }
+  #tabBody { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+  .card h3 { font-size: 13px; color: var(--ink); }
+  .card .hint { font-size: 11.5px; color: var(--dim); line-height: 1.45; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+
+  .swatches { display: flex; gap: 8px; }
+  .swatch {
+    flex: 1; height: 42px; border-radius: 9px; cursor: pointer; border: 2px solid transparent;
+    display: flex; align-items: flex-end; justify-content: center; padding-bottom: 3px;
+    font-size: 10px; font-weight: 800; color: rgba(0,0,0,.55); position: relative;
+  }
+  .swatch.sel { border-color: #fff; box-shadow: 0 0 0 2px var(--accent); }
+  .swatch .cnt { position: absolute; top: 3px; right: 5px; font-size: 10px; color: rgba(0,0,0,.6); }
+
+  /* ---- stage ---- */
+  #stage { flex: 1; position: relative; background: radial-gradient(120% 120% at 50% 0%, #202840, #171d2e); min-width: 0; display: flex; flex-direction: column; }
+  #canvasWrap { flex: 1; position: relative; min-height: 0; }
+  #view { width: 100%; height: 100%; display: block; cursor: crosshair; }
+  #viewToggle {
+    position: absolute; top: 12px; left: 12px; z-index: 10;
+    background: rgba(42,51,80,.92); backdrop-filter: blur(4px); border: 1px solid var(--line);
+    border-radius: 10px; padding: 8px 12px; font-weight: 800; box-shadow: 0 6px 18px rgba(0,0,0,.35);
+  }
+  #hoverInfo {
+    position: absolute; top: 12px; right: 12px; z-index: 10; font-size: 12px; color: var(--dim);
+    background: rgba(42,51,80,.8); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px;
+  }
+  #toolBadge {
+    position: absolute; bottom: 12px; left: 12px; z-index: 10; font-size: 12px; color: var(--ink);
+    background: rgba(42,51,80,.9); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px;
+  }
+  #warnings {
+    max-height: 118px; overflow-y: auto; border-top: 1px solid var(--line); background: var(--bg2);
+    padding: 8px 12px; font-size: 12px; display: flex; flex-direction: column; gap: 4px;
+  }
+  .warn-line { color: var(--warn); }
+  .warn-line.bad { color: var(--bad); }
+  .warn-line.ok { color: var(--good); }
+
+  .kbd { display: inline-block; background: var(--bg); border: 1px solid var(--line); border-bottom-width: 2px;
+    border-radius: 5px; padding: 1px 6px; font-size: 11px; font-family: monospace; color: var(--ink); }
+  .toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 100;
+    background: var(--panel); border: 1px solid var(--accent); border-radius: 10px; padding: 10px 18px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.5); opacity: 0; transition: opacity .2s, transform .2s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(-4px); }
+</style>
+</head>
+<body>
+  <!-- ===================== TOOLBAR ===================== -->
+  <div id="toolbar">
+    <span class="brand">Element Jam · Editor</span>
+
+    <div id="levelSel">
+      <button id="levelSelBtn"><span id="levelSelName">Level</span> <span>▾</span></button>
+      <div id="levelList"></div>
+    </div>
+    <button id="addLevel" title="Add a new blank level">＋ Level</button>
+    <button id="dupLevel" title="Duplicate current level">⧉ Duplicate</button>
+    <button id="delLevel" title="Delete current level">🗑 Delete</button>
+
+    <div class="sep"></div>
+
+    <!-- Load with adjacent dropdown -->
+    <div class="menu-wrap">
+      <button class="split" id="loadBtn">📂 Load JSON</button>
+      <button class="caret" data-menu="loadMenu">▾</button>
+      <div class="menu" id="loadMenu">
+        <button data-act="loadJson">Load level JSON file…</button>
+        <button data-act="loadFolder">Load from folder (CSV index)…</button>
+        <button data-act="loadGameLevels">Load LEVELS from game file…</button>
+      </div>
+    </div>
+
+    <!-- Export -->
+    <div class="menu-wrap">
+      <button class="split" id="exportBtn">⬇ Export</button>
+      <button class="caret" data-menu="exportMenu">▾</button>
+      <div class="menu" id="exportMenu">
+        <button data-act="expLevelJson">Current level → JSON</button>
+        <button data-act="copyLevel">Copy current level to clipboard</button>
+        <button data-act="expAllJson">All levels → JSON files</button>
+        <button data-act="expCsv">Level index → CSV</button>
+        <button data-act="copyArray">Copy LEVELS array</button>
+      </div>
+    </div>
+
+    <!-- Test -->
+    <div class="menu-wrap">
+      <button class="split primary" id="testBtn">▶ Test</button>
+      <button class="caret primary" data-menu="testMenu" style="color:#402a08;border-color:#e0a94f;">▾</button>
+      <div class="menu" id="testMenu">
+        <button data-act="testOne">Test current level</button>
+        <button data-act="testAll">Play all (current order)</button>
+      </div>
+    </div>
+
+    <div class="sep"></div>
+    <button id="undoBtn" title="Undo (Ctrl+Z)">↺ Undo</button>
+    <button id="redoBtn" title="Redo (Ctrl+Y)">↻ Redo</button>
+  </div>
+
+  <!-- ===================== MAIN ===================== -->
+  <div id="main">
+    <div id="sidebar">
+      <div id="tabs">
+        <div class="tab active" data-tab="setup">Setup</div>
+        <div class="tab" data-tab="walls">Walls</div>
+        <div class="tab" data-tab="blocks">Blocks</div>
+        <div class="tab" data-tab="gates">Slime</div>
+        <div class="tab" data-tab="sources">Sources</div>
+        <div class="tab" data-tab="drains">Drains</div>
+      </div>
+      <div id="tabBody"><!-- filled per tab --></div>
+    </div>
+
+    <div id="stage">
+      <div id="canvasWrap">
+        <canvas id="view"></canvas>
+        <button id="viewToggle">🗺 Top-down</button>
+        <div id="hoverInfo">—</div>
+        <div id="toolBadge">Tool: —</div>
+      </div>
+      <div id="warnings"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- hidden inputs -->
+  <input type="file" id="fileJson" accept=".json,application/json" style="display:none">
+  <input type="file" id="fileFolder" webkitdirectory multiple style="display:none">
+  <input type="file" id="fileGameHtml" accept=".html,text/html" style="display:none">
+
+<script>
+"use strict";
+// ============================================================================
+// CONSTANTS — mirror the game so the editor renders and exports faithfully.
+// ============================================================================
+const LIQUIDS = [
+  { name: 'Rose', fill: '#ff85a9', edge: '#e85f88', foam: '#ffd4e0' },
+  { name: 'Sky',  fill: '#5cbdf6', edge: '#2f97d8', foam: '#cdeeff' },
+  { name: 'Mint', fill: '#54d19a', edge: '#2fae7b', foam: '#c7f2dd' },
+  { name: 'Sun',  fill: '#ffca4d', edge: '#eaa72c', foam: '#fff0be' },
+];
+const BLOCK_ACCENT = '#c3b6e6';
+const GATE_SHADE = -46; // how much darker than its liquid a slime gate reads (mirrors game VISUAL.gateShadeOffset)
+const FLOOR_OUTER = '#e6e2f0', FLOOR_INNER = '#f4f1fb';
+const WALL_TOP = '#e8ecf7', WALL_LEFT = '#b6bfd9', WALL_RIGHT = '#ccd4e8';
+const ISO_RATIO = 0.62, WALL_H_SCALE = 0.70, BLOCK_H_SCALE = 0.92;
+const CACHE_KEY = 'h5_elementjam_editor_doc';
+const TEST_KEY  = 'h5_elementjam_editor_test';
+const GAME_URL  = './ElementJam.html';
+const MAX_BLOCKS = 26; // a..z
+
+const shade = (hx, d) => { const n = parseInt(hx.slice(1),16),
+  r = Math.max(0,Math.min(255,(n>>16&255)+d)), g = Math.max(0,Math.min(255,(n>>8&255)+d)), b = Math.max(0,Math.min(255,(n&255)+d));
+  return '#' + ((r<<16)|(g<<8)|b).toString(16).padStart(6,'0'); };
+
+// ============================================================================
+// EDITOR STATE
+// ============================================================================
+const editor = {
+  levels: [],          // array of level objects (see newLevel)
+  current: 0,
+  tab: 'setup',        // active sidebar tab
+  tool: 'setup',       // active tool: setup|wall|block|source|drain|select
+  view: 'top',         // 'top' | 'iso'
+  color: 0,            // active colour for sources/drains
+  blockW: 1, blockH: 1,
+  selection: null,     // { type:'block'|'source'|'drain', ref }
+  hoverCell: null,     // { r, c }
+};
+let undoStack = [], redoStack = [];
+
+// ---- level model -----------------------------------------------------------
+function newLevel(name, id) {
+  return { filename: name, id: id, fillMs: 2500, rows: 7, cols: 7,
+    walls: new Set(), gates: [], sources: [], drains: [], blocks: [] };
+}
+function serializeLevel(L) {
+  return { filename: L.filename, id: L.id, fillMs: L.fillMs, rows: L.rows, cols: L.cols,
+    walls: [...L.walls], gates: L.gates.map(g => ({...g})),
+    sources: L.sources.map(s => ({...s})), drains: L.drains.map(d => ({...d})),
+    blocks: L.blocks.map(b => ({...b})) };
+}
+function deserializeLevel(o) {
+  return { filename: o.filename || 'level', id: o.id || 1, fillMs: o.fillMs || 2500,
+    rows: o.rows || 7, cols: o.cols || 7, walls: new Set(o.walls || []),
+    gates: (o.gates || []).map(g => ({...g})),
+    sources: (o.sources || []).map(s => ({...s})), drains: (o.drains || []).map(d => ({...d})),
+    blocks: (o.blocks || []).map(b => ({...b})) };
+}
+function curLevel() { return editor.levels[editor.current]; }
+
+// grid string <-> layers -----------------------------------------------------
+function composeGrid(L) {
+  const g = Array.from({ length: L.rows }, () => Array(L.cols).fill('.'));
+  const inb = (r, c) => r >= 0 && c >= 0 && r < L.rows && c < L.cols;
+  for (const key of L.walls) { const [r, c] = key.split(',').map(Number); if (inb(r, c)) g[r][c] = '#'; }
+  for (const gt of L.gates) if (inb(gt.r, gt.c)) g[gt.r][gt.c] = String.fromCharCode(69 + gt.color);
+  for (const s of L.sources) if (inb(s.r, s.c)) g[s.r][s.c] = String(s.color + 1);
+  for (const d of L.drains) if (inb(d.r, d.c)) g[d.r][d.c] = String.fromCharCode(65 + d.color);
+  L.blocks.forEach((b, i) => { const ch = String.fromCharCode(97 + i);
+    for (let r = b.r; r < b.r + b.h; r++) for (let c = b.c; c < b.c + b.w; c++) if (inb(r, c)) g[r][c] = ch; });
+  return g.map(row => row.join(''));
+}
+function parseGrid(grid, meta) {
+  const rows = grid.length, cols = Math.max(...grid.map(r => r.length));
+  const walls = new Set(), gates = [], sources = [], drains = [], bc = {};
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+    const ch = grid[r][c] || '.';
+    if (ch === '#') walls.add(r + ',' + c);
+    else if (ch >= '1' && ch <= '4') sources.push({ r, c, color: +ch - 1 });
+    else if (ch >= 'A' && ch <= 'D') drains.push({ r, c, color: ch.charCodeAt(0) - 65 });
+    else if (ch >= 'E' && ch <= 'H') gates.push({ r, c, color: ch.charCodeAt(0) - 69 });
+    else if (ch >= 'a' && ch <= 'z') (bc[ch] = bc[ch] || []).push({ r, c });
+  }
+  const blocks = Object.values(bc).map(arr => {
+    const rs = arr.map(a => a.r), cs = arr.map(a => a.c);
+    const r = Math.min(...rs), c = Math.min(...cs);
+    return { r, c, w: Math.max(...cs) - c + 1, h: Math.max(...rs) - r + 1 };
+  });
+  return { filename: (meta && meta.filename) || 'level', id: (meta && meta.id) || 1,
+    fillMs: (meta && meta.fillMs) || 2500, rows, cols, walls, gates, sources, drains, blocks };
+}
+function levelToGameObj(L) { return { id: L.id, fillMs: L.fillMs, grid: composeGrid(L) }; }
+
+// ============================================================================
+// UNDO / REDO + CACHE  (full-document snapshots — levels are small)
+// ============================================================================
+function snapshotDoc() { return JSON.stringify({ levels: editor.levels.map(serializeLevel), current: editor.current }); }
+function restoreDoc(s) { const o = JSON.parse(s); editor.levels = o.levels.map(deserializeLevel); editor.current = Math.min(o.current, o.levels.length - 1); }
+function pushUndo() { undoStack.push(snapshotDoc()); if (undoStack.length > 120) undoStack.shift(); redoStack.length = 0; saveCache(); }
+function undo() { if (!undoStack.length) return; redoStack.push(snapshotDoc()); restoreDoc(undoStack.pop()); editor.selection = null; afterMutation(); toast('Undo'); }
+function redo() { if (!redoStack.length) return; undoStack.push(snapshotDoc()); restoreDoc(redoStack.pop()); editor.selection = null; afterMutation(); toast('Redo'); }
+function saveCache() { try { localStorage.setItem(CACHE_KEY, snapshotDoc()); } catch (e) {} }
+function loadCache() { try { const s = localStorage.getItem(CACHE_KEY); if (s) { restoreDoc(s); return true; } } catch (e) {} return false; }
+
+function afterMutation() { renderSidebar(); renderLevelList(); updateLevelBtn(); draw(); validate(); saveCache(); updateUndoButtons(); }
+function updateUndoButtons() { byId('undoBtn').disabled = !undoStack.length; byId('redoBtn').disabled = !redoStack.length; }
+
+// ============================================================================
+// DOM helpers
+// ============================================================================
+const byId = (id) => document.getElementById(id);
+function toast(msg) { const t = byId('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 1400); }
+function el(tag, props = {}, kids = []) { const e = document.createElement(tag); Object.assign(e, props); if (props.style) e.setAttribute('style', props.style); (kids || []).forEach(k => e.appendChild(typeof k === 'string' ? document.createTextNode(k) : k)); return e; }
+
+// ============================================================================
+// CANVAS + LAYOUT
+// ============================================================================
+const canvas = byId('view');
+const ctx = canvas.getContext('2d');
+let DPR = 1, VW = 0, VH = 0;
+// current view geometry (recomputed each draw)
+let geom = { view: 'top', cs: 0, ox: 0, oy: 0, tw: 0, th: 0, blockH: 0, wallH: 0 };
+
+function resizeCanvas() {
+  const wrap = byId('canvasWrap');
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  VW = wrap.clientWidth; VH = wrap.clientHeight;
+  canvas.width = Math.round(VW * DPR); canvas.height = Math.round(VH * DPR);
+  canvas.style.width = VW + 'px'; canvas.style.height = VH + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  draw();
+}
+window.addEventListener('resize', resizeCanvas);
+
+// ---- coordinate systems ----------------------------------------------------
+function computeGeom() {
+  const L = curLevel(); const pad = 40;
+  if (editor.view === 'top') {
+    const cs = Math.max(8, Math.floor(Math.min((VW - pad * 2) / L.cols, (VH - pad * 2) / L.rows)));
+    const ox = Math.round((VW - cs * L.cols) / 2), oy = Math.round((VH - cs * L.rows) / 2);
+    geom = { view: 'top', cs, ox, oy };
+  } else {
+    const span = L.cols + L.rows;
+    const twByW = (VW - pad * 2) / (span / 2 + 0.5);
+    const twByH = (VH - pad * 2) / (span * 0.31 + 2.2);
+    const tw = Math.max(10, Math.floor(Math.min(twByW, twByH)));
+    const th = Math.round(tw * ISO_RATIO);
+    const blockH = th * BLOCK_H_SCALE, wallH = th * WALL_H_SCALE;
+    let minx = 1e9, maxx = -1e9, miny = 1e9, maxy = -1e9;
+    for (let r = 0; r < L.rows; r++) for (let c = 0; c < L.cols; c++) {
+      const x = (c - r) * tw / 2, y = (c + r) * th / 2;
+      minx = Math.min(minx, x - tw / 2); maxx = Math.max(maxx, x + tw / 2);
+      miny = Math.min(miny, y - th / 2 - blockH); maxy = Math.max(maxy, y + th / 2);
+    }
+    const ox = Math.round(VW / 2 - (minx + maxx) / 2);
+    const oy = Math.round(pad + (VH - pad * 2 - (maxy - miny)) / 2 - miny);
+    geom = { view: 'iso', tw, th, blockH, wallH, ox, oy };
+  }
+}
+function iso(r, c) { return { x: geom.ox + (c - r) * geom.tw / 2, y: geom.oy + (c + r) * geom.th / 2 }; }
+function cellFromXY(px, py) {
+  const L = curLevel();
+  if (editor.view === 'top') {
+    const c = Math.floor((px - geom.ox) / geom.cs), r = Math.floor((py - geom.oy) / geom.cs);
+    return (r >= 0 && c >= 0 && r < L.rows && c < L.cols) ? { r, c } : null;
+  }
+  const X = (px - geom.ox) / (geom.tw / 2), Y = (py - geom.oy) / (geom.th / 2);
+  const c = Math.round((X + Y) / 2), r = Math.round((Y - X) / 2);
+  return (r >= 0 && c >= 0 && r < L.rows && c < L.cols) ? { r, c } : null;
+}
+
+// ============================================================================
+// DRAWING
+// ============================================================================
+function draw() {
+  if (!editor.levels.length) return;
+  computeGeom();
+  ctx.clearRect(0, 0, VW, VH);
+  editor.view === 'top' ? drawTopDown() : drawIso();
+  drawHover();
+  drawSelection();
+}
+
+// ---- top-down --------------------------------------------------------------
+function drawTopDown() {
+  const L = curLevel(), cs = geom.cs;
+  const grid = composeGrid(L);
+  const occ = blockOwnerGrid(L);
+  for (let r = 0; r < L.rows; r++) for (let c = 0; c < L.cols; c++) {
+    const x = geom.ox + c * cs, y = geom.oy + r * cs;
+    const ch = grid[r][c];
+    // base tile
+    if (ch === '#') { ctx.fillStyle = '#59617f'; ctx.fillRect(x, y, cs, cs);
+      ctx.fillStyle = '#727ba0'; ctx.fillRect(x + 2, y + 2, cs - 4, cs - 4); }
+    else { ctx.fillStyle = (r + c) % 2 ? '#e9e5f2' : '#f2eefb'; ctx.fillRect(x, y, cs, cs); }
+    ctx.strokeStyle = 'rgba(60,71,107,.35)'; ctx.lineWidth = 1; ctx.strokeRect(x + .5, y + .5, cs - 1, cs - 1);
+  }
+  // slime gates (murky colour-locked tiles)
+  L.gates.forEach(drawGateTop);
+  // blocks (rounded rects spanning w×h)
+  L.blocks.forEach((b, i) => {
+    const x = geom.ox + b.c * cs, y = geom.oy + b.r * cs, w = b.w * cs, h = b.h * cs;
+    roundRect(x + 3, y + 3, w - 6, h - 6, Math.min(10, cs * .25));
+    ctx.fillStyle = BLOCK_ACCENT; ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = shade(BLOCK_ACCENT, -40); ctx.stroke();
+    ctx.fillStyle = shade(BLOCK_ACCENT, -55); ctx.font = `700 ${Math.max(11, cs * .3)}px Fredoka`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(String.fromCharCode(97 + i), x + w / 2, y + h / 2);
+  });
+  // sources & drains
+  L.sources.forEach(s => drawFittingTop(s, 'src'));
+  L.drains.forEach(d => drawFittingTop(d, 'drain'));
+}
+function drawGateTop(gt) {
+  const cs = geom.cs, x = geom.ox + gt.c * cs, y = geom.oy + gt.r * cs, L = LIQUIDS[gt.color];
+  ctx.fillStyle = shade(L.fill, GATE_SHADE); ctx.fillRect(x, y, cs, cs);
+  ctx.fillStyle = shade(L.fill, GATE_SHADE + 22); ctx.fillRect(x + 2, y + 2, cs - 4, cs - 4);
+  // glossy gel sheen top-left so it reads as viscous slime
+  ctx.fillStyle = 'rgba(255,255,255,.18)'; ctx.fillRect(x + 3, y + 3, cs - 6, Math.max(2, cs * .28));
+  ctx.fillStyle = shade(L.fill, GATE_SHADE + 44); ctx.font = `800 ${cs * .3}px Fredoka`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(String.fromCharCode(69 + gt.color), x + cs / 2, y + cs / 2 + 1);
+}
+function drawFittingTop(f, kind) {
+  const cs = geom.cs, cx = geom.ox + f.c * cs + cs / 2, cy = geom.oy + f.r * cs + cs / 2, R = cs * 0.36;
+  const L = LIQUIDS[f.color];
+  if (kind === 'src') {
+    ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fillStyle = L.fill; ctx.fill();
+    ctx.lineWidth = 3; ctx.strokeStyle = L.edge; ctx.stroke();
+    ctx.fillStyle = '#fff'; ctx.font = `800 ${cs * .34}px Fredoka`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(String(f.color + 1), cx, cy + 1);
+  } else {
+    ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fillStyle = '#2b2740'; ctx.fill();
+    ctx.lineWidth = 3; ctx.strokeStyle = L.edge; ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx, cy, R * 0.55, 0, Math.PI * 2); ctx.strokeStyle = L.fill; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = L.fill; ctx.font = `800 ${cs * .3}px Fredoka`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(String.fromCharCode(65 + f.color), cx, cy + 1);
+  }
+}
+
+// ---- isometric (mirrors the game's painter) --------------------------------
+function isoDiamond(x, y, sx, fill, alpha) {
+  const w = geom.tw / 2 * sx, h = geom.th / 2 * sx;
+  ctx.globalAlpha = alpha == null ? 1 : alpha; ctx.fillStyle = fill;
+  ctx.beginPath(); ctx.moveTo(x, y - h); ctx.lineTo(x + w, y); ctx.lineTo(x, y + h); ctx.lineTo(x - w, y); ctx.closePath(); ctx.fill();
+  ctx.globalAlpha = 1;
+}
+function isoPrism(x, y, H, topC, leftC, rightC, sx) {
+  const w = geom.tw / 2 * (sx || 1), h = geom.th / 2 * (sx || 1);
+  ctx.fillStyle = leftC; ctx.beginPath(); ctx.moveTo(x - w, y); ctx.lineTo(x, y + h); ctx.lineTo(x, y + h - H); ctx.lineTo(x - w, y - H); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = rightC; ctx.beginPath(); ctx.moveTo(x + w, y); ctx.lineTo(x, y + h); ctx.lineTo(x, y + h - H); ctx.lineTo(x + w, y - H); ctx.closePath(); ctx.fill();
+  isoDiamond(x, y - H, sx || 1, topC, 1);
+}
+function drawIso() {
+  const L = curLevel();
+  const grid = composeGrid(L);
+  const anchor = {}; // block anchor cell = max (r+c)
+  L.blocks.forEach((b, i) => {
+    let best = -1, bk = null;
+    for (let r = b.r; r < b.r + b.h; r++) for (let c = b.c; c < b.c + b.w; c++) { const s = r + c; if (s > best) { best = s; bk = r + ',' + c; } }
+    anchor[bk] = i;
+  });
+  const order = [];
+  for (let r = 0; r < L.rows; r++) for (let c = 0; c < L.cols; c++) order.push([r, c]);
+  order.sort((a, b) => (a[0] + a[1]) - (b[0] + b[1]) || a[0] - b[0]);
+  for (const [r, c] of order) {
+    const ch = grid[r][c], p = iso(r, c);
+    if (ch === '#') { isoPrism(p.x, p.y, geom.wallH, WALL_TOP, WALL_LEFT, WALL_RIGHT, 1); }
+    else if (ch >= 'E' && ch <= 'H') { isoDiamond(p.x, p.y, 1, FLOOR_OUTER, 1); drawGateIso(r, c, ch.charCodeAt(0) - 69); }
+    else {
+      isoDiamond(p.x, p.y, 1, FLOOR_OUTER, 1);
+      isoDiamond(p.x, p.y, geom.floorInnerScale || 0.82, FLOOR_INNER, 1);
+      if (ch >= '1' && ch <= '4') drawFittingIso(r, c, +ch - 1, 'src');
+      else if (ch >= 'A' && ch <= 'D') drawFittingIso(r, c, ch.charCodeAt(0) - 65, 'drain');
+    }
+    if (anchor[r + ',' + c] != null) drawBlockIso(L.blocks[anchor[r + ',' + c]], anchor[r + ',' + c]);
+  }
+}
+function drawFittingIso(r, c, color, kind) {  const p = iso(r, c), L = LIQUIDS[color];
+  if (kind === 'src') {
+    isoPrism(p.x, p.y, geom.th * 0.55, shade(L.fill, 24), shade(L.edge, -24), L.edge, 0.92);
+    isoDiamond(p.x, p.y - geom.th * 0.55, 0.52, shade(L.fill, -14), 1);
+    isoDiamond(p.x, p.y - geom.th * 0.55, 0.3, shade(L.fill, 30), 0.8);
+  } else {
+    // DRAIN = raised square tank shaped like the movable blocks, coloured sides in its own
+    // liquid identity, with a round depression on top ringed in the source's "darkened square"
+    // colour. In the editor the depression is shown empty (the level's starting state).
+    const gateH = geom.th * 0.55, sx = 0.92;
+    const base = '#2b2740';
+    isoPrism(p.x, p.y, gateH, shade(base, 14), shade(L.edge, -30), L.edge, sx);
+    const cy = p.y - gateH;
+    const rx = geom.tw / 2 * 0.42, ry = geom.th / 2 * 0.42;
+    ctx.fillStyle = shade(base, -14);
+    ctx.beginPath(); ctx.ellipse(p.x, cy, rx, ry, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.lineWidth = Math.max(2, geom.th * 0.06); ctx.strokeStyle = shade(L.fill, -14);
+    ctx.beginPath(); ctx.ellipse(p.x, cy, rx, ry, 0, 0, Math.PI * 2); ctx.stroke();
+  }
+}
+function drawBlockIso(b, i) {
+  const minR = b.r, maxR = b.r + b.h - 1, minC = b.c, maxC = b.c + b.w - 1;
+  const TL = iso(minR - 0.5, minC - 0.5), TR = iso(minR - 0.5, maxC + 0.5);
+  const BR = iso(maxR + 0.5, maxC + 0.5), BL = iso(maxR + 0.5, minC - 0.5);
+  const H = geom.blockH, base = BLOCK_ACCENT;
+  const right = shade(base, -20), left = shade(base, -38), topc = shade(base, 8);
+  ctx.fillStyle = right; ctx.beginPath(); ctx.moveTo(TR.x, TR.y); ctx.lineTo(BR.x, BR.y); ctx.lineTo(BR.x, BR.y - H); ctx.lineTo(TR.x, TR.y - H); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = left; ctx.beginPath(); ctx.moveTo(BL.x, BL.y); ctx.lineTo(BR.x, BR.y); ctx.lineTo(BR.x, BR.y - H); ctx.lineTo(BL.x, BL.y - H); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = topc; ctx.beginPath(); ctx.moveTo(TL.x, TL.y - H); ctx.lineTo(TR.x, TR.y - H); ctx.lineTo(BR.x, BR.y - H); ctx.lineTo(BL.x, BL.y - H); ctx.closePath(); ctx.fill();
+  ctx.lineWidth = 2; ctx.strokeStyle = shade(base, 34); ctx.stroke();
+  // letter on top face
+  const cx = (TL.x + BR.x) / 2, cy = (TL.y + BR.y) / 2 - H;
+  ctx.fillStyle = shade(base, -50); ctx.font = `700 ${Math.max(11, geom.th * .5)}px Fredoka`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String.fromCharCode(97 + i), cx, cy);
+}
+// Slime gate: a viscous, murky wall-height prism keyed to a liquid colour (mirrors the game's drawGate).
+function drawGateIso(r, c, color) {
+  const p = iso(r, c), L = LIQUIDS[color], H = geom.wallH;
+  const base = shade(L.fill, GATE_SHADE), edge = shade(L.edge, GATE_SHADE + 6);
+  isoPrism(p.x, p.y, H, shade(base, 16), shade(base, -12), edge, 1);
+  isoDiamond(p.x, p.y - H, 0.62, shade(base, 36), 0.5);
+  isoDiamond(p.x - geom.tw * 0.14, p.y - H + geom.th * 0.05, 0.17, shade(base, 50), 0.4);
+  isoDiamond(p.x + geom.tw * 0.12, p.y - H - geom.th * 0.03, 0.14, shade(base, 50), 0.35);
+}
+
+// ---- hover + selection overlays -------------------------------------------
+function drawHover() {
+  if (!editor.hoverCell) return;
+  const { r, c } = editor.hoverCell;
+  ctx.save();
+  if (editor.view === 'top') {
+    const x = geom.ox + c * geom.cs, y = geom.oy + r * geom.cs;
+    ctx.strokeStyle = 'rgba(255,196,107,.9)'; ctx.lineWidth = 2; ctx.strokeRect(x + 1, y + 1, geom.cs - 2, geom.cs - 2);
+    // block placement preview
+    if (editor.tool === 'block') {
+      ctx.strokeStyle = 'rgba(195,182,230,.9)'; ctx.setLineDash([5, 4]);
+      ctx.strokeRect(x + 1, y + 1, editor.blockW * geom.cs - 2, editor.blockH * geom.cs - 2); ctx.setLineDash([]);
+    }
+  } else {
+    const p = iso(r, c);
+    ctx.strokeStyle = 'rgba(255,196,107,.95)'; ctx.lineWidth = 2;
+    const w = geom.tw / 2, h = geom.th / 2;
+    ctx.beginPath(); ctx.moveTo(p.x, p.y - h); ctx.lineTo(p.x + w, p.y); ctx.lineTo(p.x, p.y + h); ctx.lineTo(p.x - w, p.y); ctx.closePath(); ctx.stroke();
+  }
+  ctx.restore();
+}
+function drawSelection() {
+  const sel = editor.selection; if (!sel) return;
+  ctx.save(); ctx.strokeStyle = '#ffd77a'; ctx.lineWidth = 3;
+  if (sel.type === 'block') {
+    const b = sel.ref;
+    if (editor.view === 'top') {
+      const x = geom.ox + b.c * geom.cs, y = geom.oy + b.r * geom.cs;
+      ctx.strokeRect(x + 2, y + 2, b.w * geom.cs - 4, b.h * geom.cs - 4);
+    } else {
+      const TL = iso(b.r - 0.5, b.c - 0.5), TR = iso(b.r - 0.5, b.c + b.w - 0.5);
+      const BR = iso(b.r + b.h - 0.5, b.c + b.w - 0.5), BL = iso(b.r + b.h - 0.5, b.c - 0.5);
+      const H = geom.blockH;
+      ctx.beginPath(); ctx.moveTo(TL.x, TL.y - H); ctx.lineTo(TR.x, TR.y - H); ctx.lineTo(BR.x, BR.y - H); ctx.lineTo(BL.x, BL.y - H); ctx.closePath(); ctx.stroke();
+    }
+  } else {
+    const f = sel.ref;
+    if (editor.view === 'top') {
+      const x = geom.ox + f.c * geom.cs, y = geom.oy + f.r * geom.cs;
+      ctx.strokeRect(x + 2, y + 2, geom.cs - 4, geom.cs - 4);
+    } else {
+      const p = iso(f.r, f.c), w = geom.tw / 2, h = geom.th / 2;
+      ctx.beginPath(); ctx.moveTo(p.x, p.y - h); ctx.lineTo(p.x + w, p.y); ctx.lineTo(p.x, p.y + h); ctx.lineTo(p.x - w, p.y); ctx.closePath(); ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+function roundRect(x, y, w, h, r) { r = Math.min(r, w / 2, h / 2); ctx.beginPath();
+  ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+
+// ============================================================================
+// OCCUPANCY / PICKING helpers
+// ============================================================================
+function blockOwnerGrid(L) {
+  const occ = Array.from({ length: L.rows }, () => Array(L.cols).fill(-1));
+  L.blocks.forEach((b, i) => { for (let r = b.r; r < b.r + b.h; r++) for (let c = b.c; c < b.c + b.w; c++) if (r < L.rows && c < L.cols) occ[r][c] = i; });
+  return occ;
+}
+function blockAtCell(L, r, c) { for (let i = L.blocks.length - 1; i >= 0; i--) { const b = L.blocks[i]; if (r >= b.r && r < b.r + b.h && c >= b.c && c < b.c + b.w) return b; } return null; }
+function sourceAtCell(L, r, c) { return L.sources.find(s => s.r === r && s.c === c) || null; }
+function drainAtCell(L, r, c) { return L.drains.find(d => d.r === r && d.c === c) || null; }
+function gateAtCell(L, r, c) { return L.gates.find(g => g.r === r && g.c === c) || null; }
+function cellIsWall(L, r, c) { return L.walls.has(r + ',' + c); }
+function cellIsFree(L, r, c, ignoreBlock) {
+  if (r < 0 || c < 0 || r >= L.rows || c >= L.cols) return false;
+  if (cellIsWall(L, r, c)) return false;
+  if (gateAtCell(L, r, c)) return false;
+  if (sourceAtCell(L, r, c) || drainAtCell(L, r, c)) return false;
+  const b = blockAtCell(L, r, c); if (b && b !== ignoreBlock) return false;
+  return true;
+}
+function blockFits(L, blk, nr, nc, ignore) {
+  for (let r = nr; r < nr + blk.h; r++) for (let c = nc; c < nc + blk.w; c++) if (!cellIsFree(L, r, c, ignore)) return false;
+  return true;
+}
+
+// ============================================================================
+// POINTER INTERACTION
+// ============================================================================
+let drag = null;
+function pointerPos(e) { const rect = canvas.getBoundingClientRect(); return { x: e.clientX - rect.left, y: e.clientY - rect.top }; }
+
+canvas.addEventListener('pointerdown', (e) => {
+  if (!editor.levels.length) return;
+  canvas.setPointerCapture(e.pointerId);
+  const pos = pointerPos(e); const cell = cellFromXY(pos.x, pos.y);
+  const L = curLevel();
+  editor.hoverCell = cell;
+  if (!cell) return;
+
+  // SELECT tool or object drag takes priority regardless of tab
+  if (editor.tool === 'select') { beginSelectOrDrag(L, cell, pos); draw(); return; }
+
+  if (editor.tool === 'wall') {
+    pushUndo();
+    drag = { mode: 'wall', erase: cellIsWall(L, cell.r, cell.c) };
+    paintWall(L, cell);
+    afterMutation(); return;
+  }
+  if (editor.tool === 'gate') {
+    pushUndo();
+    drag = { mode: 'gate', erase: !!gateAtCell(L, cell.r, cell.c) };
+    paintGate(L, cell);
+    afterMutation(); return;
+  }
+  if (editor.tool === 'block') {
+    const hit = blockAtCell(L, cell.r, cell.c);
+    if (hit) { pushUndo(); editor.selection = { type: 'block', ref: hit };
+      drag = { mode: 'moveBlock', block: hit, grabR: cell.r - hit.r, grabC: cell.c - hit.c, moved: false }; }
+    else { // place new block
+      if (L.blocks.length >= MAX_BLOCKS) { toast('Max 26 blocks'); return; }
+      let nr = cell.r, nc = cell.c;
+      nr = Math.min(nr, L.rows - editor.blockH); nc = Math.min(nc, L.cols - editor.blockW);
+      const blk = { r: nr, c: nc, w: editor.blockW, h: editor.blockH };
+      if (blockFits(L, blk, nr, nc, null)) { pushUndo(); L.blocks.push(blk); editor.selection = { type: 'block', ref: blk };
+        drag = { mode: 'moveBlock', block: blk, grabR: 0, grabC: 0, moved: true }; }
+      else toast('Block does not fit here');
+    }
+    afterMutation(); return;
+  }
+  if (editor.tool === 'source' || editor.tool === 'drain') {
+    const arr = editor.tool === 'source' ? L.sources : L.drains;
+    const hit = editor.tool === 'source' ? sourceAtCell(L, cell.r, cell.c) : drainAtCell(L, cell.r, cell.c);
+    if (hit) { pushUndo(); editor.selection = { type: editor.tool, ref: hit }; drag = { mode: 'moveFitting', fitting: hit, kind: editor.tool }; }
+    else if (cellIsFree(L, cell.r, cell.c, null)) {
+      pushUndo(); const f = { r: cell.r, c: cell.c, color: editor.color }; arr.push(f);
+      editor.selection = { type: editor.tool, ref: f }; drag = { mode: 'moveFitting', fitting: f, kind: editor.tool };
+    } else toast('Cell occupied');
+    afterMutation(); return;
+  }
+});
+function beginSelectOrDrag(L, cell, pos) {
+  const b = blockAtCell(L, cell.r, cell.c);
+  if (b) { editor.selection = { type: 'block', ref: b }; pushUndo(); drag = { mode: 'moveBlock', block: b, grabR: cell.r - b.r, grabC: cell.c - b.c, moved: false }; return; }
+  const s = sourceAtCell(L, cell.r, cell.c); if (s) { editor.selection = { type: 'source', ref: s }; pushUndo(); drag = { mode: 'moveFitting', fitting: s, kind: 'source' }; return; }
+  const d = drainAtCell(L, cell.r, cell.c); if (d) { editor.selection = { type: 'drain', ref: d }; pushUndo(); drag = { mode: 'moveFitting', fitting: d, kind: 'drain' }; return; }
+  editor.selection = null;
+}
+canvas.addEventListener('pointermove', (e) => {
+  if (!editor.levels.length) return;
+  const pos = pointerPos(e); const cell = cellFromXY(pos.x, pos.y);
+  editor.hoverCell = cell;
+  const L = curLevel();
+  updateHoverInfo(cell);
+  if (drag && cell) {
+    if (drag.mode === 'wall') { paintWall(L, cell); saveCache(); }
+    else if (drag.mode === 'gate') { paintGate(L, cell); saveCache(); }
+    else if (drag.mode === 'moveBlock') {
+      const nr = Math.max(0, Math.min(L.rows - drag.block.h, cell.r - drag.grabR));
+      const nc = Math.max(0, Math.min(L.cols - drag.block.w, cell.c - drag.grabC));
+      if ((nr !== drag.block.r || nc !== drag.block.c) && blockFits(L, drag.block, nr, nc, drag.block)) {
+        drag.block.r = nr; drag.block.c = nc; drag.moved = true; saveCache();
+      }
+    } else if (drag.mode === 'moveFitting') {
+      if ((cell.r !== drag.fitting.r || cell.c !== drag.fitting.c) && cellIsFree(L, cell.r, cell.c, null)) {
+        drag.fitting.r = cell.r; drag.fitting.c = cell.c; saveCache();
+      }
+    }
+    draw(); validate(); return;
+  }
+  draw();
+});
+canvas.addEventListener('pointerup', (e) => {
+  if (drag) { drag = null; renderSidebar(); validate(); saveCache(); }
+});
+canvas.addEventListener('pointerleave', () => { editor.hoverCell = null; updateHoverInfo(null); draw(); });
+
+function paintWall(L, cell) {
+  const key = cell.r + ',' + cell.c;
+  if (drag.erase) { L.walls.delete(key); }
+  else {
+    // don't paint over fittings/blocks
+    if (!sourceAtCell(L, cell.r, cell.c) && !drainAtCell(L, cell.r, cell.c) && !blockAtCell(L, cell.r, cell.c) && !gateAtCell(L, cell.r, cell.c)) L.walls.add(key);
+  }
+  draw();
+}
+function paintGate(L, cell) {
+  const existing = gateAtCell(L, cell.r, cell.c);
+  if (drag.erase) { if (existing) L.gates.splice(L.gates.indexOf(existing), 1); }
+  else if (existing) { existing.color = editor.color; }
+  else if (!cellIsWall(L, cell.r, cell.c) && !sourceAtCell(L, cell.r, cell.c) && !drainAtCell(L, cell.r, cell.c) && !blockAtCell(L, cell.r, cell.c)) {
+    L.gates.push({ r: cell.r, c: cell.c, color: editor.color });
+  }
+  draw();
+}
+function updateHoverInfo(cell) {
+  const info = byId('hoverInfo');
+  if (!cell) { info.textContent = '—'; return; }
+  const L = curLevel(); let what = 'empty';
+  if (cellIsWall(L, cell.r, cell.c)) what = 'wall';
+  const gt = gateAtCell(L, cell.r, cell.c); if (gt) what = 'slime gate ' + LIQUIDS[gt.color].name;
+  const s = sourceAtCell(L, cell.r, cell.c); if (s) what = 'source ' + LIQUIDS[s.color].name;
+  const d = drainAtCell(L, cell.r, cell.c); if (d) what = 'drain ' + LIQUIDS[d.color].name;
+  const b = blockAtCell(L, cell.r, cell.c); if (b) what = 'block ' + b.w + '×' + b.h;
+  info.textContent = `r${cell.r} c${cell.c} · ${what}`;
+}
+
+// ============================================================================
+// TABS + SIDEBAR
+// ============================================================================
+const TAB_TOOL = { setup: 'setup', walls: 'wall', blocks: 'block', gates: 'gate', sources: 'source', drains: 'drain' };
+function setTab(tab) {
+  editor.tab = tab; editor.tool = TAB_TOOL[tab];
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  renderSidebar(); updateToolBadge(); draw();
+}
+function updateToolBadge() {
+  const names = { setup: 'Setup (no placing)', wall: 'Paint Walls', block: 'Place Blocks', gate: 'Paint Slime Gates', source: 'Place Sources', drain: 'Place Drains', select: 'Select / Move' };
+  byId('toolBadge').textContent = 'Tool: ' + (names[editor.tool] || editor.tool);
+}
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => setTab(t.dataset.tab)));
+
+function renderSidebar() {
+  const body = byId('tabBody'); body.innerHTML = ''; const L = curLevel(); if (!L) return;
+  if (editor.tab === 'setup') renderSetupTab(body, L);
+  else if (editor.tab === 'walls') renderWallsTab(body);
+  else if (editor.tab === 'blocks') renderBlocksTab(body, L);
+  else if (editor.tab === 'gates') renderGatesTab(body, L);
+  else if (editor.tab === 'sources') renderColorTab(body, L, 'source');
+  else if (editor.tab === 'drains') renderColorTab(body, L, 'drain');
+}
+
+function renderSetupTab(body, L) {
+  const card = el('div', { className: 'card' });
+  card.appendChild(el('h3', {}, ['Level details']));
+  const fn = el('input', { type: 'text', value: L.filename });
+  fn.addEventListener('change', () => { pushUndo(); L.filename = fn.value.trim() || 'level'; afterMutation(); });
+  card.appendChild(labeled('Filename', fn));
+  const idi = el('input', { type: 'number', value: L.id, min: 1 });
+  idi.addEventListener('change', () => { pushUndo(); L.id = Math.max(1, +idi.value || 1); afterMutation(); });
+  const fm = el('input', { type: 'number', value: L.fillMs, min: 200, step: 100 });
+  fm.addEventListener('change', () => { pushUndo(); L.fillMs = Math.max(200, +fm.value || 2500); afterMutation(); });
+  const two = el('div', { className: 'row2' }); two.appendChild(labeled('Level id', idi)); two.appendChild(labeled('Fill ms', fm));
+  card.appendChild(two);
+  body.appendChild(card);
+
+  const gc = el('div', { className: 'card' });
+  gc.appendChild(el('h3', {}, ['Grid size']));
+  const rr = el('input', { type: 'number', value: L.rows, min: 2, max: 30 });
+  const cc = el('input', { type: 'number', value: L.cols, min: 2, max: 30 });
+  const two2 = el('div', { className: 'row2' }); two2.appendChild(labeled('Rows', rr)); two2.appendChild(labeled('Cols', cc));
+  gc.appendChild(two2);
+  const applyBtn = el('button', {}, ['Apply size']);
+  applyBtn.addEventListener('click', () => { resizeLevel(L, Math.max(2, +rr.value | 0), Math.max(2, +cc.value | 0)); });
+  gc.appendChild(applyBtn);
+  gc.appendChild(el('div', { className: 'hint' }, ['Shrinking removes any walls, blocks, sources or drains that fall outside the new bounds.']));
+  body.appendChild(gc);
+
+  const help = el('div', { className: 'card' });
+  help.appendChild(el('h3', {}, ['Hotkeys']));
+  const h = el('div', { className: 'hint' });
+  h.innerHTML = '<b>F</b> select hovered · <b>R</b> rotate object · <b>Delete</b> remove selected · <b>Ctrl+Z</b> undo · <b>Ctrl+Y</b> redo';
+  help.appendChild(h);
+  body.appendChild(help);
+}
+function renderWallsTab(body) {
+  const card = el('div', { className: 'card' });
+  card.appendChild(el('h3', {}, ['Paint walls']));
+  card.appendChild(el('div', { className: 'hint' }, ['Click & drag to paint walls. Start on an existing wall to erase along the drag. Walls border the play area and block liquid + blocks.']));
+  const clr = el('button', {}, ['Clear all walls']);
+  clr.addEventListener('click', () => { const L = curLevel(); if (!L.walls.size) return; pushUndo(); L.walls.clear(); afterMutation(); });
+  const border = el('button', {}, ['Add border frame']);
+  border.addEventListener('click', () => { const L = curLevel(); pushUndo();
+    for (let c = 0; c < L.cols; c++) { L.walls.add('0,' + c); L.walls.add((L.rows - 1) + ',' + c); }
+    for (let r = 0; r < L.rows; r++) { L.walls.add(r + ',0'); L.walls.add(r + ',' + (L.cols - 1)); }
+    afterMutation(); });
+  card.appendChild(border); card.appendChild(clr);
+  body.appendChild(card);
+}
+function renderBlocksTab(body, L) {
+  const card = el('div', { className: 'card' });
+  card.appendChild(el('h3', {}, ['Movable blocks']));
+  const w = el('input', { type: 'number', value: editor.blockW, min: 1, max: 12 });
+  const h = el('input', { type: 'number', value: editor.blockH, min: 1, max: 12 });
+  w.addEventListener('change', () => { editor.blockW = Math.max(1, +w.value | 0); draw(); });
+  h.addEventListener('change', () => { editor.blockH = Math.max(1, +h.value | 0); draw(); });
+  const two = el('div', { className: 'row2' }); two.appendChild(labeled('Width', w)); two.appendChild(labeled('Height', h));
+  card.appendChild(two);
+  const rot = el('button', {}, ['⟳ Rotate default (R)']);
+  rot.addEventListener('click', () => { const t = editor.blockW; editor.blockW = editor.blockH; editor.blockH = t; renderSidebar(); draw(); });
+  card.appendChild(rot);
+  card.appendChild(el('div', { className: 'hint' }, ['Click an empty area to drop a new block of this size. Drag a block to move it. Select one and press R to rotate (swap W/H), Delete to remove.']));
+  body.appendChild(card);
+
+  const list = el('div', { className: 'card' });
+  list.appendChild(el('h3', {}, [`Placed blocks (${L.blocks.length}/${MAX_BLOCKS})`]));
+  if (!L.blocks.length) list.appendChild(el('div', { className: 'hint' }, ['None yet.']));
+  L.blocks.forEach((b, i) => {
+    const row = el('div', { className: 'lvl-row', style: 'cursor:default' });
+    row.appendChild(el('span', { className: 'grip', style: 'color:' + BLOCK_ACCENT }, [String.fromCharCode(97 + i)]));
+    row.appendChild(el('span', { className: 'nm' }, [`${b.w}×${b.h} @ r${b.r} c${b.c}`]));
+    const del = el('button', { style: 'padding:3px 8px' }, ['✕']);
+    del.addEventListener('click', () => { pushUndo(); L.blocks.splice(i, 1); if (editor.selection && editor.selection.ref === b) editor.selection = null; afterMutation(); });
+    row.appendChild(del);
+    list.appendChild(row);
+  });
+  body.appendChild(list);
+}
+function renderGatesTab(body, L) {
+  const card = el('div', { className: 'card' });
+  card.appendChild(el('h3', {}, ['Slime gates']));
+  const sw = el('div', { className: 'swatches' });
+  LIQUIDS.forEach((liq, i) => {
+    const cnt = L.gates.filter(g => g.color === i).length;
+    const s = el('div', { className: 'swatch' + (editor.color === i ? ' sel' : ''), style: 'background:' + shade(liq.fill, GATE_SHADE + 20) });
+    s.appendChild(el('span', { className: 'cnt', style: 'color:rgba(255,255,255,.85)' }, [String(cnt)]));
+    s.appendChild(document.createTextNode(liq.name));
+    s.addEventListener('click', () => { editor.color = i; renderSidebar(); });
+    sw.appendChild(s);
+  });
+  card.appendChild(sw);
+  card.appendChild(el('div', { className: 'hint' }, [`Active colour: ${LIQUIDS[editor.color].name}. Click & drag to paint slime-gate cells. Start on an existing gate to erase along the drag. A gate blocks liquid + blocks like a wall until its own colour's drain finishes, then it melts away.`]));
+  const clr = el('button', {}, ['Clear all slime gates']);
+  clr.addEventListener('click', () => { if (!L.gates.length) return; pushUndo(); L.gates = []; afterMutation(); });
+  card.appendChild(clr);
+  body.appendChild(card);
+
+  const list = el('div', { className: 'card' });
+  list.appendChild(el('h3', {}, [`Placed slime gates (${L.gates.length})`]));
+  if (!L.gates.length) list.appendChild(el('div', { className: 'hint' }, ['None yet.']));
+  L.gates.forEach((gt, i) => {
+    const row = el('div', { className: 'lvl-row', style: 'cursor:default' });
+    row.appendChild(el('span', { className: 'grip', style: `color:${shade(LIQUIDS[gt.color].fill, GATE_SHADE + 30)}` }, ['●']));
+    row.appendChild(el('span', { className: 'nm' }, [`${LIQUIDS[gt.color].name} @ r${gt.r} c${gt.c}`]));
+    const del = el('button', { style: 'padding:3px 8px' }, ['✕']);
+    del.addEventListener('click', () => { pushUndo(); L.gates.splice(i, 1); afterMutation(); });
+    row.appendChild(del);
+    list.appendChild(row);
+  });
+  body.appendChild(list);
+}
+function renderColorTab(body, L, kind) {  const arr = kind === 'source' ? L.sources : L.drains;
+  const card = el('div', { className: 'card' });
+  card.appendChild(el('h3', {}, [kind === 'source' ? 'Water sources' : 'Water drains']));
+  const sw = el('div', { className: 'swatches' });
+  LIQUIDS.forEach((liq, i) => {
+    const cnt = arr.filter(f => f.color === i).length;
+    const s = el('div', { className: 'swatch' + (editor.color === i ? ' sel' : ''), style: 'background:' + liq.fill });
+    s.appendChild(el('span', { className: 'cnt' }, [String(cnt)]));
+    s.appendChild(document.createTextNode(liq.name));
+    s.addEventListener('click', () => { editor.color = i; renderSidebar(); });
+    sw.appendChild(s);
+  });
+  card.appendChild(sw);
+  card.appendChild(el('div', { className: 'hint' }, [`Active colour: ${LIQUIDS[editor.color].name}. Click an empty cell to place a ${kind}. Drag to move. Every source colour needs at least one matching drain (and vice-versa).`]));
+  body.appendChild(card);
+
+  const list = el('div', { className: 'card' });
+  list.appendChild(el('h3', {}, [`Placed ${kind}s (${arr.length})`]));
+  if (!arr.length) list.appendChild(el('div', { className: 'hint' }, ['None yet.']));
+  arr.forEach((f, i) => {
+    const row = el('div', { className: 'lvl-row', style: 'cursor:default' });
+    const dot = el('span', { className: 'grip', style: `color:${LIQUIDS[f.color].fill}` }, ['●']);
+    row.appendChild(dot);
+    row.appendChild(el('span', { className: 'nm' }, [`${LIQUIDS[f.color].name} @ r${f.r} c${f.c}`]));
+    const del = el('button', { style: 'padding:3px 8px' }, ['✕']);
+    del.addEventListener('click', () => { pushUndo(); arr.splice(i, 1); if (editor.selection && editor.selection.ref === f) editor.selection = null; afterMutation(); });
+    row.appendChild(del);
+    list.appendChild(row);
+  });
+  body.appendChild(list);
+}
+function labeled(text, input) { const l = el('label', { className: 'field' }, [text]); l.appendChild(input); return l; }
+
+function resizeLevel(L, rows, cols) {
+  pushUndo();
+  L.rows = rows; L.cols = cols;
+  L.walls = new Set([...L.walls].filter(k => { const [r, c] = k.split(',').map(Number); return r < rows && c < cols; }));
+  L.gates = L.gates.filter(g => g.r < rows && g.c < cols);
+  L.sources = L.sources.filter(s => s.r < rows && s.c < cols);
+  L.drains = L.drains.filter(d => d.r < rows && d.c < cols);
+  L.blocks = L.blocks.filter(b => b.r + b.h <= rows && b.c + b.w <= cols);
+  afterMutation();
+}
+
+// ============================================================================
+// LEVEL LIST (reorderable) + toolbar level ops
+// ============================================================================
+function updateLevelBtn() { const L = curLevel(); byId('levelSelName').textContent = L ? `${editor.current + 1}. ${L.filename}` : 'Level'; }
+function renderLevelList() {
+  const list = byId('levelList'); list.innerHTML = '';
+  editor.levels.forEach((L, i) => {
+    const row = el('div', { className: 'lvl-row' + (i === editor.current ? ' active' : ''), draggable: true });
+    row.dataset.idx = i;
+    row.appendChild(el('span', { className: 'grip' }, ['⋮⋮']));
+    row.appendChild(el('span', { className: 'nm' }, [`${i + 1}. ${L.filename}`]));
+    row.appendChild(el('span', { className: 'meta' }, [`${L.cols}×${L.rows}`]));
+    row.addEventListener('click', (e) => { e.stopPropagation(); if (e.target.classList.contains('grip')) return; selectLevel(i); byId('levelList').classList.remove('open'); });
+    // drag reorder
+    row.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', i); row.style.opacity = '.4'; });
+    row.addEventListener('dragend', () => { row.style.opacity = '1'; });
+    row.addEventListener('dragover', (e) => { e.preventDefault(); row.classList.add('dragover'); });
+    row.addEventListener('dragleave', () => row.classList.remove('dragover'));
+    row.addEventListener('drop', (e) => { e.preventDefault(); row.classList.remove('dragover');
+      const from = +e.dataTransfer.getData('text/plain'), to = i; reorderLevel(from, to); });
+    list.appendChild(row);
+  });
+}
+function reorderLevel(from, to) {
+  if (from === to || from < 0 || to < 0) return;
+  pushUndo();
+  const cur = editor.levels[editor.current];
+  const [m] = editor.levels.splice(from, 1);
+  editor.levels.splice(to, 0, m);
+  editor.current = editor.levels.indexOf(cur);
+  afterMutation(); toast('Reordered');
+}
+function selectLevel(i) { editor.current = i; editor.selection = null; afterMutation(); }
+
+byId('levelSelBtn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  document.querySelectorAll('.menu').forEach(x => x.classList.remove('open'));
+  byId('levelList').classList.toggle('open');
+});
+byId('addLevel').addEventListener('click', () => {
+  pushUndo();
+  const nextId = Math.max(0, ...editor.levels.map(l => l.id)) + 1;
+  const L = newLevel('level-' + nextId, nextId);
+  for (let c = 0; c < L.cols; c++) { L.walls.add('0,' + c); L.walls.add((L.rows - 1) + ',' + c); }
+  for (let r = 0; r < L.rows; r++) { L.walls.add(r + ',0'); L.walls.add(r + ',' + (L.cols - 1)); }
+  editor.levels.push(L); editor.current = editor.levels.length - 1; afterMutation(); toast('Level added');
+});
+byId('dupLevel').addEventListener('click', () => {
+  const L = curLevel(); if (!L) return; pushUndo();
+  const copy = deserializeLevel(serializeLevel(L));
+  copy.id = Math.max(0, ...editor.levels.map(l => l.id)) + 1;
+  copy.filename = L.filename + '-copy';
+  editor.levels.splice(editor.current + 1, 0, copy); editor.current++; afterMutation(); toast('Duplicated');
+});
+byId('delLevel').addEventListener('click', () => {
+  if (editor.levels.length <= 1) { toast('Keep at least one level'); return; }
+  if (!confirm('Delete "' + curLevel().filename + '"?')) return;
+  pushUndo(); editor.levels.splice(editor.current, 1); editor.current = Math.max(0, editor.current - 1); afterMutation(); toast('Deleted');
+});
+
+// ============================================================================
+// VALIDATION (colour balance + overlaps)
+// ============================================================================
+function validate() {
+  const L = curLevel(); const out = byId('warnings'); out.innerHTML = ''; if (!L) return;
+  const msgs = [];
+  for (let k = 0; k < 4; k++) {
+    const ns = L.sources.filter(s => s.color === k).length;
+    const nd = L.drains.filter(d => d.color === k).length;
+    if (ns > 0 && nd === 0) msgs.push({ t: `${LIQUIDS[k].name}: has ${ns} source(s) but NO drain.`, cls: 'bad' });
+    if (nd > 0 && ns === 0) msgs.push({ t: `${LIQUIDS[k].name}: has ${nd} drain(s) but NO source.`, cls: 'bad' });
+    const ng = L.gates.filter(g => g.color === k).length;
+    if (ng > 0 && nd === 0) msgs.push({ t: `${LIQUIDS[k].name}: has ${ng} slime gate(s) but no ${LIQUIDS[k].name} drain — they'll never melt.`, cls: '' });
+  }
+  // overlaps: block over wall/fitting, or block-block
+  const occ = Array.from({ length: L.rows }, () => Array(L.cols).fill(0));
+  let overlap = false;
+  L.blocks.forEach(b => { for (let r = b.r; r < b.r + b.h; r++) for (let c = b.c; c < b.c + b.w; c++) {
+    if (r >= L.rows || c >= L.cols) { overlap = true; continue; }
+    if (occ[r][c]) overlap = true; occ[r][c]++;
+    if (cellIsWall(L, r, c) || sourceAtCell(L, r, c) || drainAtCell(L, r, c)) overlap = true;
+    if (gateAtCell(L, r, c)) overlap = true;
+  } });
+  if (overlap) msgs.push({ t: 'Some blocks overlap walls, fittings, or each other.', cls: 'bad' });
+  if (L.blocks.length > MAX_BLOCKS) msgs.push({ t: `Too many blocks (${L.blocks.length}); max ${MAX_BLOCKS}.`, cls: 'bad' });
+  if (!L.sources.length) msgs.push({ t: 'No sources placed yet.', cls: '' });
+  if (!L.drains.length) msgs.push({ t: 'No drains placed yet.', cls: '' });
+
+  if (!msgs.length) { out.appendChild(el('div', { className: 'warn-line ok' }, ['✓ Level looks valid — sources and drains are balanced.'])); }
+  else msgs.forEach(m => out.appendChild(el('div', { className: 'warn-line ' + m.cls }, [(m.cls === 'bad' ? '⚠ ' : '• ') + m.t])));
+}
+
+// ============================================================================
+// MENUS (load / export / test)
+// ============================================================================
+document.querySelectorAll('.caret[data-menu]').forEach(btn => {
+  btn.addEventListener('click', (e) => { e.stopPropagation();
+    const m = byId(btn.dataset.menu); const open = m.classList.contains('open');
+    document.querySelectorAll('.menu').forEach(x => x.classList.remove('open'));
+    if (!open) m.classList.add('open');
+  });
+});
+document.addEventListener('click', () => { document.querySelectorAll('.menu').forEach(x => x.classList.remove('open')); byId('levelList').classList.remove('open'); });
+document.querySelectorAll('.menu').forEach(m => m.addEventListener('click', (e) => e.stopPropagation()));
+
+// primary split buttons default action
+byId('loadBtn').addEventListener('click', () => byId('fileJson').click());
+byId('exportBtn').addEventListener('click', () => doExport('expLevelJson'));
+byId('testBtn').addEventListener('click', () => doTest('testOne'));
+
+document.querySelectorAll('.menu button[data-act]').forEach(b => {
+  b.addEventListener('click', () => { const a = b.dataset.act;
+    document.querySelectorAll('.menu').forEach(x => x.classList.remove('open'));
+    if (a === 'loadJson') byId('fileJson').click();
+    else if (a === 'loadFolder') byId('fileFolder').click();
+    else if (a === 'loadGameLevels') loadGameLevels();
+    else if (a.startsWith('exp') || a === 'copyArray' || a === 'copyLevel') doExport(a);
+    else if (a.startsWith('test')) doTest(a);
+  });
+});
+
+// ---- export ----------------------------------------------------------------
+function download(name, text, type) {
+  const blob = new Blob([text], { type: type || 'text/plain' });
+  const a = el('a', { href: URL.createObjectURL(blob), download: name }); document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 200);
+}
+function levelJson(L) { return JSON.stringify({ filename: L.filename, id: L.id, fillMs: L.fillMs, grid: composeGrid(L) }, null, 2); }
+function doExport(a) {
+  const L = curLevel();
+  if (a === 'expLevelJson') { download((L.filename || 'level') + '.json', levelJson(L), 'application/json'); toast('Exported ' + L.filename + '.json'); }
+  else if (a === 'expAllJson') { editor.levels.forEach((lv, i) => setTimeout(() => download((lv.filename || ('level-' + (i + 1))) + '.json', levelJson(lv), 'application/json'), i * 150)); toast('Exporting ' + editor.levels.length + ' JSON files…'); }
+  else if (a === 'expCsv') { download('levels_index.csv', buildCsv(), 'text/csv'); toast('Exported levels_index.csv'); }
+  else if (a === 'copyLevel') { copyToClipboard(levelJson(L), (L.filename || 'level') + ' copied to clipboard'); }
+  else if (a === 'copyArray') { copyArray(); }
+}
+function buildCsv() {
+  const head = 'order,filename,id,fillMs,rows,cols';
+  const rows = editor.levels.map((L, i) => [i, L.filename, L.id, L.fillMs, L.rows, L.cols].join(','));
+  return [head, ...rows].join('\n');
+}
+function copyArray() {
+  const lines = ['const LEVELS = ['];
+  editor.levels.forEach(L => {
+    const g = composeGrid(L);
+    lines.push(`  { id: ${L.id}, fillMs: ${L.fillMs}, grid: [`);
+    g.forEach(row => lines.push(`    '${row}',`));
+    lines.push('  ] },');
+  });
+  lines.push('];');
+  const text = lines.join('\n');
+  copyToClipboard(text, 'LEVELS array copied to clipboard');
+}
+function copyToClipboard(text, okMsg) {
+  navigator.clipboard.writeText(text).then(() => toast(okMsg)).catch(() => {
+    const ta = el('textarea', { value: text, style: 'position:fixed;opacity:0' }); document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); toast(okMsg); } catch (e) { toast('Copy failed'); } ta.remove();
+  });
+}
+
+// ---- load JSON file --------------------------------------------------------
+byId('fileJson').addEventListener('change', (e) => {
+  const file = e.target.files[0]; if (!file) return;
+  const rd = new FileReader();
+  rd.onload = () => { try {
+    const obj = JSON.parse(rd.result);
+    const arr = Array.isArray(obj) ? obj : [obj];
+    pushUndo();
+    arr.forEach(o => { const grid = o.grid || o; const L = parseGrid(grid, { filename: o.filename || file.name.replace(/\.json$/i, ''), id: o.id, fillMs: o.fillMs }); editor.levels.push(L); });
+    editor.current = editor.levels.length - 1; afterMutation(); toast('Loaded ' + file.name);
+  } catch (err) { toast('Invalid JSON'); } };
+  rd.readAsText(file); e.target.value = '';
+});
+
+// ---- load from folder (CSV index + per-level JSON) -------------------------
+byId('fileFolder').addEventListener('change', async (e) => {
+  const files = [...e.target.files]; if (!files.length) return;
+  const csv = files.find(f => /\.csv$/i.test(f.name));
+  if (!csv) { toast('No .csv index found in folder'); e.target.value = ''; return; }
+  const text = await csv.text();
+  const rows = parseCsv(text);
+  if (!rows.length) { toast('CSV empty'); e.target.value = ''; return; }
+  const jsonByName = {}; files.forEach(f => { if (/\.json$/i.test(f.name)) jsonByName[f.name.replace(/\.json$/i, '')] = f; });
+  const loaded = [];
+  for (const row of rows) {
+    const fname = row.filename; if (!fname) continue;
+    const jf = jsonByName[fname];
+    if (!jf) { console.warn('Missing JSON for', fname); continue; }
+    try { const obj = JSON.parse(await jf.text());
+      loaded.push({ obj, order: +row.order }); } catch (err) { console.warn('Bad JSON', fname); }
+  }
+  loaded.sort((a, b) => (a.order || 0) - (b.order || 0));
+  if (!loaded.length) { toast('No matching level JSON files found'); e.target.value = ''; return; }
+  pushUndo();
+  editor.levels = loaded.map(({ obj }) => parseGrid(obj.grid || obj, { filename: obj.filename, id: obj.id, fillMs: obj.fillMs }));
+  editor.current = 0; afterMutation(); toast('Loaded ' + editor.levels.length + ' levels from folder');
+  e.target.value = '';
+});
+function parseCsv(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim().length);
+  if (!lines.length) return [];
+  const head = lines[0].split(',').map(h => h.trim());
+  return lines.slice(1).map(line => { const cells = line.split(','); const o = {}; head.forEach((h, i) => o[h] = (cells[i] || '').trim()); return o; });
+}
+
+// ---- load LEVELS array straight out of the game's own HTML file ------------
+// APPENDS the game's current levels alongside whatever custom levels already
+// exist in the editor — it never replaces or clears the existing level list.
+function extractLevelsArrayText(html) {
+  const m = html.match(/const\s+LEVELS\s*=\s*(\[[\s\S]*?\])\s*;/);
+  return m ? m[1] : null;
+}
+function importLevelsFromGameHtml(html, sourceLabel) {
+  const arrText = extractLevelsArrayText(html);
+  if (!arrText) { toast('Could not find a LEVELS array in that file'); return; }
+  let arr;
+  try { arr = new Function('return ' + arrText)(); } catch (err) { toast('Could not parse the LEVELS array'); return; }
+  if (!Array.isArray(arr) || !arr.length) { toast('No levels found in that file'); return; }
+  pushUndo();
+  arr.forEach(o => {
+    const L = parseGrid(o.grid, { filename: 'game-level-' + (o.id != null ? o.id : (editor.levels.length + 1)), id: o.id, fillMs: o.fillMs });
+    editor.levels.push(L);
+  });
+  editor.current = editor.levels.length - 1;
+  afterMutation();
+  toast(`Imported ${arr.length} level(s) from ${sourceLabel || 'game file'}`);
+}
+async function loadGameLevels() {
+  // try fetching the game file living alongside the editor first (works when
+  // served over http(s); many browsers block fetch() on file:// for CORS reasons)
+  try {
+    const res = await fetch(GAME_URL, { cache: 'no-store' });
+    if (!res.ok) throw new Error('fetch failed');
+    const text = await res.text();
+    importLevelsFromGameHtml(text, GAME_URL);
+    return;
+  } catch (err) {
+    // fall back to letting the user pick ElementJam.html manually
+    byId('fileGameHtml').click();
+  }
+}
+byId('fileGameHtml').addEventListener('change', async (e) => {
+  const file = e.target.files[0]; if (!file) return;
+  try { const text = await file.text(); importLevelsFromGameHtml(text, file.name); }
+  catch (err) { toast('Could not read ' + file.name); }
+  e.target.value = '';
+});
+
+// ---- testing ---------------------------------------------------------------
+function doTest(a) {
+  const list = a === 'testAll' ? editor.levels : [curLevel()];
+  const payload = list.map(levelToGameObj);
+  // basic guard
+  const bad = payload.some(l => !l.grid || !l.grid.length);
+  if (bad) { toast('Nothing to test'); return; }
+  try { localStorage.setItem(TEST_KEY, JSON.stringify(payload)); } catch (e) { toast('Could not stage test'); return; }
+  const w = window.open(GAME_URL + '?edit=1', 'elementjam_test');
+  if (!w) toast('Popup blocked — allow popups for testing');
+  else toast(a === 'testAll' ? 'Testing all levels…' : 'Testing current level…');
+}
+
+// ============================================================================
+// HOTKEYS
+// ============================================================================
+window.addEventListener('keydown', (e) => {
+  const typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
+  if (typing) return;
+  const k = e.key.toLowerCase();
+  if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); undo(); return; }
+  if ((e.ctrlKey || e.metaKey) && (k === 'y' || (k === 'z' && e.shiftKey))) { e.preventDefault(); redo(); return; }
+  if (e.ctrlKey || e.metaKey) return;
+  if (k === 'f') { e.preventDefault(); selectHovered(); }
+  else if (k === 'r') { e.preventDefault(); rotateCurrent(); }
+  else if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); deleteSelected(); }
+});
+function selectHovered() {
+  const cell = editor.hoverCell; if (!cell) return; const L = curLevel();
+  editor.tool = 'select';
+  const b = blockAtCell(L, cell.r, cell.c); if (b) { editor.selection = { type: 'block', ref: b }; }
+  else { const s = sourceAtCell(L, cell.r, cell.c); if (s) editor.selection = { type: 'source', ref: s };
+    else { const d = drainAtCell(L, cell.r, cell.c); if (d) editor.selection = { type: 'drain', ref: d }; else editor.selection = null; } }
+  updateToolBadge(); draw(); toast('Select tool');
+}
+function rotateCurrent() {
+  const sel = editor.selection;
+  if (sel && sel.type === 'block') { const b = sel.ref, L = curLevel();
+    const nw = b.h, nh = b.w;
+    // clamp into bounds, verify fit ignoring itself
+    let nr = Math.min(b.r, L.rows - nh), nc = Math.min(b.c, L.cols - nw); nr = Math.max(0, nr); nc = Math.max(0, nc);
+    const test = { r: nr, c: nc, w: nw, h: nh };
+    if (blockFits(L, test, nr, nc, b)) { pushUndo(); b.w = nw; b.h = nh; b.r = nr; b.c = nc; afterMutation(); toast('Rotated'); }
+    else toast('No room to rotate');
+  } else { const t = editor.blockW; editor.blockW = editor.blockH; editor.blockH = t; renderSidebar(); draw(); toast('Default block rotated'); }
+}
+function deleteSelected() {
+  const sel = editor.selection; if (!sel) return; const L = curLevel(); pushUndo();
+  if (sel.type === 'block') { const i = L.blocks.indexOf(sel.ref); if (i >= 0) L.blocks.splice(i, 1); }
+  else if (sel.type === 'source') { const i = L.sources.indexOf(sel.ref); if (i >= 0) L.sources.splice(i, 1); }
+  else if (sel.type === 'drain') { const i = L.drains.indexOf(sel.ref); if (i >= 0) L.drains.splice(i, 1); }
+  editor.selection = null; afterMutation(); toast('Deleted');
+}
+
+// ============================================================================
+// VIEW TOGGLE + misc buttons
+// ============================================================================
+byId('viewToggle').addEventListener('click', () => {
+  editor.view = editor.view === 'top' ? 'iso' : 'top';
+  byId('viewToggle').textContent = editor.view === 'top' ? '🗺 Top-down' : '⬖ Isometric';
+  draw();
+});
+byId('undoBtn').addEventListener('click', undo);
+byId('redoBtn').addEventListener('click', redo);
+
+// ============================================================================
+// SEED / BOOT
+// ============================================================================
+function seedDefaultLevels() {
+  const src = [
+    { id: 1, fillMs: 2200, grid: ['##1##','##.##','#.a##','##.##','##.##','##A##'] },
+  ];
+  editor.levels = src.map(o => parseGrid(o.grid, { filename: 'level-' + o.id, id: o.id, fillMs: o.fillMs }));
+  editor.current = 0;
+}
+function boot() {
+  if (!loadCache() || !editor.levels.length) seedDefaultLevels();
+  resizeCanvas();
+  setTab('setup');
+  renderLevelList(); updateLevelBtn(); updateToolBadge(); updateUndoButtons();
+  draw(); validate();
+}
+// geom needs floorInnerScale during iso draw
+geom.floorInnerScale = 0.82;
+boot();
+</script>
+</body>
+</html>

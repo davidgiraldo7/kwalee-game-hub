@@ -1,0 +1,328 @@
+{
+  "globals": {
+    "boxW": 210,
+    "boxH": 265,
+    "beltCap": 8
+  },
+  "levels": [
+    {
+      "name": "FTUE",
+      "sausageCount": 8,
+      "colorCount": 3,
+      "bicoloredCount": 0,
+      "mysteryCount": 0,
+      "twoLongCount": 0,
+      "threeLongCount": 0,
+      "innerWallWidth": 104,
+      "bunColumns": 4
+    },
+    {
+      "name": "Easy 1 ",
+      "sausageCount": 20,
+      "colorCount": 4,
+      "bicoloredCount": 0,
+      "mysteryCount": 0,
+      "twoLongCount": 0,
+      "threeLongCount": 0,
+      "innerWallWidth": 104,
+      "bunColumns": 4
+    },
+    {
+      "name": "Easy 4 Long",
+      "sausageCount": 30,
+      "colorCount": 5,
+      "bicoloredCount": 0,
+      "mysteryCount": 0,
+      "twoLongCount": 10,
+      "threeLongCount": 0,
+      "innerWallWidth": 104,
+      "bunColumns": 4
+    },
+    {
+      "name": "Mid 2",
+      "sausageCount": 40,
+      "colorCount": 6,
+      "bicoloredCount": 0,
+      "mysteryCount": 0,
+      "twoLongCount": 10,
+      "threeLongCount": 0,
+      "innerWallWidth": 104,
+      "bunColumns": 3
+    },
+    {
+      "name": "Easy 5 Bi coloured",
+      "sausageCount": 35,
+      "colorCount": 5,
+      "bicoloredCount": 3,
+      "mysteryCount": 0,
+      "twoLongCount": 10,
+      "threeLongCount": 0,
+      "innerWallWidth": 104,
+      "bunColumns": 4
+    },
+    {
+      "name": "Mid 5 (Long only)",
+      "sausageCount": 35,
+      "colorCount": 6,
+      "bicoloredCount": 4,
+      "mysteryCount": 0,
+      "twoLongCount": 10,
+      "threeLongCount": 5,
+      "innerWallWidth": 104,
+      "bunColumns": 4
+    },
+    {
+      "name": "Mid 1",
+      "sausageCount": 30,
+      "colorCount": 5,
+      "bicoloredCount": 7,
+      "mysteryCount": 0,
+      "twoLongCount": 7,
+      "threeLongCount": 2,
+      "innerWallWidth": 104,
+      "bunColumns": 2
+    },
+    {
+      "name": "Easy 3 Mystery",
+      "sausageCount": 25,
+      "colorCount": 4,
+      "bicoloredCount": 0,
+      "mysteryCount": 5,
+      "twoLongCount": 0,
+      "threeLongCount": 0,
+      "innerWallWidth": 104,
+      "bunColumns": 3
+    },
+    {
+      "name": "Mid 3",
+      "sausageCount": 35,
+      "colorCount": 5,
+      "bicoloredCount": 0,
+      "mysteryCount": 10,
+      "twoLongCount": 3,
+      "threeLongCount": 0,
+      "innerWallWidth": 104,
+      "bunColumns": 2
+    },
+    {
+      "name": "Mid 6",
+      "sausageCount": 35,
+      "colorCount": 5,
+      "bicoloredCount": 0,
+      "mysteryCount": 15,
+      "twoLongCount": 5,
+      "threeLongCount": 2,
+      "innerWallWidth": 104,
+      "bunColumns": 3
+    },
+    {
+      "name": "Easy 2",
+      "sausageCount": 20,
+      "colorCount": 5,
+      "bicoloredCount": 0,
+      "mysteryCount": 0,
+      "twoLongCount": 0,
+      "threeLongCount": 0,
+      "innerWallWidth": 104,
+      "bunColumns": 3
+    },
+    {
+      "name": "Mid 7",
+      "sausageCount": 40,
+      "colorCount": 6,
+      "bicoloredCount": 35,
+      "mysteryCount": 0,
+      "twoLongCount": 11,
+      "threeLongCount": 7,
+      "innerWallWidth": 104,
+      "bunColumns": 4
+    },
+    {
+      "name": "Mid 8",
+      "sausageCount": 35,
+      "colorCount": 6,
+      "bicoloredCount": 0,
+      "mysteryCount": 10,
+      "twoLongCount": 5,
+      "threeLongCount": 3,
+      "innerWallWidth": 104,
+      "bunColumns": 3
+    },
+    {
+      "name": "Easy",
+      "sausageCount": 35,
+      "colorCount": 3,
+      "bicoloredCount": 0,
+      "mysteryCount": 0,
+      "twoLongCount": 10,
+      "threeLongCount": 5,
+      "innerWallWidth": 104,
+      "bunColumns": 2
+    },
+    {
+      "name": "Hard 1",
+      "sausageCount": 50,
+      "colorCount": 5,
+      "bicoloredCount": 5,
+      "mysteryCount": 10,
+      "twoLongCount": 5,
+      "threeLongCount": 2,
+      "innerWallWidth": 104,
+      "bunColumns": 2
+    },
+    {
+      "name": "Easy 5 Bi coloured",
+      "sausageCount": 35,
+      "colorCount": 5,
+      "bicoloredCount": 0,
+      "mysteryCount": 3,
+      "twoLongCount": 10,
+      "threeLongCount": 0,
+      "innerWallWidth": 104,
+      "bunColumns": 4
+    },
+    {
+      "name": "Mid 10 Long",
+      "sausageCount": 40,
+      "colorCount": 5,
+      "bicoloredCount": 17,
+      "mysteryCount": 0,
+      "twoLongCount": 11,
+      "threeLongCount": 6,
+      "innerWallWidth": 104,
+      "bunColumns": 4
+    },
+    {
+      "name": "Mid 1",
+      "sausageCount": 30,
+      "colorCount": 5,
+      "bicoloredCount": 5,
+      "mysteryCount": 4,
+      "twoLongCount": 7,
+      "threeLongCount": 2,
+      "innerWallWidth": 104,
+      "bunColumns": 2
+    },
+    {
+      "name": "Easy 3 Mystery",
+      "sausageCount": 30,
+      "colorCount": 6,
+      "bicoloredCount": 0,
+      "mysteryCount": 5,
+      "twoLongCount": 0,
+      "threeLongCount": 0,
+      "innerWallWidth": 104,
+      "bunColumns": 3
+    },
+    {
+      "name": "Mid 3",
+      "sausageCount": 35,
+      "colorCount": 5,
+      "bicoloredCount": 0,
+      "mysteryCount": 15,
+      "twoLongCount": 0,
+      "threeLongCount": 0,
+      "innerWallWidth": 104,
+      "bunColumns": 2
+    },
+    {
+      "name": "Mid 6",
+      "sausageCount": 35,
+      "colorCount": 5,
+      "bicoloredCount": 0,
+      "mysteryCount": 15,
+      "twoLongCount": 0,
+      "threeLongCount": 4,
+      "innerWallWidth": 104,
+      "bunColumns": 4
+    },
+    {
+      "name": "Easy 2",
+      "sausageCount": 30,
+      "colorCount": 5,
+      "bicoloredCount": 10,
+      "mysteryCount": 0,
+      "twoLongCount": 5,
+      "threeLongCount": 0,
+      "innerWallWidth": 104,
+      "bunColumns": 3
+    },
+    {
+      "name": "Mid 7",
+      "sausageCount": 40,
+      "colorCount": 6,
+      "bicoloredCount": 35,
+      "mysteryCount": 0,
+      "twoLongCount": 11,
+      "threeLongCount": 7,
+      "innerWallWidth": 104,
+      "bunColumns": 4
+    },
+    {
+      "name": "Mid 8",
+      "sausageCount": 35,
+      "colorCount": 6,
+      "bicoloredCount": 0,
+      "mysteryCount": 12,
+      "twoLongCount": 5,
+      "threeLongCount": 2,
+      "innerWallWidth": 104,
+      "bunColumns": 3
+    },
+    {
+      "name": "Easy",
+      "sausageCount": 35,
+      "colorCount": 3,
+      "bicoloredCount": 0,
+      "mysteryCount": 5,
+      "twoLongCount": 7,
+      "threeLongCount": 2,
+      "innerWallWidth": 104,
+      "bunColumns": 2
+    },
+    {
+      "name": "Easy 5 Bi coloured",
+      "sausageCount": 35,
+      "colorCount": 5,
+      "bicoloredCount": 5,
+      "mysteryCount": 3,
+      "twoLongCount": 10,
+      "threeLongCount": 1,
+      "innerWallWidth": 104,
+      "bunColumns": 4
+    },
+    {
+      "name": "Mid 10 Long",
+      "sausageCount": 40,
+      "colorCount": 5,
+      "bicoloredCount": 15,
+      "mysteryCount": 0,
+      "twoLongCount": 8,
+      "threeLongCount": 8,
+      "innerWallWidth": 104,
+      "bunColumns": 4
+    },
+    {
+      "name": "Mid 1",
+      "sausageCount": 30,
+      "colorCount": 5,
+      "bicoloredCount": 0,
+      "mysteryCount": 12,
+      "twoLongCount": 0,
+      "threeLongCount": 0,
+      "innerWallWidth": 104,
+      "bunColumns": 2
+    },
+    {
+      "name": "Hard 1",
+      "sausageCount": 50,
+      "colorCount": 5,
+      "bicoloredCount": 5,
+      "mysteryCount": 10,
+      "twoLongCount": 5,
+      "threeLongCount": 2,
+      "innerWallWidth": 104,
+      "bunColumns": 2
+    }
+  ]
+}

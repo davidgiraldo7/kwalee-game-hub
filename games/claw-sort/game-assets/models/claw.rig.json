@@ -1,0 +1,100 @@
+{
+  "asset": "claw.glb",
+  "units": "game-local (matches CLAW_CFG before grp.scale)",
+  "axis": {
+    "blender": "Z-up, hinge on Y",
+    "gltf": "Y-up (Blender exporter). Animate Arm_*/Elbow_* on rotation.z in Three.js",
+    "game_plane": "XY face-on; depth = Z"
+  },
+  "hierarchy": {
+    "ClawRoot": [
+      "Head",
+      "Arm_L",
+      "Arm_R"
+    ],
+    "Head": [
+      "Shaft",
+      "Plate",
+      "Hub",
+      "PinShoulder_L",
+      "PinShoulder_R"
+    ],
+    "Arm_L": [
+      "ArmMesh_L",
+      "Elbow_L"
+    ],
+    "Elbow_L": [
+      "FingerMesh_L",
+      "PinElbow_L"
+    ],
+    "Arm_R": [
+      "ArmMesh_R",
+      "Elbow_R"
+    ],
+    "Elbow_R": [
+      "FingerMesh_R",
+      "PinElbow_R"
+    ]
+  },
+  "animate": {
+    "shoulder": "Arm_L / Arm_R \u2014 open/close splay (mirror L/R)",
+    "elbow": "Elbow_L / Elbow_R \u2014 lower curl",
+    "threejs": {
+      "openCloseAxis": "z",
+      "note": "After GLB import, prefer rotation.z for left/right open like current game claw"
+    }
+  },
+  "recommended_CLAW_CFG": {
+    "scale": 1.5,
+    "armLen": 0.75,
+    "fingerLen": 0.5121,
+    "pivotX": 0.1707,
+    "pivotY": 0.0,
+    "openAngle": 0.6632,
+    "fingerOpenAng": 0.9076,
+    "armTopW": 0.1868,
+    "armDepth": 0.1529,
+    "fingerTopW": 0.1697
+  },
+  "colliders": {
+    "note": "Kinematic Cannon boxes synced to ArmMesh / FingerMesh centres, same as current _cwArmBodies",
+    "armBoxHalfExtents": {
+      "x": 0.0934,
+      "y": 0.0765,
+      "z": 0.375
+    },
+    "fingerBoxHalfExtents": {
+      "x": 0.0848,
+      "y": 0.0703,
+      "z": 0.256
+    },
+    "mapping": {
+      "ArmMesh_L/R": "arm body box",
+      "FingerMesh_L/R": "finger body box"
+    }
+  },
+  "bounds": {
+    "min": [
+      -0.4096,
+      -0.4096,
+      -0.75
+    ],
+    "max": [
+      0.4096,
+      0.4096,
+      0.3533
+    ],
+    "size": [
+      0.8193,
+      0.8193,
+      1.1033
+    ]
+  },
+  "unit_scale_from_blender_meters": 3.413746,
+  "rest_pose_radians": {
+    "Arm_L_y": 0.6632251143455505,
+    "Arm_R_y": -0.6632251143455505,
+    "Elbow_L_y": 0.9075711965560913,
+    "Elbow_R_y": -0.9075711965560913
+  }
+}

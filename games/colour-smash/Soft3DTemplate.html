@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Soft 3D Template</title>
+    <style>
+        html, body {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #f9f6f0;
+            font-family: "Trebuchet MS", system-ui, sans-serif;
+        }
+        #canvas-container {
+            position: fixed;
+            inset: 0;
+        }
+        .badge {
+            position: fixed;
+            left: 14px;
+            top: 14px;
+            z-index: 10;
+            background: rgba(20, 27, 40, 0.8);
+            color: #f6f8fc;
+            border-radius: 999px;
+            padding: 8px 12px;
+            font-size: 12px;
+            letter-spacing: 0.2px;
+            backdrop-filter: blur(4px);
+        }
+        #debug-panel {
+            position: fixed;
+            right: 14px;
+            top: 14px;
+            width: min(360px, calc(100vw - 28px));
+            max-height: calc(100vh - 28px);
+            overflow: auto;
+            z-index: 11;
+            background: rgba(15, 20, 30, 0.84);
+            color: #eef3ff;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 10px;
+            box-shadow: 0 10px 36px rgba(0, 0, 0, 0.36);
+            backdrop-filter: blur(6px);
+            font: 12px/1.3 "Trebuchet MS", system-ui, sans-serif;
+        }
+        #debug-panel.hidden {
+            display: none;
+        }
+        #debug-panel h3 {
+            margin: 0 0 8px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+        #debug-panel .row {
+            display: grid;
+            grid-template-columns: 120px 1fr 64px;
+            gap: 6px;
+            align-items: center;
+            margin: 6px 0;
+        }
+        #debug-panel .section {
+            margin: 12px 0 4px;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+            color: #b3c8ff;
+        }
+        #debug-panel input[type="range"] {
+            width: 100%;
+        }
+        #debug-panel input[type="number"] {
+            width: 100%;
+            box-sizing: border-box;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            color: #eef3ff;
+            padding: 3px 5px;
+        }
+        #debug-panel input[type="color"] {
+            width: 100%;
+            height: 28px;
+            padding: 0;
+            border: 0;
+            background: transparent;
+        }
+        #debug-panel .actions {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            margin-top: 10px;
+        }
+        #debug-panel button {
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.12);
+            color: #f2f6ff;
+            border-radius: 8px;
+            padding: 6px 8px;
+            cursor: pointer;
+            font: 12px/1 "Trebuchet MS", system-ui, sans-serif;
+        }
+    </style>
+    <script src="three.min.js"></script>
+    <script src="OrbitControls.js"></script>
+    <script src="soft-3d-template-bridge.js"></script>
+    <script src="scene-presets/soft-3d-template-preset.js"></script>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    <div class="badge">Soft 3D Template Static Starter</div>
+    <div id="debug-panel"></div>
+
+    <script>
+        (function () {
+            'use strict';
+
+            function showBootError(error) {
+                const message = (error && error.message) ? error.message : String(error || 'Unknown startup error');
+                const panel = document.createElement('div');
+                panel.style.position = 'fixed';
+                panel.style.left = '14px';
+                panel.style.right = '14px';
+                panel.style.bottom = '14px';
+                panel.style.padding = '12px 14px';
+                panel.style.borderRadius = '10px';
+                panel.style.background = 'rgba(120, 14, 14, 0.9)';
+                panel.style.color = '#ffffff';
+                panel.style.font = '13px/1.35 monospace';
+                panel.style.zIndex = '999';
+                panel.textContent = 'Scene boot error: ' + message;
+                document.body.appendChild(panel);
+                console.error('Scene boot error:', error);
+            }
+
+            function safeParse(raw) {
+                try {
+                    return JSON.parse(raw);
+                } catch (e) {
+                    return null;
+                }
+            }
+
+            function deepGet(obj, path) {
+                return path.split('.').reduce(function (acc, key) {
+                    return acc && typeof acc === 'object' ? acc[key] : undefined;
+                }, obj);
+            }
+
+            function deepSet(obj, path, value) {
+                const keys = path.split('.');
+                let current = obj;
+                for (let i = 0; i < keys.length - 1; i += 1) {
+                    const k = keys[i];
+                    if (!current[k] || typeof current[k] !== 'object') current[k] = {};
+                    current = current[k];
+                }
+                current[keys[keys.length - 1]] = value;
+            }
+
+            function cloneState(value) {
+                return JSON.parse(JSON.stringify(value));
+            }
+
+            function initDebugPanel(sceneRunner, defaultState) {
+                const panel = document.getElementById('debug-panel');
+                const STORAGE_KEY = 'soft-3d-template-debug-v1';
+                let state = cloneState(sceneRunner.readDebugState ? sceneRunner.readDebugState() : defaultState || {});
+                const updaters = [];
+
+                function renderScene() {
+                    sceneRunner.applyDebugState(state);
+                    if (sceneRunner.render) sceneRunner.render();
+                    else sceneRunner.step();
+                }
+
+                function addSection(title) {
+                    const node = document.createElement('div');
+                    node.className = 'section';
+                    node.textContent = title;
+                    panel.appendChild(node);
+                }
+
+                function addRange(label, path, min, max, step) {
+                    const row = document.createElement('div');
+                    row.className = 'row';
+
+                    const name = document.createElement('label');
+                    name.textContent = label;
+
+                    const slider = document.createElement('input');
+                    slider.type = 'range';
+                    slider.min = String(min);
+                    slider.max = String(max);
+                    slider.step = String(step);
+
+                    const number = document.createElement('input');
+                    number.type = 'number';
+                    number.min = String(min);
+                    number.max = String(max);
+                    number.step = String(step);
+
+                    function applyValue(v) {
+                        const next = Number(v);
+                        if (!Number.isFinite(next)) return;
+                        deepSet(state, path, next);
+                        slider.value = String(next);
+                        number.value = String(next);
+                        renderScene();
+                    }
+
+                    slider.addEventListener('input', function () { applyValue(slider.value); });
+                    number.addEventListener('change', function () { applyValue(number.value); });
+
+                    row.appendChild(name);
+                    row.appendChild(slider);
+                    row.appendChild(number);
+                    panel.appendChild(row);
+
+                    updaters.push(function () {
+                        const v = deepGet(state, path);
+                        if (typeof v === 'number' && Number.isFinite(v)) {
+                            slider.value = String(v);
+                            number.value = String(v);
+                        }
+                    });
+                }
+
+                function addColor(label, path) {
+                    const row = document.createElement('div');
+                    row.className = 'row';
+
+                    const name = document.createElement('label');
+                    name.textContent = label;
+
+                    const color = document.createElement('input');
+                    color.type = 'color';
+                    color.style.gridColumn = '2 / span 2';
+
+                    color.addEventListener('input', function () {
+                        deepSet(state, path, color.value);
+                        renderScene();
+                    });
+
+                    row.appendChild(name);
+                    row.appendChild(color);
+                    panel.appendChild(row);
+
+                    updaters.push(function () {
+                        const v = deepGet(state, path);
+                        if (typeof v === 'string') color.value = v;
+                    });
+                }
+
+                function refreshControls() {
+                    updaters.forEach(function (fn) { fn(); });
+                }
+
+                panel.innerHTML = '';
+
+                const title = document.createElement('h3');
+                title.textContent = 'Debug Controls (press D to toggle)';
+                panel.appendChild(title);
+
+                addSection('Camera');
+                addRange('Pos X', 'camera.x', -80, 80, 0.1);
+                addRange('Pos Y', 'camera.y', -10, 80, 0.1);
+                addRange('Pos Z', 'camera.z', -80, 80, 0.1);
+                addRange('Target X', 'camera.targetX', -40, 40, 0.1);
+                addRange('Target Y', 'camera.targetY', -40, 40, 0.1);
+                addRange('Target Z', 'camera.targetZ', -40, 40, 0.1);
+                addRange('FOV', 'camera.fov', 10, 95, 0.1);
+                addRange('Near', 'camera.near', 0.01, 10, 0.01);
+                addRange('Far', 'camera.far', 20, 600, 1);
+
+                addSection('Ambient');
+                addRange('Ambient Int', 'lighting.ambientIntensity', 0, 2.5, 0.01);
+                addColor('Ambient Color', 'lighting.ambientColor');
+
+                addSection('Hemisphere');
+                addRange('Hemi Int', 'lighting.hemiIntensity', 0, 2.5, 0.01);
+                addColor('Sky Color', 'lighting.hemiSkyColor');
+                addColor('Ground Color', 'lighting.hemiGroundColor');
+
+                addSection('Key Light');
+                addRange('Key Int', 'lighting.keyIntensity', 0, 3.5, 0.01);
+                addColor('Key Color', 'lighting.keyColor');
+                addRange('Key X', 'lighting.keyX', -80, 80, 0.1);
+                addRange('Key Y', 'lighting.keyY', -10, 120, 0.1);
+                addRange('Key Z', 'lighting.keyZ', -80, 80, 0.1);
+                addRange('Shadow Bias', 'lighting.keyShadowBias', -0.02, 0.02, 0.0001);
+                addRange('Shadow N Bias', 'lighting.keyShadowNormalBias', 0, 2, 0.001);
+
+                addSection('Fill Light');
+                addRange('Fill Int', 'lighting.fillIntensity', 0, 3.5, 0.01);
+                addColor('Fill Color', 'lighting.fillColor');
+                addRange('Fill X', 'lighting.fillX', -80, 80, 0.1);
+                addRange('Fill Y', 'lighting.fillY', -10, 120, 0.1);
+                addRange('Fill Z', 'lighting.fillZ', -80, 80, 0.1);
+
+                const actions = document.createElement('div');
+                actions.className = 'actions';
+
+                const saveBtn = document.createElement('button');
+                saveBtn.textContent = 'Save';
+                saveBtn.addEventListener('click', function () {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+                });
+
+                const loadBtn = document.createElement('button');
+                loadBtn.textContent = 'Load';
+                loadBtn.addEventListener('click', function () {
+                    const parsed = safeParse(localStorage.getItem(STORAGE_KEY) || '');
+                    if (!parsed) return;
+                    state = cloneState(parsed);
+                    refreshControls();
+                    renderScene();
+                });
+
+                const resetBtn = document.createElement('button');
+                resetBtn.textContent = 'Reset';
+                resetBtn.addEventListener('click', function () {
+                    state = cloneState(defaultState);
+                    refreshControls();
+                    renderScene();
+                });
+
+                actions.appendChild(saveBtn);
+                actions.appendChild(loadBtn);
+                actions.appendChild(resetBtn);
+                panel.appendChild(actions);
+
+                const loaded = safeParse(localStorage.getItem(STORAGE_KEY) || '');
+                if (loaded) state = cloneState(loaded);
+
+                refreshControls();
+                renderScene();
+
+                window.addEventListener('keydown', function (event) {
+                    if ((event.key || '').toLowerCase() === 'd') {
+                        panel.classList.toggle('hidden');
+                    }
+                });
+            }
+
+            try {
+                window.SOFT_3D_TEMPLATE_PRESET = 'soft-3d-template-v1';
+                const container = document.getElementById('canvas-container');
+
+                const sceneRunner = window.Soft3DTemplateBridge
+                    ? window.Soft3DTemplateBridge.createActive({
+                        container: container,
+                        THREE: window.THREE,
+                        OrbitControls: window.THREE && window.THREE.OrbitControls ? window.THREE.OrbitControls : window.OrbitControls
+                    })
+                    : null;
+
+                if (!sceneRunner) {
+                    throw new Error('No active scene preset available.');
+                }
+
+                const defaultDebugState = sceneRunner.readDebugState
+                    ? sceneRunner.readDebugState()
+                    : { camera: {}, lighting: {} };
+
+                initDebugPanel(sceneRunner, defaultDebugState);
+
+                function onResize() {
+                    sceneRunner.resize();
+                }
+
+                window.addEventListener('resize', onResize, false);
+                sceneRunner.render ? sceneRunner.render() : sceneRunner.step();
+
+                window.addEventListener('beforeunload', function () {
+                    window.removeEventListener('resize', onResize, false);
+                    sceneRunner.destroy();
+                });
+            } catch (error) {
+                showBootError(error);
+            }
+        })();
+    </script>
+</body>
+</html>

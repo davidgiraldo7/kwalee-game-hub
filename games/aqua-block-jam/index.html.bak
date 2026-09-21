@@ -1,0 +1,2689 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#ffffff" />
+    <title>Mobile Game UI</title>
+    <style>
+      :root {
+        color-scheme: only light;
+      }
+
+        @font-face {
+            font-family: "Fredoka";
+            src: url("Fredoka-Medium.ttf") format("truetype");
+            font-weight: 500;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: "Fredoka";
+            src: url("Fredoka-SemiBold.ttf") format("truetype");
+            font-weight: 600;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: "Fredoka";
+            src: url("Fredoka-Bold.ttf") format("truetype");
+            font-weight: 700;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+        }
+
+        body {
+            font-family: "Fredoka", "Trebuchet MS", system-ui, sans-serif;
+            font-weight: 600;
+            background: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            color: #fff;
+            overflow: hidden;
+        }
+
+        /* App fills the entire viewport on all devices */
+        .app {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+            background: #ffffff;
+          -webkit-user-select: none;
+          user-select: none;
+          -webkit-touch-callout: none;
+        }
+
+        .app input[type="number"] {
+          -webkit-user-select: text;
+          user-select: text;
+        }
+
+        /* ---------- Screens ---------- */
+        .screen {
+            position: absolute;
+            inset: 0;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            opacity: 0;
+            transition: opacity .25s ease;
+        }
+
+        .screen.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        /* ---------- Start Screen ---------- */
+        #startScreen {
+            justify-content: center;
+            gap: 40px;
+            padding: 24px;
+            text-align: center;
+            background: linear-gradient(0deg, #ebf9ff 0%, #ffffff 100%);
+        }
+
+        /* Tiled scrolling background */
+        .bg-scroll {
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            background-image:
+                radial-gradient(circle at 20px 20px, rgba(93, 155, 255, .14) 6px, transparent 7px),
+                radial-gradient(circle at 60px 60px, rgba(56, 220, 133, .12) 6px, transparent 7px);
+            background-size: 80px 80px;
+            animation: bgScroll 7s linear infinite;
+        }
+
+        @keyframes bgScroll {
+            from {
+                background-position: 0 0, 0 0;
+            }
+
+            to {
+                background-position: 80px 80px, 80px 80px;
+            }
+        }
+
+        .game-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            position: relative;
+            z-index: 1;
+            top: -9%;
+        }
+
+        .game-logo .logo-img {
+            width: 64%;
+            max-width: 285px;
+            height: auto;
+            display: block;
+        }
+
+        .playbtn {
+            border: none;
+            cursor: pointer;
+            color: #fff;
+            background: linear-gradient(180deg, #38dc85 0%, #28c76f 100%);
+            font-family: inherit;
+            font-weight: 500;
+            width: 180px;
+            height: 64px;
+            max-width: 100%;
+            border-radius: 999px;
+            box-shadow: 0 7px 0 #1fa459;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            position: absolute;
+            z-index: 1;
+            left: 50%;
+            bottom: 15%;
+            transform: translateX(-50%);
+            transition: transform .06s ease, box-shadow .06s ease;
+        }
+
+        .playbtn:active {
+            transform: translateX(-50%) translateY(4px);
+            box-shadow: 0 3px 0 #1fa459;
+        }
+
+        .playbtn .play-level {
+            font-size: 26px;
+            letter-spacing: 1px;
+        }
+
+        /* ---------- Home Bar (bottom tabs) ---------- */
+        .home-bar {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 2;
+            display: flex;
+            background: #ffffff;
+            border-top: 1px solid rgba(0, 0, 0, .08);
+            box-shadow: 0 -4px 16px rgba(0, 0, 0, .06);
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+        }
+
+        .home-bar .tab {
+            flex: 1;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-family: inherit;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 14px 0 16px;
+            color: #b8c0cc;
+            transition: transform .06s ease;
+        }
+
+        .home-bar .tab:active {
+            transform: translateY(1px);
+        }
+
+        .home-bar .tab .tab-icon {
+            width: 35px;
+            height: 35px;
+            background-color: currentColor;
+            -webkit-mask: var(--icon) no-repeat center / contain;
+            mask: var(--icon) no-repeat center / contain;
+        }
+
+        .home-bar .tab .tab-label {
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: .3px;
+        }
+
+        .home-bar .tab.active {
+            color: #4ec1f2;
+        }
+
+        .home-bar .tab.locked {
+            color: #c4ccd6;
+        }
+
+        /* ---------- Game Screen ---------- */
+        #gameScreen {
+            justify-content: flex-start;
+        }
+
+        .header {
+            margin-top: calc(18px + env(safe-area-inset-top, 0px));
+            background: #d8e4f0;
+            color: #241a44;
+            border: 1px solid rgba(0, 0, 0, .05);
+            padding: 6px 18px;
+            border-radius: 999px;
+            font-size: 15px;
+            font-weight: 500;
+            letter-spacing: .5px;
+            animation: headerIn .5s cubic-bezier(.2, 1.4, .35, 1) forwards;
+            transition: transform .4s cubic-bezier(.4, 0, 1, 1), opacity .3s ease;
+        }
+
+        .header.exit-up {
+            animation: none;
+            transform: translateY(-80px);
+            opacity: 0;
+        }
+
+        @keyframes headerIn {
+            0% {
+                opacity: 0;
+                transform: translateY(-26px) scale(.8);
+            }
+
+            60% {
+                opacity: 1;
+                transform: translateY(4px) scale(1.05);
+            }
+
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        /* ---------- Flavour text (level complete) ---------- */
+        .flavour-text {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            z-index: 8;
+            opacity: 0;
+        }
+
+        .flavour-text span {
+            font-size: 52px;
+            font-weight: 800;
+            color: #38dc85;
+            text-shadow: 0 4px 12px rgba(56, 220, 133, .4);
+            transform: scale(0);
+        }
+
+        .flavour-text.show {
+            opacity: 1;
+        }
+
+        .flavour-text.show span {
+            animation: flavourPop .6s cubic-bezier(.2, 1.6, .35, 1) forwards;
+        }
+
+        .flavour-text.dismiss span {
+            animation: flavourOut .4s ease forwards;
+        }
+
+        @keyframes flavourPop {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+
+            50% {
+                transform: scale(1.2);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes flavourOut {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 0;
+            }
+        }
+
+        /* ---------- Fail text (level failed) ---------- */
+        .fail-text {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            z-index: 12;
+            opacity: 0;
+        }
+
+        .fail-text span {
+            font-size: 46px;
+            font-weight: 800;
+            color: #ff6b70;
+            text-shadow: 0 4px 12px rgba(255, 90, 95, .35);
+            opacity: 0;
+            transform: translateY(0);
+            transition: transform .5s cubic-bezier(.4, 0, .2, 1), opacity .4s ease;
+        }
+
+        .fail-text.show {
+            opacity: 1;
+        }
+
+        .fail-text.show span {
+            opacity: 1;
+        }
+
+        .fail-text.settle span {
+            transform: translateY(-80px);
+        }
+
+        .play-area {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            color: #a09ab4;
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        /* ---------- Debug buttons ---------- */
+        .debug {
+            position: absolute;
+            right: 12px;
+            bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: flex-end;
+            z-index: 5;
+        }
+
+        .debug-label {
+            font-size: 10px;
+            letter-spacing: 1px;
+            color: #a09ab4;
+            text-transform: uppercase;
+            cursor: pointer;
+            border: none;
+            background: none;
+            padding: 4px 8px;
+            font-family: inherit;
+        }
+
+        .debug-label::after {
+            content: "\25B2";
+            margin-left: 4px;
+            font-size: 8px;
+        }
+
+        .debug.collapsed .debug-label::after {
+            content: "\25BC";
+        }
+
+        .debug.collapsed .debugbtn,
+        .debug.collapsed .debug-skip,
+        .debug.collapsed .debug-icon-row,
+        .debug.collapsed .mixer-panel {
+            display: none;
+        }
+
+        .debug-skip {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .debug-skip input {
+            width: 48px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 6px 8px;
+            font-size: 12px;
+            font-family: inherit;
+            text-align: center;
+            outline: none;
+        }
+
+        .debug-skip input:focus {
+            border-color: #4d9bff;
+        }
+
+        .debug-reset {
+            background: #ff9f43;
+        }
+
+        .debugbtn {
+            border: none;
+            cursor: pointer;
+            color: #fff;
+            font-family: inherit;
+            font-weight: 500;
+            font-size: 12px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            box-shadow: 0 4px 0 rgba(0, 0, 0, .35);
+            opacity: .85;
+            transition: transform .06s ease, opacity .12s ease;
+        }
+
+        .debugbtn:active {
+            transform: translateY(2px);
+        }
+
+        .debugbtn:hover {
+            opacity: 1;
+        }
+
+        .debug-win {
+            background: #28c76f;
+        }
+
+        .debug-fail {
+            background: #ff5a5f;
+        }
+
+        .debug-lang {
+            background: #4d9bff;
+        }
+
+        /* ---------- Debug Mixer & Meter ---------- */
+        .debug-icon-btn {
+            border: none;
+            cursor: pointer;
+            background: rgba(255,255,255,.12);
+            font-size: 16px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            opacity: .85;
+            transition: opacity .12s;
+        }
+        .debug-icon-btn:hover { opacity: 1; }
+        .debug-icon-row {
+            display: flex;
+            gap: 6px;
+        }
+
+        .debug.mixer-open .debugbtn,
+        .debug.mixer-open .debug-skip,
+        .debug.mixer-open .debug-reset,
+        .debug.mixer-open .debug-lang,
+        .debug.mixer-open .debug-label {
+            display: none !important;
+        }
+
+        .mixer-panel {
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            background: rgba(0, 180, 80, .15);
+            border-radius: 14px;
+            padding: 12px;
+            width: 220px;
+            max-height: 420px;
+            font-size: 11px;
+            color: #241a44;
+        }
+        .debug.mixer-open .mixer-panel { display: flex; }
+
+        .mixer-section-label {
+            font-weight: 700;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            color: #6b6684;
+            margin: 4px 0 0;
+        }
+
+        .mixer-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .mixer-row label {
+            flex: 1;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .mixer-row input[type="range"] {
+            flex: 2;
+            height: 6px;
+            accent-color: #28c76f;
+            cursor: pointer;
+        }
+        .mixer-row .mixer-val {
+            width: 26px;
+            text-align: right;
+            font-size: 10px;
+            color: #6b6684;
+        }
+
+        .mixer-toggles {
+            display: flex;
+            gap: 4px;
+            margin-top: 2px;
+        }
+        .mixer-tog {
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 3px 7px;
+            border-radius: 6px;
+            background: #e0dce8;
+            color: #6b6684;
+            transition: background .12s, color .12s;
+        }
+        .mixer-tog.active { background: #4d9bff; color: #fff; }
+        .mixer-tog.mute-active { background: #ff5a5f; color: #fff; }
+
+        .mixer-channel-tag {
+            font-size: 9px;
+            padding: 2px 5px;
+            border-radius: 4px;
+            background: #e8e4f0;
+            color: #6b6684;
+            font-weight: 600;
+        }
+
+        .mixer-sounds-scroll {
+            max-height: 180px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding-right: 4px;
+        }
+        .mixer-sounds-scroll::-webkit-scrollbar { width: 4px; }
+        .mixer-sounds-scroll::-webkit-scrollbar-thumb { background: #c0bcc8; border-radius: 2px; }
+
+        .mixer-sound-strip {
+            background: rgba(255,255,255,.6);
+            border-radius: 10px;
+            padding: 8px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .mixer-sound-strip .mixer-row input[type="range"] {
+            flex: 3;
+        }
+
+        .mixer-save-btn {
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 700;
+            font-size: 12px;
+            padding: 8px;
+            border-radius: 10px;
+            background: #28c76f;
+            color: #fff;
+            text-align: center;
+        }
+
+        /* Loudness Meter Panel */
+        .meter-panel {
+            display: none;
+            position: absolute;
+            left: 12px;
+            bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+            flex-direction: column;
+            gap: 6px;
+            background: rgba(20, 15, 40, .88);
+            backdrop-filter: blur(4px);
+            border-radius: 14px;
+            padding: 14px 16px;
+            font-size: 11px;
+            color: #e0dce8;
+            z-index: 5;
+            min-width: 170px;
+        }
+        .meter-panel.show { display: flex; }
+
+        .meter-panel h4 {
+            margin: 0;
+            font-size: 12px;
+            font-weight: 700;
+            color: #fff;
+        }
+        .meter-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .meter-row .meter-label { color: #a09ab4; font-weight: 500; }
+        .meter-row .meter-value { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+        .meter-reset-btn {
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 700;
+            font-size: 11px;
+            padding: 6px;
+            border-radius: 8px;
+            background: #4d9bff;
+            color: #fff;
+            text-align: center;
+            margin-top: 4px;
+        }
+
+        /* ---------- Result Overlay ---------- */
+        .overlay {
+            position: absolute;
+            inset: 0;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            background: rgba(9, 6, 20, .72);
+            backdrop-filter: blur(3px);
+            z-index: 10;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .overlay.show {
+            display: flex;
+            animation: fade .25s ease;
+        }
+
+        .overlay.result-locked {
+          display: flex !important;
+        }
+
+        .overlay.backdrop-only .overlay-card {
+            opacity: 0 !important;
+            transition: none;
+        }
+
+        .overlay.reveal-content .overlay-card {
+            opacity: 1 !important;
+            transition: opacity .35s ease;
+        }
+
+        .overlay .overlay-card .nextbtn.btn-hidden {
+            opacity: 0;
+            transition: opacity .35s ease;
+        }
+
+        .overlay .overlay-card .nextbtn.btn-visible {
+            opacity: 1;
+            transition: opacity .35s ease;
+        }
+
+        @keyframes fade {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .overlay-card {
+            background: transparent;
+            box-shadow: none;
+            padding: 24px;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            position: relative;
+            z-index: 2;
+            animation: pop .35s ease;
+        }
+
+        @keyframes pop {
+            from {
+                opacity: 0;
+                transform: translateY(12px) scale(.96);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .overlay-card h2 {
+            margin: 0 0 4px;
+            font-size: 46px;
+            font-weight: 800;
+            text-align: center;
+            line-height: 1.05;
+        }
+
+        .overlay-card.win h2 {
+            color: #38dc85;
+        }
+
+        .overlay-card.fail h2 {
+            color: #ff6b70;
+        }
+
+        .overlay-card p {
+            margin: 0;
+            opacity: .85;
+            font-size: 22px;
+        }
+
+        .nextbtn {
+            border: none;
+            cursor: pointer;
+            color: #fff;
+            font-family: inherit;
+            font-weight: 500;
+            font-size: 18px;
+            padding: 12px 34px;
+            border-radius: 999px;
+            background: #28c76f;
+            box-shadow: 0 5px 0 #1fa459;
+            margin-top: 36px;
+        }
+
+        .nextbtn:active {
+            transform: translateY(2px);
+            box-shadow: 0 3px 0 #1fa459;
+        }
+
+        .retrybtn {
+            background: #ff5a5f;
+            box-shadow: 0 5px 0 #c9393e;
+        }
+
+        .retrybtn:active {
+            box-shadow: 0 3px 0 #c9393e;
+        }
+
+        /* ---------- Celebration VFX ---------- */
+        /* Per-letter pop-in for the title */
+        .overlay-card h2 .ltr {
+            display: inline-block;
+            white-space: pre;
+            opacity: 0;
+            transform: translateY(26px) scale(.2) rotate(-15deg);
+            animation: letterPop .55s cubic-bezier(.2, 1.6, .35, 1) forwards;
+        }
+
+        @keyframes letterPop {
+            0% {
+                opacity: 0;
+                transform: translateY(26px) scale(.2) rotate(-15deg);
+            }
+
+            60% {
+                opacity: 1;
+                transform: translateY(-5px) scale(1.18) rotate(4deg);
+            }
+
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1) rotate(0);
+            }
+        }
+
+        /* Confetti canvas sits above the card */
+        .confetti {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 4;
+        }
+
+        /* Fireworks canvas covers the whole app, above all UI */
+        .fireworks {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 30;
+        }
+
+        /* Fade-to-white transition layer */
+        .fade-black {
+            position: absolute;
+            inset: 0;
+            background: #fff;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 50;
+            transition: opacity .4s cubic-bezier(.4, 0, .2, 1);
+        }
+
+        .fade-black.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Expanding glow burst behind the card */
+        .burst {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 320px;
+            height: 320px;
+            transform: translate(-50%, -50%) scale(0);
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(56, 220, 133, .55) 0%, rgba(56, 220, 133, 0) 65%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .overlay.celebrate .burst {
+            animation: burst .7s ease-out forwards;
+        }
+
+        @keyframes burst {
+            0% {
+                transform: translate(-50%, -50%) scale(0);
+                opacity: .9;
+            }
+
+            70% {
+                opacity: .45;
+            }
+
+            100% {
+                transform: translate(-50%, -50%) scale(1.9);
+                opacity: 0;
+            }
+        }
+
+        /* Intro bounce for the Next Level button */
+        .overlay-card.win .nextbtn {
+            animation: btnPopIn .5s cubic-bezier(.2, 1.5, .35, 1) both;
+            animation-delay: .4s;
+        }
+
+        @keyframes btnPopIn {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+
+            60% {
+                transform: scale(1.12);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* ---------- Settings button ---------- */
+        .settingsbtn {
+            position: absolute;
+            top: calc(16px + env(safe-area-inset-top, 0px));
+            right: 16px;
+            z-index: 6;
+            width: 44px;
+            height: 44px;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            background-color: #51627f;
+            -webkit-mask: url("Icon-Settings.png") no-repeat center / 30px 30px;
+            mask: url("Icon-Settings.png") no-repeat center / 30px 30px;
+            transition: transform .06s ease, opacity .3s ease;
+        }
+
+        .settingsbtn:active {
+            transform: translateY(2px);
+        }
+
+        /* ---------- Settings menu ---------- */
+        .settings-overlay {
+            position: absolute;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(9, 6, 20, .72);
+            backdrop-filter: blur(3px);
+            z-index: 20;
+            padding: 24px;
+        }
+
+        .settings-overlay.show {
+            display: flex;
+            animation: fade .25s ease;
+        }
+
+        .settings-card {
+            position: relative;
+            width: 100%;
+            max-width: 320px;
+            background: #ffffff;
+            color: #241a44;
+            padding: 26px 24px 24px;
+            border-radius: 24px;
+            box-shadow: 0 14px 40px rgba(0, 0, 0, .35);
+            animation: pop .35s ease;
+        }
+
+        .settings-card h2 {
+            margin: 0 0 20px;
+            font-size: 26px;
+            font-weight: 800;
+            text-align: center;
+        }
+
+        .settings-close {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            width: 32px;
+            height: 32px;
+            border: none;
+            cursor: pointer;
+            border-radius: 999px;
+            background: rgba(0, 0, 0, .06);
+            color: #241a44;
+            font-size: 18px;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .settings-close:active {
+            transform: scale(.9);
+        }
+
+        .setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 4px;
+            border-bottom: 1px solid rgba(0, 0, 0, .08);
+        }
+
+        .setting-row:last-of-type {
+            border-bottom: none;
+        }
+
+        .setting-row span {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        /* Slider toggle */
+        .toggle {
+            position: relative;
+            width: 52px;
+            height: 30px;
+            flex-shrink: 0;
+        }
+
+        .toggle input {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            cursor: pointer;
+            z-index: 2;
+        }
+
+        .toggle .track {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, .18);
+            border-radius: 999px;
+            transition: background .18s ease;
+        }
+
+        .toggle .knob {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, .35);
+            transition: transform .18s ease;
+        }
+
+        .toggle input:checked~.track {
+            background: #28c76f;
+        }
+
+        .toggle input:checked~.knob {
+            transform: translateX(22px);
+        }
+
+        .settings-quit {
+            width: 100%;
+            margin-top: 22px;
+            border: none;
+            cursor: pointer;
+            color: #fff;
+            font-family: inherit;
+            font-weight: 500;
+            font-size: 17px;
+            padding: 12px;
+            border-radius: 999px;
+            background: #ff5a5f;
+            box-shadow: 0 5px 0 #c9393e;
+        }
+
+        .settings-quit:active {
+            transform: translateY(2px);
+            box-shadow: 0 3px 0 #c9393e;
+        }
+
+        /* Secondary text-only links */
+        .settings-links {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            margin-top: 18px;
+        }
+
+        .settings-link {
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 600;
+            font-size: 14px;
+            color: #6b6684;
+            padding: 6px 8px;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+
+        .settings-link:active {
+            color: #241a44;
+        }
+
+        /* ---------- Quit Confirmation ---------- */
+        .quit-confirm {
+            display: none;
+            position: absolute;
+            inset: 0;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: #ffffff;
+            color: #241a44;
+            padding: 28px 24px 24px;
+            border-radius: 24px;
+            text-align: center;
+            animation: pop .25s ease;
+            z-index: 2;
+        }
+
+        .quit-confirm.show {
+            display: flex;
+        }
+
+        .quit-confirm h3 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 700;
+        }
+
+        .quit-confirm p {
+            margin: 8px 0 16px;
+            font-size: 15px;
+            color: #6b6684;
+            font-weight: 500;
+        }
+
+        .quit-confirm-btns {
+            display: flex;
+            gap: 12px;
+            width: 100%;
+        }
+
+        .quit-confirm-btn {
+            flex: 1;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 500;
+            font-size: 16px;
+            padding: 12px;
+            border-radius: 999px;
+            color: #fff;
+        }
+
+        .quit-yes {
+            background: #ff5a5f;
+            box-shadow: 0 4px 0 #c9393e;
+        }
+
+        .quit-yes:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #c9393e;
+        }
+
+        .quit-no {
+            background: #4d9bff;
+            box-shadow: 0 4px 0 #2e7ae6;
+        }
+
+        .quit-no:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #2e7ae6;
+        }
+
+        /* ---------- Locked Tab Toast ---------- */
+        .locked-toast {
+            position: absolute;
+            pointer-events: none;
+            font-size: 12px;
+            font-weight: 500;
+            color: #6b6684;
+            white-space: nowrap;
+            animation: toastFloat 1.8s ease forwards;
+            z-index: 10;
+        }
+
+        @keyframes toastFloat {
+            0% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+
+            70% {
+                opacity: 1;
+                transform: translateY(-30px);
+            }
+
+            100% {
+                opacity: 0;
+                transform: translateY(-45px);
+            }
+        }
+
+        /* ---------- Splash Screen ---------- */
+        #splashScreen {
+            justify-content: center;
+            align-items: center;
+            background: #3CC3D3;
+        }
+
+        .splash-logo {
+            width: 50%;
+            max-width: 220px;
+            height: auto;
+            opacity: 0;
+            transition: opacity .6s ease;
+        }
+
+        .splash-logo.visible {
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app">
+
+        <!-- ===== Splash Screen ===== -->
+        <div class="screen active" id="splashScreen">
+            <img src="Graphic-Pocket-Spark-Logo.png" alt="Pocket Spark" class="splash-logo" id="splashLogo" />
+        </div>
+
+        <!-- ===== Start Screen ===== -->
+        <div class="screen" id="startScreen">
+            <div class="bg-scroll"></div>
+            <button class="settingsbtn" id="settingsBtnStart" aria-label="Settings"></button>
+            <div class="game-logo">
+                <img src="Graphic-GameLogo-PLACEHOLDER.png" alt="Game logo" class="logo-img" />
+            </div>
+            <button class="playbtn" id="playBtn">
+        <span class="play-level" id="playLevel">Level 1</span>
+      </button>
+
+            <nav class="home-bar">
+                <button class="tab locked" aria-label="Locked">
+          <span class="tab-icon" style="--icon: url('Icon-Lock.png')"></span>
+          <span class="tab-label" data-i18n="tabLocked">Locked</span>
+        </button>
+                <button class="tab active" aria-current="page">
+          <span class="tab-icon" style="--icon: url('Icon-Home.png')"></span>
+          <span class="tab-label" data-i18n="tabHome">Home</span>
+        </button>
+                <button class="tab locked" aria-label="Locked">
+          <span class="tab-icon" style="--icon: url('Icon-Lock.png')"></span>
+          <span class="tab-label" data-i18n="tabLocked">Locked</span>
+        </button>
+            </nav>
+        </div>
+
+        <!-- ===== Game Screen ===== -->
+        <div class="screen" id="gameScreen">
+            <button class="settingsbtn" id="settingsBtnGame" aria-label="Settings"></button>
+            <div class="header" id="gameHeader">Level 1</div>
+            <div class="play-area"></div>
+
+            <!-- Flavour text (shown briefly on level complete) -->
+            <div class="flavour-text" id="flavourText"><span>Well Done!</span></div>
+
+            <!-- Fail text (shown briefly on level failed) -->
+            <div class="fail-text" id="failText"><span></span></div>
+
+            <!-- Result overlay -->
+            <div class="overlay" id="overlay">
+                <div class="burst"></div>
+                <div class="overlay-card" id="overlayCard">
+                    <h2 id="overlayTitle">Level Complete!</h2>
+                    <p id="overlaySubtitle">Great job.</p>
+                    <button class="nextbtn" id="overlayBtn">Next Level</button>
+                </div>
+                <canvas class="confetti" id="confetti"></canvas>
+            </div>
+
+            <!-- Debug controls -->
+            <div class="debug collapsed" id="debugPanel">
+                <button class="debug-label" id="debugToggle" data-i18n="debug">Debug</button>
+                <div class="debug-icon-row">
+                    <button class="debug-icon-btn" id="debugMixerToggle" title="Mixer">&#x1F50A;</button>
+                </div>
+                <button class="debugbtn debug-win" id="debugWin" data-i18n="debugComplete">Level Complete</button>
+                <button class="debugbtn debug-fail" id="debugFail" data-i18n="debugFail">Level Failed</button>
+                <div class="debug-skip">
+                    <input type="number" id="debugLevelInput" min="1" placeholder="#" />
+                    <button class="debugbtn debug-lang" id="debugSkipLevel" data-i18n="debugGo">Go</button>
+                </div>
+                <button class="debugbtn debug-reset" id="debugReset" data-i18n="debugDeleteProgress">Delete Progress</button>
+                <button class="debugbtn debug-lang" id="debugLang">Polski</button>
+
+                <!-- Mixer Panel -->
+                <div class="mixer-panel" id="mixerPanel">
+                    <span class="mixer-section-label">Master</span>
+                    <div class="mixer-row">
+                        <label>Master</label>
+                        <input type="range" min="0" max="100" value="100" id="mixerMaster" />
+                        <span class="mixer-val" id="mixerMasterVal">100</span>
+                    </div>
+
+                    <span class="mixer-section-label">Channels</span>
+                    <div class="mixer-row">
+                        <label>SFX</label>
+                        <input type="range" min="0" max="100" value="100" id="mixerSFX" />
+                        <span class="mixer-val" id="mixerSFXVal">100</span>
+                    </div>
+                    <div class="mixer-toggles">
+                        <button class="mixer-tog" id="mixerSFXMute">M</button>
+                        <button class="mixer-tog" id="mixerSFXSolo">S</button>
+                    </div>
+
+                    <div class="mixer-row">
+                        <label>Music</label>
+                        <input type="range" min="0" max="100" value="100" id="mixerMusic" />
+                        <span class="mixer-val" id="mixerMusicVal">100</span>
+                    </div>
+                    <div class="mixer-toggles">
+                        <button class="mixer-tog" id="mixerMusicMute">M</button>
+                        <button class="mixer-tog" id="mixerMusicSolo">S</button>
+                    </div>
+
+                    <span class="mixer-section-label">Sounds</span>
+                    <div class="mixer-sounds-scroll" id="mixerSoundsScroll"></div>
+
+                    <button class="mixer-save-btn" id="mixerSave">Save</button>
+                </div>
+            </div>
+
+            <!-- Loudness Meter (pinned left) -->
+            <div class="meter-panel" id="meterPanel">
+                <h4>Loudness Meter</h4>
+                <div class="meter-row"><span class="meter-label">Short-term LUFS</span><span class="meter-value" id="meterShort">— </span></div>
+                <div class="meter-row"><span class="meter-label">Integrated LUFS</span><span class="meter-value" id="meterIntegrated">— </span></div>
+                <div class="meter-row"><span class="meter-label">True Peak dBTP</span><span class="meter-value" id="meterPeak">— </span></div>
+                <button class="meter-reset-btn" id="meterReset">Reset</button>
+            </div>
+        </div>
+
+        <!-- ===== Settings Menu (shared) ===== -->
+        <div class="settings-overlay" id="settingsOverlay">
+            <div class="settings-card">
+                <button class="settings-close" id="settingsClose" aria-label="Close">&times;</button>
+                <h2 data-i18n="settings">Settings</h2>
+
+                <div class="setting-row">
+                    <span data-i18n="music">Music</span>
+                    <label class="toggle">
+            <input type="checkbox" id="toggleMusic" checked>
+            <span class="track"></span>
+            <span class="knob"></span>
+          </label>
+                </div>
+
+                <div class="setting-row">
+                    <span data-i18n="sound">Sound</span>
+                    <label class="toggle">
+            <input type="checkbox" id="toggleSound" checked>
+            <span class="track"></span>
+            <span class="knob"></span>
+          </label>
+                </div>
+
+                <div class="setting-row">
+                    <span data-i18n="haptics">Haptics</span>
+                    <label class="toggle">
+            <input type="checkbox" id="toggleHaptics" checked>
+            <span class="track"></span>
+            <span class="knob"></span>
+          </label>
+                </div>
+
+                <button class="settings-quit" id="settingsQuit" data-i18n="quit">Quit to Home</button>
+
+                <!-- Quit confirmation -->
+                <div class="quit-confirm" id="quitConfirm">
+                    <h3 id="quitConfirmTitle" data-i18n="quitConfirmTitle">Are you sure?</h3>
+                    <p id="quitConfirmMsg" data-i18n="quitConfirmMsg">You will lose level progress</p>
+                    <div class="quit-confirm-btns">
+                        <button class="quit-confirm-btn quit-yes" id="quitYes" data-i18n="quitYes">Quit</button>
+                        <button class="quit-confirm-btn quit-no" id="quitNo" data-i18n="quitCancel">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fireworks VFX layer (plays over the whole app) -->
+        <canvas class="fireworks" id="fireworks"></canvas>
+
+        <!-- Fade-to-black transition layer -->
+        <div class="fade-black" id="fadeBlack"></div>
+
+    </div>
+
+    <script src="translations.js"></script>
+    <script>
+        (() => {
+  "use strict";
+
+  // ════════════════════════════════════════════════════════════════
+  // TEMPLATE CONTRACT — See ARCHITECTURE.md
+  // Required lifecycle functions: startGame, levelComplete, levelFailed
+  // Required state: level (integer, module-scope)
+  // The analytics pipeline injects hooks into these functions.
+  // DO NOT rename or restructure them.
+  // ════════════════════════════════════════════════════════════════
+
+  // Per-game storage namespace. Set GAME_ID_OVERRIDE for an explicit unique id.
+  // Fallback derives an id from the page path plus a stable hash.
+  const GAME_ID_OVERRIDE = "";
+
+  function sanitizeGameId(raw) {
+    return String(raw || "").toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "");
+  }
+
+  function hash32(str) {
+    let h = 0;
+    for (let i = 0; i < str.length; i++) {
+      h = ((h << 5) - h + str.charCodeAt(i)) | 0;
+    }
+    return Math.abs(h).toString(36);
+  }
+
+  function resolveGameId() {
+    const override = sanitizeGameId(GAME_ID_OVERRIDE || (window.GAME_ID || ""));
+    if (override) return override;
+    const path = (location.pathname || "game").toLowerCase();
+    const leaf = sanitizeGameId(path.split("/").filter(Boolean).pop() || "game").replace(/\.html$/, "");
+    return (leaf || "game") + "-" + hash32(path);
+  }
+
+  const GAME_ID = resolveGameId();
+  const STORAGE_KEYS = {
+    level: GAME_ID + "_level",
+    mixer: GAME_ID + "_mixer",
+    preferences: GAME_ID + "_preferences",
+    pendingCompletion: GAME_ID + "_pendingCompletion",
+  };
+
+  const startScreen = document.getElementById("startScreen");
+  const gameScreen  = document.getElementById("gameScreen");
+  const splashScreen = document.getElementById("splashScreen");
+  const splashLogo  = document.getElementById("splashLogo");
+  const playBtn     = document.getElementById("playBtn");
+  const playLevel   = document.getElementById("playLevel");
+  const gameHeader  = document.getElementById("gameHeader");
+  const flavourText = document.getElementById("flavourText");
+  const failText    = document.getElementById("failText");
+
+  const overlay        = document.getElementById("overlay");
+  const overlayCard    = document.getElementById("overlayCard");
+  const overlayTitle   = document.getElementById("overlayTitle");
+  const overlaySubtitle= document.getElementById("overlaySubtitle");
+  const overlayBtn     = document.getElementById("overlayBtn");
+
+  const debugWin  = document.getElementById("debugWin");
+  const debugFail = document.getElementById("debugFail");
+  const debugLang = document.getElementById("debugLang");
+  const debugPanel = document.getElementById("debugPanel");
+  const debugToggle = document.getElementById("debugToggle");
+  const debugLevelInput = document.getElementById("debugLevelInput");
+  const debugSkipLevel = document.getElementById("debugSkipLevel");
+  const debugReset = document.getElementById("debugReset");
+
+  // Only show the debug panel if we are in a debug build, or running locally in a browser
+  // kwAnalytics is injected by the app. If it's not present, we assume local dev and show debug tools.
+  if (typeof kwAnalytics !== "undefined" && !kwAnalytics.isDebug) {
+    debugPanel.style.display = "none";
+  }
+
+  const settingsBtnStart = document.getElementById("settingsBtnStart");
+  const settingsBtnGame  = document.getElementById("settingsBtnGame");
+  const settingsOverlay  = document.getElementById("settingsOverlay");
+  const settingsClose    = document.getElementById("settingsClose");
+  const settingsQuit     = document.getElementById("settingsQuit");
+
+  const confettiCanvas = document.getElementById("confetti");
+  const cctx = confettiCanvas.getContext("2d");
+  let confettiParticles = [];
+  let confettiRAF = null;
+
+  const fireworksCanvas = document.getElementById("fireworks");
+  const fwctx = fireworksCanvas.getContext("2d");
+  let fwRockets = [];
+  let fwParticles = [];
+  let fireworksRAF = null;
+  let completeTimer = null;
+  let fadeTimer = null;
+
+  const fadeBlack = document.getElementById("fadeBlack");
+
+  let level = parseInt(localStorage.getItem(STORAGE_KEYS.level), 10) || 1;
+
+  function saveProgress() {
+    localStorage.setItem(STORAGE_KEYS.level, level);
+  }
+
+  function savePendingCompletion() {
+    localStorage.setItem(STORAGE_KEYS.pendingCompletion, String(level));
+  }
+
+  function consumePendingCompletion() {
+    const completedLevel = parseInt(localStorage.getItem(STORAGE_KEYS.pendingCompletion), 10);
+    if (!Number.isInteger(completedLevel) || completedLevel !== level) return;
+    level = completedLevel + 1;
+    saveProgress();
+    localStorage.removeItem(STORAGE_KEYS.pendingCompletion);
+  }
+
+  consumePendingCompletion();
+
+  // ---------- Capacitor Edge-to-Edge ----------
+  // Removes status bar / navigation bar gaps on Android/iOS APK builds.
+  // Requires @capacitor/status-bar plugin installed in the Capacitor project.
+  // The CSS already uses env(safe-area-inset-*) and viewport-fit=cover to
+  // inset content away from notches/home indicators once overlay mode is active.
+  (function initEdgeToEdge() {
+    if (!window.Capacitor || !window.Capacitor.Plugins) return;
+    const { StatusBar } = window.Capacitor.Plugins;
+    if (StatusBar) {
+      StatusBar.setOverlaysWebView({ overlay: true });
+      StatusBar.setBackgroundColor({ color: "#00000000" });
+      StatusBar.setStyle({ style: "LIGHT" });
+    }
+  })();
+
+  // ---------- Haptics ----------
+  // Call haptic("tap"|"success"|"error"|"heavy") on any meaningful interaction.
+  // Respects the settings toggle. No-ops on unsupported devices.
+  // Uses Capacitor Haptics plugin when available (APK builds), falls back to Vibration API.
+  const toggleHaptics = document.getElementById("toggleHaptics");
+  const HAPTIC_PATTERNS = {
+    tap:     [10],
+    success: [30, 50, 60, 50, 100],
+    error:   [80, 40, 80],
+    heavy:   [40]
+  };
+
+  // Capacitor Haptics mapping
+  const _capHaptics = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Haptics;
+  const _CAP_MAP = {
+    tap:     () => _capHaptics.impact({ style: "Light" }),
+    success: () => _capHaptics.notification({ type: "SUCCESS" }),
+    error:   () => _capHaptics.notification({ type: "ERROR" }),
+    heavy:   () => _capHaptics.impact({ style: "Heavy" })
+  };
+
+  function haptic(type) {
+    if (!toggleHaptics.checked) return;
+    if (_capHaptics) {
+      (_CAP_MAP[type] || _CAP_MAP.tap)();
+      return;
+    }
+    if (!navigator.vibrate) return;
+    navigator.vibrate(HAPTIC_PATTERNS[type] || [10]);
+  }
+
+  // ---------- Audio Engine (Web Audio API) ----------
+  // Sound registry: add entries as { name: "path/to/file.mp3" }.
+  // Routing: filenames containing "bgm" → Music channel; everything else → SFX.
+  const AUDIO_FILES = {
+    // Key names containing "bgm" route to Music channel; all others route to SFX.
+    sfx_button:        "AUDIO_FILES/KPF SFX button.wav",
+    sfx_toggle:        "AUDIO_FILES/KPF SFX ToggleButton.wav",
+    sfx_levelfail:     "AUDIO_FILES/KPF SFX levelFail.wav",
+    sfx_welldone:      "AUDIO_FILES/KPF SFX WelldoneTxt.wav",
+    sfx_levelcomplete: "AUDIO_FILES/KPF SFX LevelComplete.wav",
+    sfx_popup:         "AUDIO_FILES/KPF SFX Popup.wav",
+  };
+
+  const toggleMusic = document.getElementById("toggleMusic");
+  const toggleSound = document.getElementById("toggleSound");
+
+  function loadSettingsPreferences() {
+    const savedPreferences = localStorage.getItem(STORAGE_KEYS.preferences);
+    if (!savedPreferences) return;
+    try {
+      const preferences = JSON.parse(savedPreferences);
+      if (typeof preferences.music === "boolean") toggleMusic.checked = preferences.music;
+      if (typeof preferences.sound === "boolean") toggleSound.checked = preferences.sound;
+      if (typeof preferences.haptics === "boolean") toggleHaptics.checked = preferences.haptics;
+    } catch (e) {}
+  }
+
+  function saveSettingsPreferences() {
+    localStorage.setItem(STORAGE_KEYS.preferences, JSON.stringify({
+      music: toggleMusic.checked,
+      sound: toggleSound.checked,
+      haptics: toggleHaptics.checked,
+    }));
+  }
+
+  loadSettingsPreferences();
+
+  let _actx = null;
+  function getAudioContext() {
+    if (!_actx) _actx = new (window.AudioContext || window.webkitAudioContext)();
+    return _actx;
+  }
+
+  // Resume context on first user gesture
+  document.addEventListener("pointerdown", () => {
+    if (_actx && _actx.state === "suspended") _actx.resume();
+  }, { once: false });
+
+  // Decoded buffers cache
+  const _buffers = {};
+
+  async function loadAudio(name) {
+    if (_buffers[name] !== undefined) return _buffers[name]; // null = failed, skip retry
+    _buffers[name] = null; // sentinel: blocks concurrent duplicate fetches
+    try {
+      const ctx = getAudioContext();
+      const resp = await fetch(encodeURI(AUDIO_FILES[name]));
+      if (!resp.ok) throw new Error(resp.status + " " + resp.statusText);
+      const arrayBuf = await resp.arrayBuffer();
+      _buffers[name] = await ctx.decodeAudioData(arrayBuf);
+    } catch (e) {
+      console.warn("[Audio] Failed to load", name, e);
+      _buffers[name] = null; // keep sentinel so we never retry a missing file
+      return null;
+    }
+    return _buffers[name];
+  }
+
+  function preloadAllAudio() {
+    if (navigator.onLine === false) return;
+    Object.keys(AUDIO_FILES).forEach((name) => {
+      loadAudio(name).catch(() => {});
+    });
+  }
+
+  // Channel routing: key or path containing "bgm" → music, else → sfx
+  function getChannel(name) {
+    return (name.includes("bgm") || (AUDIO_FILES[name] && AUDIO_FILES[name].includes("bgm"))) ? "music" : "sfx";
+  }
+
+  // Mixer state
+  const _mixerDefaults = { master: 100, sfx: 100, music: 100, sfxMute: false, sfxSolo: false, musicMute: false, musicSolo: false, sounds: {} };
+  let _mixer = JSON.parse(JSON.stringify(_mixerDefaults));
+  const _savedMixer = localStorage.getItem(STORAGE_KEYS.mixer);
+  if (_savedMixer) {
+    try { Object.assign(_mixer, JSON.parse(_savedMixer)); } catch(e) {}
+  }
+
+  // Gain nodes
+  let _masterGain = null;
+  let _sfxGain = null;
+  let _musicGain = null;
+  let _meterInput = null; // for loudness meter
+
+  function ensureGainGraph() {
+    if (_masterGain) return;
+    const ctx = getAudioContext();
+    _masterGain = ctx.createGain();
+    _sfxGain = ctx.createGain();
+    _musicGain = ctx.createGain();
+    _sfxGain.connect(_masterGain);
+    _musicGain.connect(_masterGain);
+    _masterGain.connect(ctx.destination);
+    // Meter tap (parallel)
+    _meterInput = ctx.createGain();
+    _meterInput.gain.value = 1;
+    _masterGain.connect(_meterInput);
+    applyMixerGains();
+  }
+
+  function applyMixerGains() {
+    if (!_masterGain) return;
+    const ctx = getAudioContext();
+    const now = ctx.currentTime;
+
+    _masterGain.gain.setTargetAtTime(_mixer.master / 100, now, 0.02);
+
+    // Solo logic: if any channel is soloed, others are silenced
+    const anySolo = _mixer.sfxSolo || _mixer.musicSolo;
+    let sfxVol = _mixer.sfxMute ? 0 : _mixer.sfx / 100;
+    let musicVol = _mixer.musicMute ? 0 : _mixer.music / 100;
+    if (anySolo) {
+      if (!_mixer.sfxSolo) sfxVol = 0;
+      if (!_mixer.musicSolo) musicVol = 0;
+    }
+    // Settings toggles
+    if (!toggleSound.checked) sfxVol = 0;
+    if (!toggleMusic.checked) musicVol = 0;
+
+    _sfxGain.gain.setTargetAtTime(sfxVol, now, 0.02);
+    _musicGain.gain.setTargetAtTime(musicVol, now, 0.02);
+
+    // Per-sound gains
+    _activeInstances.forEach(inst => {
+      if (!inst.gainNode) return;
+      const snd = _mixer.sounds[inst.name] || {};
+      const sndMute = snd.mute || false;
+      const sndSolo = snd.solo || false;
+      let vol = (snd.volume !== undefined ? snd.volume : 100) / 100;
+      if (sndMute) vol = 0;
+      // Per-sound solo: if any in the same channel is soloed, silence non-soloed
+      const ch = getChannel(inst.name);
+      const channelSounds = Object.keys(AUDIO_FILES).filter(n => getChannel(n) === ch);
+      const anySndsolo = channelSounds.some(n => (_mixer.sounds[n] || {}).solo);
+      if (anySndsolo && !sndSolo) vol = 0;
+      inst.gainNode.gain.setTargetAtTime(vol, now, 0.02);
+      // Live loop update
+      if (inst.source && inst.source.loop !== undefined) {
+        inst.source.loop = snd.loop || false;
+      }
+    });
+  }
+
+  // Active sound instances (for live updates)
+  const _activeInstances = [];
+
+  function playSound(name, { loop = false } = {}) {
+    if (!AUDIO_FILES[name]) return null;
+    const ctx = getAudioContext();
+    ensureGainGraph();
+    const buffer = _buffers[name];
+    if (buffer === null) return null; // failed previously — do not retry
+    if (buffer === undefined) { loadAudio(name).then(buf => { if (buf) playSound(name, { loop }); }); return null; }
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    const sndSettings = _mixer.sounds[name] || {};
+    source.loop = sndSettings.loop !== undefined ? sndSettings.loop : loop;
+    const gainNode = ctx.createGain();
+    const vol = (sndSettings.volume !== undefined ? sndSettings.volume : 100) / 100;
+    gainNode.gain.value = sndSettings.mute ? 0 : vol;
+    source.connect(gainNode);
+    const ch = getChannel(name);
+    gainNode.connect(ch === "music" ? _musicGain : _sfxGain);
+    source.start();
+    const inst = { name, source, gainNode };
+    _activeInstances.push(inst);
+    source.onended = () => {
+      const idx = _activeInstances.indexOf(inst);
+      if (idx !== -1) _activeInstances.splice(idx, 1);
+    };
+    return inst;
+  }
+
+  function stopSound(inst) {
+    if (!inst || !inst.source) return;
+    try { inst.source.stop(); } catch(e) {}
+  }
+
+  // ---------- Background Audio ----------
+  let _bgInstances = [];
+  let _bgPlaying = false;
+  let _bgWasPlayingBeforeBackground = false;
+
+  async function playBackgroundAudio() {
+    if (_bgPlaying) return;
+    _bgPlaying = true;
+    const ctx = getAudioContext();
+    await ctx.resume();
+    ensureGainGraph();
+    for (const name of Object.keys(AUDIO_FILES)) {
+      if (getChannel(name) === "music") {
+        await loadAudio(name);
+        if (!_bgPlaying) return;
+        const inst = playSound(name, { loop: true });
+        if (inst) _bgInstances.push(inst);
+      }
+    }
+  }
+
+  function stopBackgroundAudio() {
+    _bgPlaying = false;
+    _bgInstances.forEach(stopSound);
+    _bgInstances = [];
+  }
+
+  function handleAppBackgrounded(){
+    _bgWasPlayingBeforeBackground = _bgPlaying;
+    if (_bgWasPlayingBeforeBackground) stopBackgroundAudio();
+  }
+
+  function handleAppForegrounded(){
+    if (!_bgWasPlayingBeforeBackground) return;
+    _bgWasPlayingBeforeBackground = false;
+    if (toggleMusic.checked) playBackgroundAudio();
+  }
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) handleAppBackgrounded();
+    else handleAppForegrounded();
+  });
+  window.addEventListener("pagehide", handleAppBackgrounded);
+  window.addEventListener("pageshow", handleAppForegrounded);
+
+  const capacitorApp = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+  if (capacitorApp && typeof capacitorApp.addListener === "function") {
+    try {
+      capacitorApp.addListener("appStateChange", ({ isActive }) => {
+        if (isActive) handleAppForegrounded();
+        else handleAppBackgrounded();
+      });
+    } catch (e) {}
+  }
+
+  // ---------- Sound Effects ----------
+  // sfxClick  → normal UI button click
+  // sfxToggle → toggle-style switches
+  // sfxPopup  → a popup opening. If a popup is ALREADY open, falls back to the
+  //             click sound so stacked popups don't double-trigger the popup SFX.
+  // (Debug panel / mixer / meter controls intentionally call none of these.)
+  function sfxClick(){ playSound("sfx_button"); }
+  function sfxToggle(){ playSound("sfx_toggle"); }
+  function sfxPopup(){
+    const popupOpen =
+      settingsOverlay.classList.contains("show") ||
+      document.getElementById("quitConfirm").classList.contains("show");
+    if (popupOpen) sfxClick();
+    else playSound("sfx_popup");
+  }
+
+  // Listen to settings toggles for live mute
+  toggleMusic.addEventListener("change", () => { saveSettingsPreferences(); sfxToggle(); applyMixerGains(); });
+  toggleSound.addEventListener("change", () => { saveSettingsPreferences(); sfxToggle(); applyMixerGains(); });
+  toggleHaptics.addEventListener("change", () => { saveSettingsPreferences(); sfxToggle(); });
+
+  // ---------- Loudness Meter (ITU-R BS.1770 approx) ----------
+  let _meterRAF = null;
+  let _meterAnalyser = null;
+  let _kWeightHigh = null;
+  let _kWeightShelf = null;
+  let _meterBuffer = null;
+  let _meterShortRing = [];
+  let _meterIntegrated = { sum: 0, count: 0 };
+  let _meterTruePeak = -Infinity;
+
+  function initMeter() {
+    if (_meterAnalyser) return;
+    const ctx = getAudioContext();
+    ensureGainGraph();
+
+    // K-weighting: high-pass 60Hz + high-shelf 1500Hz +4dB (approx BS.1770)
+    _kWeightHigh = ctx.createBiquadFilter();
+    _kWeightHigh.type = "highpass";
+    _kWeightHigh.frequency.value = 60;
+    _kWeightHigh.Q.value = 0.5;
+
+    _kWeightShelf = ctx.createBiquadFilter();
+    _kWeightShelf.type = "highshelf";
+    _kWeightShelf.frequency.value = 1500;
+    _kWeightShelf.gain.value = 4;
+
+    _meterAnalyser = ctx.createAnalyser();
+    _meterAnalyser.fftSize = 2048;
+
+    _meterInput.connect(_kWeightHigh);
+    _kWeightHigh.connect(_kWeightShelf);
+    _kWeightShelf.connect(_meterAnalyser);
+
+    _meterBuffer = new Float32Array(_meterAnalyser.fftSize);
+  }
+
+  function meterTick() {
+    if (!_meterAnalyser) return;
+    _meterAnalyser.getFloatTimeDomainData(_meterBuffer);
+    const len = _meterBuffer.length;
+
+    // RMS for this block
+    let sumSq = 0;
+    let blockPeak = 0;
+    for (let i = 0; i < len; i++) {
+      const s = _meterBuffer[i];
+      sumSq += s * s;
+      const abs = Math.abs(s);
+      if (abs > blockPeak) blockPeak = abs;
+    }
+    const rms = Math.sqrt(sumSq / len);
+
+    // 4x oversampled true peak approximation (linear interp between samples)
+    for (let i = 0; i < len - 1; i++) {
+      const a = _meterBuffer[i], b = _meterBuffer[i + 1];
+      for (let j = 1; j <= 3; j++) {
+        const interp = Math.abs(a + (b - a) * (j / 4));
+        if (interp > blockPeak) blockPeak = interp;
+      }
+    }
+
+    const dbTP = blockPeak > 0 ? 20 * Math.log10(blockPeak) : -Infinity;
+    if (dbTP > _meterTruePeak) _meterTruePeak = dbTP;
+
+    // LUFS = -0.691 + 10*log10(mean_square) (simplified)
+    const lufs = rms > 0 ? -0.691 + 10 * Math.log10(rms * rms) : -Infinity;
+
+    // Short-term: trailing 3s ring buffer (~3s of blocks at rAF rate)
+    const now = performance.now();
+    _meterShortRing.push({ t: now, sq: rms * rms });
+    while (_meterShortRing.length && _meterShortRing[0].t < now - 3000) _meterShortRing.shift();
+    let shortSum = 0;
+    for (const b of _meterShortRing) shortSum += b.sq;
+    const shortMean = shortSum / (_meterShortRing.length || 1);
+    const shortLUFS = shortMean > 0 ? -0.691 + 10 * Math.log10(shortMean) : -Infinity;
+
+    // Integrated (gated: only blocks > -70 LUFS)
+    if (lufs > -70) {
+      _meterIntegrated.sum += rms * rms;
+      _meterIntegrated.count++;
+    }
+    const intMean = _meterIntegrated.count > 0 ? _meterIntegrated.sum / _meterIntegrated.count : 0;
+    const intLUFS = intMean > 0 ? -0.691 + 10 * Math.log10(intMean) : -Infinity;
+
+    // Update UI
+    document.getElementById("meterShort").textContent = isFinite(shortLUFS) ? shortLUFS.toFixed(1) : "—";
+    document.getElementById("meterIntegrated").textContent = isFinite(intLUFS) ? intLUFS.toFixed(1) : "—";
+    document.getElementById("meterPeak").textContent = isFinite(_meterTruePeak) ? _meterTruePeak.toFixed(1) : "—";
+  }
+
+  function startMeter() {
+    initMeter();
+    if (_meterRAF) return;
+    function loop() {
+      meterTick();
+      _meterRAF = requestAnimationFrame(loop);
+    }
+    _meterRAF = requestAnimationFrame(loop);
+  }
+
+  function stopMeter() {
+    if (_meterRAF) { cancelAnimationFrame(_meterRAF); _meterRAF = null; }
+  }
+
+  function resetMeter() {
+    _meterShortRing = [];
+    _meterIntegrated = { sum: 0, count: 0 };
+    _meterTruePeak = -Infinity;
+    document.getElementById("meterShort").textContent = "—";
+    document.getElementById("meterIntegrated").textContent = "—";
+    document.getElementById("meterPeak").textContent = "—";
+  }
+
+  // ---------- Debug Mixer UI Logic ----------
+  function buildMixerUI() {
+    const scroll = document.getElementById("mixerSoundsScroll");
+    scroll.innerHTML = "";
+    const names = Object.keys(AUDIO_FILES);
+    if (!names.length) {
+      scroll.innerHTML = '<span style="color:#6b6684;font-size:10px;">No sounds registered</span>';
+      return;
+    }
+    names.forEach(name => {
+      const snd = _mixer.sounds[name] || { volume: 100, mute: false, solo: false, loop: false };
+      _mixer.sounds[name] = snd;
+      const ch = getChannel(name);
+      const strip = document.createElement("div");
+      strip.className = "mixer-sound-strip";
+      strip.innerHTML = `
+        <div class="mixer-row">
+          <label>${name}</label>
+          <span class="mixer-channel-tag">${ch.toUpperCase()}</span>
+        </div>
+        <div class="mixer-row">
+          <input type="range" min="0" max="100" value="${snd.volume}" data-snd="${name}" data-prop="volume" />
+          <span class="mixer-val">${snd.volume}</span>
+        </div>
+        <div class="mixer-toggles">
+          <button class="mixer-tog${snd.loop ? ' active' : ''}" data-snd="${name}" data-prop="loop">Loop</button>
+          <button class="mixer-tog${snd.mute ? ' mute-active' : ''}" data-snd="${name}" data-prop="mute">M</button>
+          <button class="mixer-tog${snd.solo ? ' active' : ''}" data-snd="${name}" data-prop="solo">S</button>
+        </div>`;
+      scroll.appendChild(strip);
+    });
+
+    // Bind events
+    scroll.querySelectorAll('input[type="range"]').forEach(slider => {
+      slider.addEventListener("input", () => {
+        const name = slider.dataset.snd;
+        _mixer.sounds[name].volume = parseInt(slider.value, 10);
+        slider.nextElementSibling.textContent = slider.value;
+        applyMixerGains();
+      });
+    });
+    scroll.querySelectorAll(".mixer-tog").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const name = btn.dataset.snd;
+        const prop = btn.dataset.prop;
+        _mixer.sounds[name][prop] = !_mixer.sounds[name][prop];
+        if (prop === "mute") btn.classList.toggle("mute-active");
+        else btn.classList.toggle("active");
+        applyMixerGains();
+      });
+    });
+  }
+
+  function initMixerControls() {
+    const masterSlider = document.getElementById("mixerMaster");
+    const sfxSlider = document.getElementById("mixerSFX");
+    const musicSlider = document.getElementById("mixerMusic");
+
+    masterSlider.value = _mixer.master;
+    sfxSlider.value = _mixer.sfx;
+    musicSlider.value = _mixer.music;
+    document.getElementById("mixerMasterVal").textContent = _mixer.master;
+    document.getElementById("mixerSFXVal").textContent = _mixer.sfx;
+    document.getElementById("mixerMusicVal").textContent = _mixer.music;
+
+    function bindSlider(slider, key, valId) {
+      slider.addEventListener("input", () => {
+        _mixer[key] = parseInt(slider.value, 10);
+        document.getElementById(valId).textContent = slider.value;
+        applyMixerGains();
+      });
+    }
+    bindSlider(masterSlider, "master", "mixerMasterVal");
+    bindSlider(sfxSlider, "sfx", "mixerSFXVal");
+    bindSlider(musicSlider, "music", "mixerMusicVal");
+
+    // Channel mute/solo
+    const sfxMute = document.getElementById("mixerSFXMute");
+    const sfxSolo = document.getElementById("mixerSFXSolo");
+    const musicMute = document.getElementById("mixerMusicMute");
+    const musicSolo = document.getElementById("mixerMusicSolo");
+
+    sfxMute.classList.toggle("mute-active", _mixer.sfxMute);
+    sfxSolo.classList.toggle("active", _mixer.sfxSolo);
+    musicMute.classList.toggle("mute-active", _mixer.musicMute);
+    musicSolo.classList.toggle("active", _mixer.musicSolo);
+
+    sfxMute.addEventListener("click", () => { _mixer.sfxMute = !_mixer.sfxMute; sfxMute.classList.toggle("mute-active"); applyMixerGains(); });
+    sfxSolo.addEventListener("click", () => { _mixer.sfxSolo = !_mixer.sfxSolo; sfxSolo.classList.toggle("active"); applyMixerGains(); });
+    musicMute.addEventListener("click", () => { _mixer.musicMute = !_mixer.musicMute; musicMute.classList.toggle("mute-active"); applyMixerGains(); });
+    musicSolo.addEventListener("click", () => { _mixer.musicSolo = !_mixer.musicSolo; musicSolo.classList.toggle("active"); applyMixerGains(); });
+
+    // Save
+    const saveBtn = document.getElementById("mixerSave");
+    document.getElementById("mixerSave").addEventListener("click", () => {
+      localStorage.setItem(STORAGE_KEYS.mixer, JSON.stringify(_mixer));
+      saveBtn.textContent = "✓ Saved";
+      saveBtn.style.background = "#1ea85a";
+      setTimeout(() => {
+        saveBtn.textContent = "Save";
+        saveBtn.style.background = "";
+      }, 1200);
+    });
+
+    buildMixerUI();
+  }
+
+  // ---------- Game Loop (60 fps cap) ----------
+  // All gameplay rendering/logic goes in updateGame(dt).
+  // The loop is started by startGame() and stopped by levelComplete()/levelFailed().
+  // On high-refresh-rate displays (90/120 Hz) frames are skipped to hold 60 fps.
+  const FRAME_MS = 1000 / 60;
+  let _lastFrame = 0;
+  let _gameRAF = null;
+
+  function _tick(now) {
+    _gameRAF = requestAnimationFrame(_tick);
+    const dt = now - _lastFrame;
+    if (dt < FRAME_MS) return;
+    _lastFrame = now - (dt % FRAME_MS);
+    updateGame(dt);
+  }
+
+  function startLoop() {
+    if (_gameRAF) return;
+    _lastFrame = performance.now();
+    _gameRAF = requestAnimationFrame(_tick);
+  }
+
+  function stopLoop() {
+    if (_gameRAF) {
+      cancelAnimationFrame(_gameRAF);
+      _gameRAF = null;
+    }
+  }
+
+  // ★ YOUR GAME LOGIC — called at 60 fps with delta time in ms ★
+  function updateGame(dt) {
+    // Replace this with your per-frame update/render logic.
+  }
+
+  // ---------- Localisation ----------
+  // Text strings live in translations.js (window.GAME_TEXT). Edit that file to
+  // change wording or add new strings / languages.
+  const I18N = window.GAME_TEXT;
+  const LANGS = window.LANGUAGE_ORDER || Object.keys(I18N);
+  const i18nEls = document.querySelectorAll("[data-i18n]");
+
+  function detectInitialLanguage(){
+    const deviceLanguages = Array.isArray(navigator.languages) && navigator.languages.length
+      ? navigator.languages
+      : [navigator.language];
+
+    for (const deviceLanguage of deviceLanguages){
+      if (!deviceLanguage) continue;
+      const normalizedLanguage = String(deviceLanguage).toLowerCase().replace(/_/g, "-");
+      const exactLanguage = LANGS.find((supportedLanguage) =>
+        supportedLanguage.toLowerCase() === normalizedLanguage
+      );
+      if (exactLanguage) return exactLanguage;
+
+      const baseLanguage = normalizedLanguage.split("-")[0];
+      const matchingLanguage = LANGS.find((supportedLanguage) =>
+        supportedLanguage.toLowerCase() === baseLanguage
+      );
+      if (matchingLanguage) return matchingLanguage;
+    }
+
+    return LANGS.includes("en") ? "en" : LANGS[0];
+  }
+
+  let lang = detectInitialLanguage();
+  const t = (key) => I18N[lang][key];
+
+  function applyLanguage(){
+    const dict = I18N[lang];
+    // Static text nodes flagged with data-i18n
+    i18nEls.forEach((el) => {
+      const key = el.getAttribute("data-i18n");
+      if (dict[key] !== undefined) el.textContent = dict[key];
+    });
+    // Language toggle button shows the language you can switch to
+    debugLang.textContent = dict.language;
+    // Level-dependent labels
+    updateLevelLabels();
+    // Refresh the result overlay if it is currently on screen
+    if (overlay.classList.contains("show")){
+      if (overlayCard.classList.contains("win")){
+        animateTitle(overlayTitle, dict.completeTitle);
+        overlaySubtitle.textContent = dict.completeSubtitle;
+        overlayBtn.textContent = dict.nextLevel;
+      } else {
+        overlayTitle.textContent = dict.failTitle;
+        overlaySubtitle.textContent = dict.failSubtitle;
+        overlayBtn.textContent = dict.retry;
+      }
+    }
+  }
+
+  function toggleLanguage(){
+    const i = LANGS.indexOf(lang);
+    lang = LANGS[(i + 1) % LANGS.length];
+    applyLanguage();
+  }
+
+  function showScreen(screen){
+    splashScreen.classList.remove("active");
+    startScreen.classList.remove("active");
+    gameScreen.classList.remove("active");
+    screen.classList.add("active");
+  }
+
+  function handleBackNavigation(){
+    // Keep Android Back from minimizing the game. Result/settings UI stays open.
+    haptic("tap");
+  }
+
+  function installBackNavigationGuard(){
+    const capacitorApp = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+    if (capacitorApp && typeof capacitorApp.addListener === "function") {
+      try { capacitorApp.addListener("backButton", handleBackNavigation); } catch (e) {}
+    }
+
+    try {
+      history.pushState({ kpfBackGuard: true }, "", location.href);
+      window.addEventListener("popstate", () => {
+        history.pushState({ kpfBackGuard: true }, "", location.href);
+        handleBackNavigation();
+      });
+    } catch (e) {}
+  }
+
+  function lockResultOverlay(){
+    overlay.classList.add("show", "result-locked");
+  }
+
+  function unlockResultOverlay(){
+    overlay.classList.remove("result-locked");
+  }
+
+  function updateLevelLabels(){
+    playLevel.textContent = t("level") + " " + level;
+    gameHeader.textContent = t("level") + " " + level;
+  }
+
+  // ▶ ANALYTICS HOOK: trackStartTrial (first call), trackLevelStart(level)
+  function startGame(){
+    // Fade to white, swap to the game screen, then fade back in.
+    haptic("tap");
+    clearTimeout(fadeTimer);
+    fadeBlack.classList.add("show");
+    fadeTimer = setTimeout(() => {
+      hideOverlay();
+      resetLevelCompleteState();
+      updateLevelLabels();
+      showScreen(gameScreen);
+      startLoop();
+      requestAnimationFrame(() => fadeBlack.classList.remove("show"));
+    }, 420);
+  }
+
+  function resetLevelCompleteState(){
+    gameHeader.classList.remove("exit-up");
+    settingsBtnGame.style.opacity = "";
+    flavourText.classList.remove("show", "dismiss");
+    failText.classList.remove("show", "settle");
+  }
+
+  // ▶ ANALYTICS HOOK: trackLevelComplete(level)
+  function levelComplete(){
+    stopLoop();
+    // 1. Slide header out, hide settings, show flavour text, launch fireworks immediately
+    haptic("success");
+    clearTimeout(completeTimer);
+    gameHeader.classList.add("exit-up");
+    settingsBtnGame.style.opacity = "0";
+    flavourText.querySelector("span").textContent = t("wellDone");
+    flavourText.classList.add("show");
+    playSound("sfx_welldone");
+    launchFireworks();
+
+    // 2. Dismiss flavour text
+    completeTimer = setTimeout(() => {
+      flavourText.classList.add("dismiss");
+    }, 1400);
+
+    // 3. Show the full level-complete UI
+    setTimeout(showLevelCompleteUI, 2100);
+  }
+
+  function showLevelCompleteUI(){
+    savePendingCompletion();
+    overlayCard.classList.remove("fail");
+    overlayCard.classList.add("win");
+    overlay.classList.add("celebrate");
+    animateTitle(overlayTitle, t("completeTitle"));
+    overlaySubtitle.textContent = t("completeSubtitle");
+    overlayBtn.textContent = t("level") + " " + (level + 1);
+    overlayBtn.className = "nextbtn";
+    overlay.classList.add("show");
+    lockResultOverlay();
+    playSound("sfx_levelcomplete");
+    launchConfetti();
+  }
+
+  // ▶ ANALYTICS HOOK: (level failed tracking)
+  function levelFailed(){
+    stopLoop();
+    haptic("error");
+    clearTimeout(completeTimer);
+    stopFireworks();
+    stopConfetti();
+
+    // 1. Show "Level Failed" text over gameplay
+    failText.querySelector("span").textContent = t("failTitle");
+    failText.classList.remove("settle");
+    failText.classList.add("show");
+    playSound("sfx_levelfail");
+    gameHeader.classList.add("exit-up");
+    settingsBtnGame.style.opacity = "0";
+
+    // 2. After 1s, slide text up and show backdrop
+    completeTimer = setTimeout(() => {
+      failText.classList.add("settle");
+      overlayCard.classList.remove("win");
+      overlayCard.classList.add("fail");
+      overlay.classList.remove("celebrate");
+      overlay.classList.add("backdrop-only");
+      overlay.classList.remove("reveal-content");
+      overlayTitle.textContent = "";
+      overlaySubtitle.textContent = t("failSubtitle");
+      overlayBtn.textContent = t("retry");
+      overlayBtn.className = "nextbtn retrybtn btn-hidden";
+      overlay.classList.add("show");
+      lockResultOverlay();
+    }, 1000);
+
+    // 3. After text settles, reveal the subtitle
+    setTimeout(() => {
+      overlay.classList.remove("backdrop-only");
+      overlay.classList.add("reveal-content");
+    }, 1500);
+
+    // 4. After subtitle appears, reveal the button
+    setTimeout(() => {
+      overlayBtn.classList.remove("btn-hidden");
+      overlayBtn.classList.add("btn-visible");
+    }, 2000);
+  }
+
+  function hideOverlay(){
+    clearTimeout(completeTimer);
+    unlockResultOverlay();
+    overlay.classList.remove("show");
+    overlay.classList.remove("celebrate");
+    overlay.classList.remove("backdrop-only");
+    overlay.classList.remove("reveal-content");
+    stopConfetti();
+    stopFireworks();
+  }
+
+  // Split the title into per-letter spans so each pops in with a stagger.
+  function animateTitle(el, text){
+    el.textContent = "";
+    let i = 0;
+    [...text].forEach((ch) => {
+      if (ch === "\n"){
+        el.appendChild(document.createElement("br"));
+        return;
+      }
+      const span = document.createElement("span");
+      span.className = "ltr";
+      span.textContent = ch;
+      span.style.animationDelay = (i * 45) + "ms";
+      el.appendChild(span);
+      i++;
+    });
+  }
+
+  function launchConfetti(){
+    const rect = confettiCanvas.getBoundingClientRect();
+    confettiCanvas.width = rect.width;
+    confettiCanvas.height = rect.height;
+    const W = confettiCanvas.width;
+    const H = confettiCanvas.height;
+    const colors = ["#38dc85", "#ffcb3d", "#ff6b70", "#4d9bff", "#c86bff", "#ffffff"];
+
+    confettiParticles = [];
+    for (let i = 0; i < 140; i++){
+      confettiParticles.push({
+        x: Math.random() * W,
+        y: -20 - Math.random() * H * 0.6,
+        w: 6 + Math.random() * 6,
+        h: 8 + Math.random() * 8,
+        color: colors[(Math.random() * colors.length) | 0],
+        vx: (Math.random() - 0.5) * 1.6,
+        vy: 2 + Math.random() * 3,
+        rot: Math.random() * Math.PI * 2,
+        vr: (Math.random() - 0.5) * 0.3,
+        sway: Math.random() * Math.PI * 2
+      });
+    }
+
+    if (confettiRAF) cancelAnimationFrame(confettiRAF);
+    const start = performance.now();
+    let lastVFX = 0;
+
+    function frame(now){
+      confettiRAF = requestAnimationFrame(frame);
+      if (now - lastVFX < FRAME_MS) return;
+      lastVFX = now;
+      const elapsed = now - start;
+      cctx.clearRect(0, 0, W, H);
+      let alive = false;
+      for (const p of confettiParticles){
+        p.sway += 0.05;
+        p.x += p.vx + Math.sin(p.sway) * 0.6;
+        p.y += p.vy;
+        p.rot += p.vr;
+        if (p.y < H + 20) alive = true;
+        cctx.save();
+        cctx.translate(p.x, p.y);
+        cctx.rotate(p.rot);
+        cctx.fillStyle = p.color;
+        cctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+        cctx.restore();
+      }
+      if (!alive || elapsed >= 6000){
+        cancelAnimationFrame(confettiRAF);
+        cctx.clearRect(0, 0, W, H);
+        confettiRAF = null;
+      }
+    }
+    confettiRAF = requestAnimationFrame(frame);
+  }
+
+  function stopConfetti(){
+    if (confettiRAF){
+      cancelAnimationFrame(confettiRAF);
+      confettiRAF = null;
+    }
+    cctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+  }
+
+  const FW_COLORS = ["#38dc85", "#ffcb3d", "#ff6b70", "#4d9bff", "#c86bff", "#ffffff", "#ff9f43"];
+
+  function launchFireworks(){
+    const rect = fireworksCanvas.getBoundingClientRect();
+    fireworksCanvas.width = rect.width;
+    fireworksCanvas.height = rect.height;
+    const W = fireworksCanvas.width;
+    const H = fireworksCanvas.height;
+
+    fwRockets = [];
+    fwParticles = [];
+
+    let launched = 0;
+    let nextLaunch = 0;
+    const maxLaunch = 6;
+    const start = performance.now();
+
+    function spawnRocket(){
+      fwRockets.push({
+        x: W * (0.2 + Math.random() * 0.6),
+        y: H + 10,
+        vy: -(H * 0.013 + Math.random() * 2.4),
+        targetY: H * (0.18 + Math.random() * 0.32),
+        color: FW_COLORS[(Math.random() * FW_COLORS.length) | 0]
+      });
+    }
+
+    function explode(x, y, color){
+      const n = 42 + (Math.random() * 28 | 0);
+      for (let i = 0; i < n; i++){
+        const ang = (Math.PI * 2 * i) / n + Math.random() * 0.2;
+        const speed = 1.8 + Math.random() * 4.1;
+        fwParticles.push({
+          x, y,
+          vx: Math.cos(ang) * speed,
+          vy: Math.sin(ang) * speed,
+          life: 1,
+          decay: 0.012 + Math.random() * 0.014,
+          color: Math.random() < 0.15 ? "#ffffff" : color,
+          size: 2 + Math.random() * 2
+        });
+      }
+    }
+
+    if (fireworksRAF) cancelAnimationFrame(fireworksRAF);
+    let lastVFX = 0;
+
+    function frame(now){
+      fireworksRAF = requestAnimationFrame(frame);
+      if (now - lastVFX < FRAME_MS) return;
+      lastVFX = now;
+      const t = now - start;
+      fwctx.clearRect(0, 0, W, H);
+
+      if (launched < maxLaunch && t >= nextLaunch){
+        spawnRocket();
+        launched++;
+        nextLaunch = t + 130 + Math.random() * 170;
+      }
+
+      for (let i = fwRockets.length - 1; i >= 0; i--){
+        const r = fwRockets[i];
+        r.y += r.vy;
+        r.vy += 0.05;
+        fwctx.fillStyle = r.color;
+        fwctx.beginPath();
+        fwctx.arc(r.x, r.y, 2.5, 0, Math.PI * 2);
+        fwctx.fill();
+        if (r.y <= r.targetY || r.vy >= 0){
+          explode(r.x, r.y, r.color);
+          fwRockets.splice(i, 1);
+        }
+      }
+
+      let len = fwParticles.length;
+      for (let i = len - 1; i >= 0; i--){
+        const p = fwParticles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.04;
+        p.vx *= 0.99;
+        p.vy *= 0.99;
+        p.life -= p.decay;
+        if (p.life <= 0){ fwParticles[i] = fwParticles[--len]; continue; }
+        fwctx.globalAlpha = p.life;
+        fwctx.fillStyle = p.color;
+        fwctx.beginPath();
+        fwctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        fwctx.fill();
+      }
+      fwParticles.length = len;
+      fwctx.globalAlpha = 1;
+
+      const active = fwRockets.length || len || launched < maxLaunch;
+      if (!active || t >= 4500){
+        cancelAnimationFrame(fireworksRAF);
+        fwctx.clearRect(0, 0, W, H);
+        fireworksRAF = null;
+      }
+    }
+    fireworksRAF = requestAnimationFrame(frame);
+  }
+
+  function stopFireworks(){
+    if (fireworksRAF){
+      cancelAnimationFrame(fireworksRAF);
+      fireworksRAF = null;
+    }
+    fwRockets = [];
+    fwParticles = [];
+    fwctx.clearRect(0, 0, fireworksCanvas.width, fireworksCanvas.height);
+  }
+
+  function onOverlayContinue(){
+    // Advance to next level on a win, retry the same level on a fail.
+    haptic("tap");
+    if (overlayCard.classList.contains("win")) {
+      localStorage.removeItem(STORAGE_KEYS.pendingCompletion);
+      level++;
+    }
+    saveProgress();
+    startGame();
+  }
+
+  function openSettings(){
+    // Only show the Quit button when opened from the game screen.
+    const inGame = gameScreen.classList.contains("active");
+    quitConfirm.classList.remove("show");
+    settingsQuit.style.display = inGame ? "block" : "none";
+    sfxPopup();
+    settingsOverlay.classList.add("show");
+  }
+
+  function closeSettings(){
+    settingsOverlay.classList.remove("show");
+    document.getElementById("quitConfirm").classList.remove("show");
+  }
+
+  function quitToHome(){
+    // Keep the settings menu on screen while fading to white, then swap
+    // both the game screen and settings menu out together under the cover.
+    clearTimeout(fadeTimer);
+    fadeBlack.classList.add("show");
+    fadeTimer = setTimeout(() => {
+      closeSettings();
+      unlockResultOverlay();
+      hideOverlay();
+      showScreen(startScreen);
+      requestAnimationFrame(() => fadeBlack.classList.remove("show"));
+    }, 420);
+  }
+
+  playBtn.addEventListener("click", () => { sfxClick(); startGame(); });
+  overlayBtn.addEventListener("click", () => { sfxClick(); onOverlayContinue(); });
+  debugWin.addEventListener("click", levelComplete);
+  debugFail.addEventListener("click", levelFailed);
+  debugLang.addEventListener("click", toggleLanguage);
+  debugToggle.addEventListener("click", () => {
+    debugPanel.classList.toggle("collapsed");
+  });
+  debugSkipLevel.addEventListener("click", () => {
+    const val = parseInt(debugLevelInput.value, 10);
+    if (val >= 1) {
+      level = val;
+      saveProgress();
+      debugLevelInput.value = "";
+      startGame();
+    }
+  });
+  debugReset.addEventListener("click", () => {
+    localStorage.removeItem(STORAGE_KEYS.level);
+    location.reload();
+  });
+
+  // Mixer toggle (also shows/hides loudness meter)
+  const meterPanel = document.getElementById("meterPanel");
+  document.getElementById("debugMixerToggle").addEventListener("click", () => {
+    const opening = !debugPanel.classList.contains("mixer-open");
+    debugPanel.classList.toggle("mixer-open");
+    if (opening) {
+      meterPanel.classList.add("show");
+      startMeter();
+    } else {
+      meterPanel.classList.remove("show");
+      stopMeter();
+    }
+  });
+  document.getElementById("meterReset").addEventListener("click", resetMeter);
+
+  // Init mixer controls
+  initMixerControls();
+  preloadAllAudio();
+
+  settingsBtnStart.addEventListener("click", openSettings);
+  settingsBtnGame.addEventListener("click", openSettings);
+  settingsClose.addEventListener("click", () => { sfxClick(); closeSettings(); });
+
+  // Quit confirmation flow
+  const quitConfirm = document.getElementById("quitConfirm");
+  const quitYes = document.getElementById("quitYes");
+  const quitNo = document.getElementById("quitNo");
+
+  settingsQuit.addEventListener("click", () => {
+    sfxPopup();
+    quitConfirm.classList.add("show");
+  });
+  quitYes.addEventListener("click", () => {
+    sfxClick();
+    quitConfirm.classList.remove("show");
+    quitToHome();
+  });
+  quitNo.addEventListener("click", () => {
+    sfxClick();
+    quitConfirm.classList.remove("show");
+  });
+
+  settingsOverlay.addEventListener("click", (e) => {
+    if (e.target === settingsOverlay) {
+      sfxClick();
+      quitConfirm.classList.remove("show");
+      closeSettings();
+    }
+  });
+
+  // Locked tab toasts
+  document.querySelectorAll(".home-bar .tab.locked").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      haptic("tap");
+      sfxClick();
+      const rect = tab.getBoundingClientRect();
+      const appRect = tab.closest(".app").getBoundingClientRect();
+      const toast = document.createElement("span");
+      toast.className = "locked-toast";
+      toast.textContent = t("keepPlaying");
+      toast.style.top = (rect.top - appRect.top - 8) + "px";
+      tab.closest(".app").appendChild(toast);
+      // Centre on the tab, clamped so it stays on-screen
+      const tw = toast.offsetWidth;
+      const centre = rect.left - appRect.left + rect.width / 2;
+      const left = Math.max(8, Math.min(appRect.width - tw - 8, centre - tw / 2));
+      toast.style.left = left + "px";
+      toast.addEventListener("animationend", () => toast.remove());
+    });
+  });
+
+  applyLanguage();
+  updateLevelLabels();
+  installBackNavigationGuard();
+
+  // ---------- Orientation Lock (PORTRAIT ONLY) ----------
+  // The game must never rotate to landscape. In Capacitor builds the native
+  // manifest (android:screenOrientation="portrait") prevents rotation at the OS
+  // level. We also call the Capacitor ScreenOrientation plugin as a belt-and-
+  // suspenders measure.
+  //
+  // IMPORTANT: We intentionally do NOT call screen.orientation.lock() in plain
+  // browsers because Chrome shows a "rotate" button in the bottom-left corner
+  // whenever it detects a JS orientation lock, which lets users override it.
+  // By skipping it, that button never appears.
+  (function lockPortrait() {
+    if (!window.Capacitor || !window.Capacitor.Plugins) return;
+    // Capacitor ScreenOrientation plugin (preferred — native-level lock)
+    const { ScreenOrientation } = window.Capacitor.Plugins;
+    if (ScreenOrientation && ScreenOrientation.lock) {
+      ScreenOrientation.lock({ orientation: "portrait" }).catch(() => {});
+    }
+    // Fallback: standard API inside Capacitor's webview (no Chrome rotate button
+    // appears because the Activity manifest already locks orientation).
+    const so = window.screen && window.screen.orientation;
+    if (so && typeof so.lock === "function") {
+      Promise.resolve(so.lock("portrait-primary")).catch(() => {
+        Promise.resolve(so.lock("portrait")).catch(() => {});
+      });
+    }
+  })();
+
+  // ---------- Splash sequence ----------
+  // Fade in logo, hold, fade out, then show appropriate screen.
+  setTimeout(() => splashLogo.classList.add("visible"), 100);
+  setTimeout(() => splashLogo.classList.remove("visible"), 1600);
+  setTimeout(() => {
+    if (level === 1) {
+      // First-time player: skip home, go straight into level 1
+      showScreen(gameScreen);
+      updateLevelLabels();
+    } else {
+      showScreen(startScreen);
+    }
+  }, 2200);
+
+  // Start BGM on first user interaction (browsers require a gesture to play audio)
+  document.addEventListener("pointerdown", () => {
+    playBackgroundAudio();
+  }, { once: true });
+})();
+    </script>
+</body>
+
+</html>

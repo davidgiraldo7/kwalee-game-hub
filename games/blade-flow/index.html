@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Buzzsaw Puzzle</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+
+        :root {
+            --bg-color: #050505;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            color: white;
+            font-family: 'Orbitron', sans-serif;
+            overflow: hidden;
+            touch-action: manipulation;
+            user-select: none;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            max-width: 500px;
+            margin: 0 auto;
+            background: var(--bg-color);
+            overflow: hidden;
+            border-left: 1px solid #334155;
+            border-right: 1px solid #334155;
+        }
+
+        #gameCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            width: 100%;
+            height: 100%;
+        }
+
+        .overlay {
+            position: relative;
+            z-index: 10;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            pointer-events: none;
+        }
+
+        .header {
+            height: 7%;
+            padding: 5px;
+            text-align: center;
+            background: rgba(15, 23, 42, 0.95);
+            border-bottom: 2px solid #334155;
+            pointer-events: auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .wall-zone {
+            height: 40%;
+        }
+
+        .machinery-gap {
+            height: 20%;
+        }
+
+        .interactive-footer {
+            flex: 1;
+            background: linear-gradient(to top, #1e293b, #0f172a);
+            border-top: 3px solid #334155;
+            display: flex;
+            justify-content: space-around;
+            padding: 10px;
+            pointer-events: auto;
+        }
+
+        .column {
+            flex: 1;
+            display: flex;
+            flex-direction: column-reverse;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .saw-wrapper {
+            position: relative;
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.3s, transform 0.2s;
+        }
+
+        .saw-visual {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: currentColor;
+            clip-path: polygon(50% 0%, 61% 10%, 75% 5%, 80% 20%, 95% 25%, 90% 40%, 100% 50%, 90% 60%, 95% 75%, 80% 80%, 75% 95%, 61% 90%, 50% 100%, 39% 90%, 25% 95%, 20% 80%, 5% 75%, 10% 60%, 0% 50%, 10% 40%, 5% 25%, 20% 20%, 25% 5%, 39% 10%);
+        }
+
+        .rotating-saw .saw-visual {
+            animation: rotate-fast 4s linear infinite;
+        }
+
+        .dulled-saw {
+            opacity: 0.4;
+            filter: grayscale(0.5);
+        }
+
+        @keyframes rotate-fast {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .saw-center {
+            position: relative;
+            z-index: 2;
+            width: 65%;
+            height: 65%;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #111;
+            font-weight: 900;
+            font-size: 10px;
+            box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .column-count {
+            position: absolute;
+            top: -20px;
+            font-size: 10px;
+            color: #94a3b8;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        /* Modals */
+        .modal {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            cursor: pointer;
+            margin-top: 20px;
+            pointer-events: auto;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: background 0.2s;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- Tutorial Pop-up -->
+        <div id="tutorial-modal" class="modal">
+            <h2 class="text-2xl font-bold text-blue-400 mb-6 uppercase text-center">Mission Briefing</h2>
+            <div class="text-sm text-slate-300 space-y-4 max-w-xs text-left">
+                <p><span class="text-blue-400 font-bold">1. Tap Columns:</span> Load buzzsaws into your tray. Durability
+                    is limited and balanced to the level!</p>
+                <p><span class="text-blue-400 font-bold">2. Stationary Grabs:</span> Mechanical arms extend to pick up
+                    saws while the rail base stays locked in place.</p>
+                <p><span class="text-blue-400 font-bold">3. Grinding:</span> Once armed, the pivot slides to follow the
+                    saw into the wall and destroy matching bricks.</p>
+                <p><span class="text-blue-400 font-bold">4. Row Shift:</span> Destroy an entire row at the bottom to
+                    shift the level down.</p>
+                <p><span class="text-blue-400 font-bold">5. Careful Loading:</span> If the tray is full and no reachable
+                    targets exist, the mission fails.</p>
+            </div>
+            <div class="btn-primary" onclick="closeTutorial()">Engage</div>
+        </div>
+
+        <!-- Game Over Pop-up -->
+        <div id="gameover-modal" class="modal hidden">
+            <h2 class="text-3xl font-bold text-red-500 mb-2 uppercase">Mission Terminated</h2>
+            <p id="gameover-reason" class="text-slate-400 mb-6 text-sm"></p>
+            <div class="text-4xl text-yellow-400 mb-8" id="final-score">00000</div>
+            <div class="btn-primary" onclick="location.reload()">Re-Deploy</div>
+        </div>
+
+        <div class="overlay">
+            <div class="header">
+                <h1 class="text-[10px] font-bold tracking-[0.3em] text-blue-400">BUZZSAW PUZZLE</h1>
+                <div id="score-display" class="text-xl text-yellow-400">00000</div>
+            </div>
+            <div class="wall-zone" id="wall-el"></div>
+            <div class="machinery-gap" id="gap-el"></div>
+            <div id="controls" class="interactive-footer"></div>
+            <div class="bg-slate-900 pb-2 text-center text-[8px] text-slate-500 uppercase tracking-widest">Resource
+                Management Required</div>
+        </div>
+    </div>
+
+    <script>
+        // --- Global Config & State ---
+    const COLORS = {
+        red: '#ef4444',
+        blue: '#3b82f6',
+        green: '#22c55e',
+        yellow: '#eab308',
+        purple: '#a855f7'
+    };
+
+    const CONFIG = {
+        cols: 24, 
+        trayMax: 5, 
+        sawCapacity: 20, 
+        levelRows: 40, 
+        brickSize: 0,
+        maxRows: 0, 
+        armCount: 5 
+    };
+
+    let width, height;
+    let score = 0;
+    let gameActive = false;
+    let gameOver = false;
+    let bricks = [];
+    let fallingBricks = []; 
+    let columns = Array.from({length: 4}, () => []); 
+    let traySlots = Array.from({length: CONFIG.trayMax}, () => ({ saw: null, ghost: null }));
+    let particles = [];
+    let arms = [];
+    let reachabilityMap = []; 
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const controlsEl = document.getElementById('controls');
+    const scoreEl = document.getElementById('score-display');
+    const wallEl = document.getElementById('wall-el');
+    const gapEl = document.getElementById('gap-el');
+
+    // --- Core Classes ---
+
+    class Buzzsaw {
+        constructor(color, value) {
+            this.id = Math.random().toString(36).substr(2, 9);
+            this.color = color;
+            this.value = value || CONFIG.sawCapacity;
+            this.rotation = 0;
+        }
+    }
+
+    class Brick {
+        constructor(col, row, color) {
+            this.col = col; this.row = row; this.color = color;
+            this.maxHealth = 5; this.health = this.maxHealth;
+            this.x = 0; this.y = 0; this.vx = 0; this.vy = 0; this.angle = 0; this.rotationSpeed = 0; 
+            this.isSmashed = false; this.isLoose = false; this.isConnectedToCeiling = true;
+        }
+        initFalling() {
+            this.isSmashed = true; this.vx = (Math.random() - 0.5) * 8; this.vy = -Math.random() * 6; this.rotationSpeed = (Math.random() - 0.5) * 0.3;
+        }
+        update() {
+            if (this.isSmashed) { this.x += this.vx; this.y += this.vy; this.vy += 0.5; this.angle += this.rotationSpeed; return; }
+            if (this.isLoose) { this.vy += 0.4; this.y += this.vy; return; }
+            const wallRect = wallEl.getBoundingClientRect();
+            this.x = this.col * CONFIG.brickSize;
+            const targetY = wallRect.top + (this.row * CONFIG.brickSize);
+            if (Math.abs(this.y - targetY) > 1) {
+                this.y += (targetY - this.y) * 0.1; 
+            } else {
+                this.y = targetY;
+            }
+        }
+        draw() {
+            if (this.y < -50 || this.y > height + 50) return;
+            ctx.save();
+            ctx.translate(this.x + CONFIG.brickSize/2, this.y + CONFIG.brickSize/2); ctx.rotate(this.angle);
+            ctx.fillStyle = COLORS[this.color];
+            ctx.fillRect(-CONFIG.brickSize/2 + 0.5, -CONFIG.brickSize/2 + 0.5, CONFIG.brickSize - 1, CONFIG.brickSize - 1);
+            if (this.health < this.maxHealth && !this.isSmashed) {
+                ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.lineWidth = 1; ctx.beginPath();
+                const crackCount = Math.floor((1 - this.health / this.maxHealth) * 8);
+                const intensity = (1 - this.health / this.maxHealth) * CONFIG.brickSize;
+                for(let i=0; i < crackCount; i++) {
+                    ctx.moveTo((Math.random()-0.5)*CONFIG.brickSize/2, (Math.random()-0.5)*CONFIG.brickSize/2);
+                    ctx.lineTo((Math.random()-0.5)*intensity, (Math.random()-0.5)*intensity);
+                }
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+    }
+
+    class Particle {
+        constructor(x, y, color, isShrapnel = false) {
+            this.x = x; this.y = y;
+            const speedScale = isShrapnel ? 1.8 : 1.0;
+            this.vx = (Math.random() - 0.5) * 14 * speedScale;
+            this.vy = (Math.random() - 1.2) * 12 * speedScale; 
+            this.life = 1; this.color = color; this.isShrapnel = isShrapnel;
+            this.size = isShrapnel ? Math.random() * 10 + 5 : 3;
+        }
+        update() { this.x += this.vx; this.y += this.vy; this.vy += 0.6; this.life -= this.isShrapnel ? 0.025 : 0.08; }
+        draw() {
+            ctx.globalAlpha = this.life; ctx.fillStyle = this.color;
+            if (this.isShrapnel) {
+                ctx.beginPath(); ctx.moveTo(this.x, this.y); ctx.lineTo(this.x + this.size, this.y + this.size/2); ctx.lineTo(this.x + this.size/2, this.y + this.size); ctx.fill();
+            } else { ctx.fillRect(this.x, this.y, 3, 3); }
+            ctx.globalAlpha = 1;
+        }
+    }
+
+    class MechanicalArm {
+        constructor(id, baseX) {
+            this.id = id;
+            this.initialX = baseX; 
+            this.baseX = baseX;
+            this.x = baseX;
+            this.baseY = 0;
+            this.y = 0;
+            this.state = 'idle'; 
+            this.heldSaw = null;
+            this.targetBrick = null;
+            this.targetSlotIdx = -1;
+            this.speed = 6; 
+            this.horizontalSpeed = 4; 
+            this.jitterX = 0;
+            this.jitterY = 0;
+            this.path = []; 
+            this.firstPivotX = baseX; 
+        }
+
+        update() {
+            const gapRect = gapEl.getBoundingClientRect();
+            this.baseY = gapRect.top + 25;
+
+            this.updatePath();
+
+            const baseChaseSpeed = this.horizontalSpeed * 0.75; 
+            const dxBase = this.firstPivotX - this.baseX;
+            if (Math.abs(dxBase) > 1) {
+                this.baseX += Math.sign(dxBase) * Math.min(Math.abs(dxBase), baseChaseSpeed);
+            }
+
+            if (this.state === 'idle') {
+                this.firstPivotX = this.initialX;
+                this.moveTo(this.initialX, this.baseY, () => {});
+            } else if (this.state === 'moving_to_tray') {
+                this.firstPivotX = this.initialX; // Pivot stationary during pickup
+                const targetPos = getTraySlotPosition(this.targetSlotIdx);
+                this.moveTo(targetPos.x, targetPos.y, () => {
+                    const slot = traySlots[this.targetSlotIdx];
+                    if (slot.saw) {
+                        this.heldSaw = slot.saw;
+                        slot.ghost = { ...slot.saw };
+                        slot.saw = null;
+                        this.state = 'grinding';
+                    } else {
+                        this.state = 'idle';
+                    }
+                });
+            } else if (this.state === 'grinding') {
+                if (!this.targetBrick || !bricks.includes(this.targetBrick) || this.targetBrick.isLoose || !isTargetValid(this.targetBrick)) {
+                    const next = getBestAccessibleBrick(this.heldSaw.color, this.x, this.y);
+                    if (!next) {
+                        this.state = 'returning_to_tray';
+                        return;
+                    }
+                    this.targetBrick = next;
+                }
+
+                const targetPos = getInteractionPos(this.targetBrick);
+                
+                this.moveToBrick(targetPos.x, targetPos.y, () => {
+                    this.heldSaw.rotation += 0.25; 
+                    this.targetBrick.health -= 0.6;
+                    this.jitterX = (Math.random() - 0.5) * 3;
+                    this.jitterY = (Math.random() - 0.5) * 3;
+                    
+                    if (Math.random() > 0.15) {
+                        particles.push(new Particle(this.x + (Math.random() - 0.5) * 12, this.y - 2, this.targetBrick.color, true));
+                    }
+                    
+                    if (this.targetBrick.health <= 0) {
+                        this.jitterX = 0; this.jitterY = 0;
+                        const brick = this.targetBrick;
+                        bricks = bricks.filter(b => b !== brick);
+                        brick.initFalling();
+                        fallingBricks.push(brick);
+                        score += 5;
+                        scoreEl.innerText = score.toString().padStart(5, '0');
+                        this.heldSaw.value--;
+                        this.targetBrick = null; 
+                        if (this.heldSaw.value <= 0) {
+                            this.heldSaw = null;
+                            traySlots[this.targetSlotIdx].ghost = null;
+                            this.state = 'returning_idle';
+                        }
+                    }
+                });
+            } else if (this.state === 'returning_to_tray') {
+                this.firstPivotX = this.initialX; // Pivot stationary during return
+                const targetPos = getTraySlotPosition(this.targetSlotIdx);
+                this.moveTo(targetPos.x, targetPos.y, () => {
+                    if (this.heldSaw) {
+                        traySlots[this.targetSlotIdx].saw = this.heldSaw;
+                        traySlots[this.targetSlotIdx].ghost = null;
+                        this.heldSaw = null;
+                    }
+                    this.state = 'returning_idle';
+                });
+            } else if (this.state === 'returning_idle') {
+                this.firstPivotX = this.initialX;
+                this.moveToBrick(this.baseX, this.baseY, () => {
+                    this.state = 'idle';
+                });
+            }
+
+            if (this.heldSaw) this.heldSaw.rotation += 0.15;
+            this.checkPathCollisions();
+        }
+
+        checkPathCollisions() {
+            if (this.path.length < 2) return;
+            bricks.forEach(b => {
+                if (b.isLoose) {
+                    const rect = { x: b.x, y: b.y, w: CONFIG.brickSize, h: CONFIG.brickSize };
+                    for (let i = 0; i < this.path.length - 1; i++) {
+                        if (lineIntersectRect(this.path[i], this.path[i+1], rect)) {
+                            bricks = bricks.filter(item => item !== b);
+                            b.initFalling();
+                            fallingBricks.push(b);
+                            for(let s=0; s<5; s++) {
+                                particles.push(new Particle(b.x + CONFIG.brickSize/2, b.y + CONFIG.brickSize/2, b.color, true));
+                            }
+                            return;
+                        }
+                    }
+                }
+            });
+        }
+
+        updatePath() {
+            const wallBottomY = wallEl.getBoundingClientRect().bottom;
+            const wallTopY = wallEl.getBoundingClientRect().top;
+            let targetPivotX;
+            if (this.state === 'idle' || this.state === 'moving_to_tray' || this.state === 'returning_to_tray' || this.state === 'returning_idle') {
+                targetPivotX = this.initialX;
+            } else {
+                targetPivotX = this.x;
+            }
+            
+            const pts = [{x: this.baseX, y: this.baseY}];
+            if (this.y < wallBottomY) {
+                const startCol = Math.max(0, Math.min(CONFIG.cols - 1, Math.floor(this.x / CONFIG.brickSize))); 
+                const startRow = Math.max(0, Math.min(CONFIG.maxRows - 1, Math.floor((this.y - wallTopY) / CONFIG.brickSize)));
+                const entrance = findEntranceFromPoint(startCol, startRow);
+                if (entrance) {
+                    if (this.state === 'grinding') targetPivotX = entrance.c * CONFIG.brickSize + CONFIG.brickSize/2;
+                    pts.push({x: this.baseX, y: wallBottomY + 5});
+                    const gridPath = findGridPath(entrance.c, CONFIG.maxRows - 1, startCol, startRow);
+                    if (gridPath) {
+                        const screenPath = gridPath.map(p => ({
+                            x: p.c * CONFIG.brickSize + CONFIG.brickSize/2,
+                            y: wallTopY + p.r * CONFIG.brickSize + CONFIG.brickSize/2
+                        }));
+                        pts.push(...screenPath);
+                    }
+                } else {
+                    pts.push({x: this.baseX, y: wallBottomY + 5});
+                }
+            } else {
+                pts.push({x: this.baseX, y: wallBottomY + 5});
+            }
+            this.firstPivotX = targetPivotX;
+            pts.push({x: this.x, y: this.y});
+            this.path = smoothPath(pts);
+        }
+
+        moveTo(tx, ty, onReach) {
+            const dx = tx - this.x;
+            const dy = ty - this.y;
+            const dist = Math.hypot(dx, dy);
+            if (dist < 4) onReach();
+            else { this.x += (dx/dist) * this.speed; this.y += (dy/dist) * this.speed; }
+        }
+
+        moveToBrick(tx, ty, onReach) {
+            const wallTopY = wallEl.getBoundingClientRect().top;
+            const wallBottomY = wallEl.getBoundingClientRect().bottom;
+            if (this.y < wallBottomY || ty < wallBottomY) {
+                const startCol = Math.max(0, Math.min(CONFIG.cols-1, Math.floor(this.x / CONFIG.brickSize)));
+                const startRow = Math.max(0, Math.min(CONFIG.maxRows-1, Math.floor((this.y - wallTopY) / CONFIG.brickSize)));
+                const targetCol = Math.max(0, Math.min(CONFIG.cols-1, Math.floor(tx / CONFIG.brickSize)));
+                const targetRow = Math.max(0, Math.min(CONFIG.maxRows-1, Math.floor((ty - wallTopY) / CONFIG.brickSize)));
+                const path = findGridPath(startCol, startRow, targetCol, targetRow, true);
+                if (path && path.length > 1) {
+                    const next = path[1];
+                    const ntx = next.c * CONFIG.brickSize + CONFIG.brickSize/2;
+                    const nty = wallTopY + next.r * CONFIG.brickSize + CONFIG.brickSize/2;
+                    const dx = ntx - this.x;
+                    const dy = nty - this.y;
+                    const dist = Math.hypot(dx, dy);
+                    if (dist < 4) { this.x = ntx; this.y = nty; } else {
+                        const moveSpeed = Math.abs(dx) > Math.abs(dy) ? this.horizontalSpeed : this.speed;
+                        this.x += (dx/dist) * moveSpeed;
+                        this.y += (dy/dist) * moveSpeed;
+                    }
+                    return;
+                }
+            }
+            this.moveTo(tx, ty, onReach);
+        }
+
+        draw() {
+            const renderX = this.x + this.jitterX;
+            const renderY = this.y + this.jitterY;
+            if (this.path.length > 1) {
+                ctx.beginPath();
+                ctx.moveTo(this.path[0].x, this.path[0].y);
+                for(let i=1; i < this.path.length - 1; i++) { ctx.lineTo(this.path[i].x, this.path[i].y); }
+                ctx.lineTo(renderX, renderY);
+                ctx.strokeStyle = '#334155'; ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
+            }
+            ctx.fillStyle = '#475569'; ctx.beginPath(); ctx.roundRect(this.baseX - 8, this.baseY - 6, 16, 12, 3); ctx.fill();
+            if (this.heldSaw) drawSawOnCanvas(renderX, renderY, CONFIG.brickSize * 0.85, this.heldSaw, 1.0);
+            else {
+                ctx.fillStyle = '#1e293b'; ctx.beginPath(); ctx.arc(renderX, renderY, 5, 0, Math.PI*2); ctx.fill();
+            }
+        }
+    }
+
+    // --- Logic Helpers ---
+
+    function getClusteredColor(col, row, existingBricks) {
+        const colors = Object.keys(COLORS);
+        if (Math.random() < 0.92) {
+            const left = existingBricks.find(b => b.col === col - 1 && b.row === row);
+            if (left) return left.color;
+            const up = existingBricks.find(b => b.col === col && b.row === row - 1);
+            if (up) return up.color;
+        }
+        return colors[Math.floor(Math.random() * colors.length)];
+    }
+
+    function getTraySlotPosition(idx) {
+        const gapRect = gapEl.getBoundingClientRect();
+        const trayWidth = width * 0.92, trayStartX = (width - trayWidth) / 2, slotWidth = (trayWidth - 16) / CONFIG.trayMax;
+        return { x: trayStartX + 8 + (idx * slotWidth) + slotWidth/2, y: gapRect.top + gapRect.height * 0.65 };
+    }
+
+    function drawSawOnCanvas(x, y, radius, saw, alpha = 1.0) {
+        ctx.save(); ctx.globalAlpha = alpha; ctx.translate(x, y); ctx.rotate(saw.rotation);
+        ctx.fillStyle = COLORS[saw.color]; 
+        const toothCount = 12;
+        for(let i=0; i<toothCount; i++) {
+            ctx.rotate((Math.PI * 2) / toothCount);
+            ctx.beginPath(); ctx.moveTo(radius, 0); ctx.lineTo(radius * 1.3, radius * 0.15); ctx.lineTo(radius * 0.9, radius * 0.3); ctx.fill();
+        }
+        ctx.beginPath(); ctx.arc(0, 0, radius, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 1; ctx.stroke();
+        ctx.rotate(-saw.rotation); ctx.fillStyle = '#111'; ctx.font = `900 ${radius * 0.9}px Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(saw.value, 0, 0); ctx.restore();
+    }
+
+    function drawMachinery() {
+        const gapRect = gapEl.getBoundingClientRect();
+        const railY = gapRect.top + 25;
+        const railGrad = ctx.createLinearGradient(0, railY - 10, 0, railY + 10);
+        railGrad.addColorStop(0, '#334155'); railGrad.addColorStop(0.5, '#475569'); railGrad.addColorStop(1, '#1e293b');
+        ctx.fillStyle = railGrad; ctx.fillRect(0, railY - 12, width, 24);
+        const trayWidth = width * 0.92, trayHeight = 50, trayStartX = (width - trayWidth) / 2, trayStartY = gapRect.top + gapRect.height * 0.65 - trayHeight/2;
+        ctx.fillStyle = '#111827'; ctx.beginPath(); ctx.roundRect(trayStartX, trayStartY, trayWidth, trayHeight, 8); ctx.fill();
+        ctx.strokeStyle = '#334155'; ctx.stroke();
+        const slotWidth = (trayWidth - 16) / CONFIG.trayMax;
+        for (let i = 0; i < CONFIG.trayMax; i++) {
+            const slotX = trayStartX + 8 + (i * slotWidth);
+            ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.beginPath(); ctx.roundRect(slotX + 2, trayStartY + 4, slotWidth - 4, trayHeight - 8, 4); ctx.fill();
+            if (traySlots[i].ghost) { drawSawOnCanvas(getTraySlotPosition(i).x, getTraySlotPosition(i).y, 14, traySlots[i].ghost, 0.2); }
+            if (traySlots[i].saw) { drawSawOnCanvas(getTraySlotPosition(i).x, getTraySlotPosition(i).y, 16, traySlots[i].saw, 1.0); }
+        }
+    }
+
+    function createSawHTML(saw, isRotating = false, isDulled = false) {
+        const wrapper = document.createElement('div'); 
+        wrapper.className = `saw-wrapper ${isRotating ? 'rotating-saw' : ''} ${isDulled ? 'dulled-saw' : ''}`;
+        wrapper.style.color = COLORS[saw.color];
+        const visual = document.createElement('div'); visual.className = 'saw-visual';
+        const center = document.createElement('div'); center.className = 'saw-center'; center.innerText = saw.value;
+        wrapper.appendChild(visual); wrapper.appendChild(center); return wrapper;
+    }
+
+    function renderFooter() {
+        controlsEl.innerHTML = '';
+        columns.forEach((col, idx) => {
+            const colEl = document.createElement('div'); colEl.className = 'column'; colEl.onclick = () => { if(gameActive) pushToTray(idx); };
+            const countEl = document.createElement('div'); countEl.className = 'column-count'; countEl.innerText = col.length + " left"; colEl.appendChild(countEl);
+            const displayedSaws = col.slice(-5); 
+            displayedSaws.forEach((saw, sIdx) => {
+                const isTop = sIdx === displayedSaws.length - 1;
+                const isDulled = !isTop;
+                colEl.appendChild(createSawHTML(saw, isTop, isDulled));
+            });
+            controlsEl.appendChild(colEl);
+        });
+    }
+
+    function pushToTray(colIdx) {
+        const emptySlotIdx = traySlots.findIndex(s => !s.saw && !s.ghost);
+        if (emptySlotIdx === -1 || columns[colIdx].length === 0) return;
+        traySlots[emptySlotIdx].saw = columns[colIdx].pop();
+        renderFooter();
+        checkStalemate();
+    }
+
+    function dispatchTasks() {
+        for (let i = 0; i < traySlots.length; i++) {
+            const slot = traySlots[i];
+            if (slot.saw && !slot.ghost) {
+                const beingTargeted = arms.some(a => a.targetSlotIdx === i && a.state !== 'idle');
+                if (beingTargeted) continue;
+                const candidateBrick = getBestAccessibleBrick(slot.saw.color, width/2, height/2);
+                if (candidateBrick) {
+                    let bestArm = null, minDist = Infinity;
+                    arms.forEach(arm => {
+                        if (arm.state === 'idle') {
+                            const d = Math.abs(arm.initialX - (candidateBrick.x + CONFIG.brickSize/2));
+                            if (d < minDist) { minDist = d; bestArm = arm; }
+                        }
+                    });
+                    if (bestArm) {
+                        bestArm.targetSlotIdx = i;
+                        bestArm.targetBrick = candidateBrick;
+                        bestArm.state = 'moving_to_tray';
+                    }
+                }
+            }
+        }
+    }
+
+    function getBestAccessibleBrick(color, fromX, fromY) {
+        const candidates = bricks.filter(b => b.row >= 0 && b.color === color && !b.isLoose && !b.isSmashed && isTargetValid(b));
+        if (candidates.length === 0) return null;
+        return candidates.sort((a, b) => Math.hypot(a.x - fromX, a.y - fromY) - Math.hypot(b.x - fromX, b.y - fromY))[0];
+    }
+
+    function updateStructuralIntegrity() {
+        const grid = Array.from({length: CONFIG.cols}, () => Array(CONFIG.maxRows).fill(null));
+        bricks.forEach(b => { 
+            if(b.col >= 0 && b.col < CONFIG.cols && b.row >= 0 && b.row < CONFIG.maxRows && !b.isSmashed && !b.isLoose) {
+                grid[b.col][b.row] = b; b.isConnectedToCeiling = false; 
+            }
+        });
+        const queue = [];
+        for(let c = 0; c < CONFIG.cols; c++) { if(grid[c][0]) { grid[c][0].isConnectedToCeiling = true; queue.push({c: c, r: 0}); } }
+        while(queue.length > 0) {
+            const {c, r} = queue.shift();
+            const neighbors = [{dc:1, dr:0}, {dc:-1, dr:0}, {dc:0, dr:1}, {dc:0, dr:-1}];
+            neighbors.forEach(n => {
+                const nc = c + n.dc, nr = r + n.dr;
+                if(nc >= 0 && nc < CONFIG.cols && nr >= 0 && nr < CONFIG.maxRows) {
+                    const brick = grid[nc][nr];
+                    if(brick && !brick.isConnectedToCeiling) { brick.isConnectedToCeiling = true; queue.push({c: nc, r: nr}); }
+                }
+            });
+        }
+        bricks.forEach(b => { if(b.row >= 0 && !b.isConnectedToCeiling && !b.isSmashed && !b.isLoose) { b.isLoose = true; } });
+    }
+
+    function lineIntersectRect(p1, p2, rect) {
+        const left = rect.x, right = rect.x + rect.w, top = rect.y, bottom = rect.y + rect.h;
+        if (p1.x >= left && p1.x <= right && p1.y >= top && p1.y <= bottom) return true;
+        if (p2.x >= left && p2.x <= right && p2.y >= top && p2.y <= bottom) return true;
+        return lineIntersect(p1, p2, {x:left, y:top}, {x:right, y:top}) ||
+               lineIntersect(p1, p2, {x:right, y:top}, {x:right, y:bottom}) ||
+               lineIntersect(p1, p2, {x:right, y:bottom}, {x:left, y:bottom}) ||
+               lineIntersect(p1, p2, {x:left, y:bottom}, {x:left, y:top});
+    }
+
+    function lineIntersect(p1, p2, p3, p4) {
+        const det = (p2.x - p1.x) * (p4.y - p3.y) - (p2.y - p1.y) * (p4.x - p3.x);
+        if (det === 0) return false;
+        const lambda = ((p4.y - p3.y) * (p4.x - p1.x) + (p3.x - p4.x) * (p4.y - p1.y)) / det;
+        const gamma = ((p1.y - p2.y) * (p4.x - p1.x) + (p2.x - p1.x) * (p4.y - p1.y)) / det;
+        return (0 < lambda && lambda < 1) && (0 < gamma && gamma < 1);
+    }
+
+    function findEntranceFromPoint(sc, sr) {
+        const brickGrid = getBrickGrid();
+        const queue = [{c: sc, r: sr}];
+        const visited = new Set([`${sc},${sr}`]);
+        while(queue.length > 0) {
+            const {c, r} = queue.shift();
+            if (r === CONFIG.maxRows - 1 && reachabilityMap[c][r]) return {c, r};
+            const neighbors = [{dc:1, dr:0}, {dc:-1, dr:0}, {dc:0, dr:1}, {dc:0, dr:-1}];
+            for (let n of neighbors) {
+                const nc = c + n.dc, nr = r + n.dr;
+                const key = `${nc},${nr}`;
+                if (nc >= 0 && nc < CONFIG.cols && nr >= 0 && nr < CONFIG.maxRows && !visited.has(key)) {
+                    if (!brickGrid[nc][nr]) { visited.add(key); queue.push({c: nc, r: nr}); }
+                }
+            }
+        }
+        return null;
+    }
+
+    function getBrickGrid() {
+        const grid = Array.from({length: CONFIG.cols}, () => Array(CONFIG.maxRows).fill(null));
+        bricks.forEach(b => { if(b.col >= 0 && b.col < CONFIG.cols && b.row >= 0 && b.row < CONFIG.maxRows && !b.isLoose && !b.isSmashed) grid[b.col][b.row] = b; });
+        return grid;
+    }
+
+    function findGridPath(sc, sr, ec, er, allowTarget = false) {
+        const brickGrid = getBrickGrid();
+        const queue = [{c: sc, r: sr, p: []}];
+        const visited = new Set([`${sc},${sr}`]);
+        while(queue.length > 0) {
+            const {c, r, p} = queue.shift();
+            if (c === ec && r === er) return [...p, {c, r}];
+            const neighbors = [{dc:1, dr:0}, {dc:-1, dr:0}, {dc:0, dr:1}, {dc:0, dr:-1}];
+            for (let n of neighbors) {
+                const nc = c + n.dc, nr = r + n.dr;
+                const key = `${nc},${nr}`;
+                if (nc >= 0 && nc < CONFIG.cols && nr >= 0 && nr < CONFIG.maxRows && !visited.has(key)) {
+                    const isTarget = (nc === ec && nr === er);
+                    if (!brickGrid[nc][nr] || (allowTarget && isTarget)) {
+                        visited.add(key); queue.push({c: nc, r: nr, p: [...p, {c, r}]});
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    function smoothPath(path) {
+        if (path.length <= 2) return path;
+        const result = [path[0]];
+        let current = 0;
+        const wallTopY = wallEl.getBoundingClientRect().top;
+        while(current < path.length - 1) {
+            let next = path.length - 1;
+            while(next > current + 1) {
+                if (canSee(path[current], path[next], wallTopY)) break;
+                next--;
+            }
+            result.push(path[next]);
+            current = next;
+        }
+        return result;
+    }
+
+    function canSee(p1, p2, wallTopY) {
+        const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+        const steps = Math.ceil(dist / 4);
+        for(let i=1; i < steps; i++) {
+            const cx = p1.x + (p2.x - p1.x) * (i / steps);
+            const cy = p1.y + (p2.y - p1.y) * (i / steps);
+            const col = Math.floor(cx / CONFIG.brickSize);
+            const row = Math.floor((cy - wallTopY) / CONFIG.brickSize);
+            if (row >= 0 && row < CONFIG.maxRows && bricks.some(b => b.col === col && b.row === row && !b.isLoose && !b.isSmashed)) return false;
+        }
+        return true;
+    }
+
+    function updateReachability() {
+        const grid = Array.from({length: CONFIG.cols}, () => Array(CONFIG.maxRows).fill(false));
+        const brickGrid = getBrickGrid();
+        const queue = [];
+        for (let c = 0; c < CONFIG.cols; c++) {
+            let r = CONFIG.maxRows - 1;
+            while (r >= 0 && !brickGrid[c][r]) { grid[c][r] = true; queue.push({c, r}); r--; }
+        }
+        while (queue.length > 0) {
+            const {c, r} = queue.shift();
+            const neighbors = [{dc:1, dr:0}, {dc:-1, dr:0}, {dc:0, dr:1}, {dc:0, dr:-1}];
+            neighbors.forEach(n => {
+                const nc = c + n.dc, nr = r + n.dr;
+                if(nc >= 0 && nc < CONFIG.cols && nr >= 0 && nr < CONFIG.maxRows && !grid[nc][nr] && !brickGrid[nc][nr]) {
+                    grid[nc][nr] = true; queue.push({c: nc, r: nr});
+                }
+            });
+        }
+        reachabilityMap = grid;
+    }
+
+    function isTargetValid(brick) {
+        const c = brick.col, r = brick.row;
+        if (r === CONFIG.maxRows - 1) return true;
+        if (r < CONFIG.maxRows - 1 && reachabilityMap[c][r+1]) return true;
+        if (c > 0 && reachabilityMap[c-1][r]) return true;
+        if (c < CONFIG.cols - 1 && reachabilityMap[c+1][r]) return true;
+        if (r > 0 && reachabilityMap[c][r-1]) return true;
+        return false;
+    }
+
+    function getInteractionPos(brick) {
+        const c = brick.col, r = brick.row;
+        if (r < CONFIG.maxRows - 1 && reachabilityMap[c][r+1]) return { x: brick.x + CONFIG.brickSize/2, y: brick.y + CONFIG.brickSize + 2 };
+        if (c > 0 && reachabilityMap[c-1][r]) return { x: brick.x - 2, y: brick.y + CONFIG.brickSize/2 };
+        if (c < CONFIG.cols - 1 && reachabilityMap[c+1][r]) return { x: brick.x + CONFIG.brickSize + 2, y: brick.y + CONFIG.brickSize/2 };
+        if (r > 0 && reachabilityMap[c][r-1]) return { x: brick.x + CONFIG.brickSize/2, y: brick.y - 2 };
+        return { x: brick.x + CONFIG.brickSize/2, y: brick.y + CONFIG.brickSize + 2 };
+    }
+
+    function resize() {
+        width = Math.min(window.innerWidth, 500); 
+        height = window.innerHeight; 
+        canvas.width = width; 
+        canvas.height = height;
+        CONFIG.brickSize = width / CONFIG.cols; 
+        const wallRect = wallEl.getBoundingClientRect();
+        const liftBuffer = 2;
+        CONFIG.maxRows = Math.floor(wallRect.height / CONFIG.brickSize) - liftBuffer;
+        arms.forEach((arm, i) => { arm.initialX = width * (0.1 + i * 0.2); });
+    }
+
+    function closeTutorial() {
+        document.getElementById('tutorial-modal').classList.add('hidden');
+        gameActive = true;
+    }
+
+    function triggerGameOver(reason) {
+        gameActive = false;
+        gameOver = true;
+        document.getElementById('gameover-modal').classList.remove('hidden');
+        document.getElementById('gameover-reason').innerText = reason;
+        document.getElementById('final-score').innerText = score.toString().padStart(5, '0');
+    }
+
+    function checkStalemate() {
+        if (!gameActive) return;
+        const trayFull = traySlots.every(s => s.saw !== null);
+        if (!trayFull) return;
+        const anySawCanWork = traySlots.some(slot => {
+            if (!slot.saw) return false;
+            return getBestAccessibleBrick(slot.saw.color, width/2, height/2) !== null;
+        });
+        const armsAreWorking = arms.some(arm => {
+            if (arm.heldSaw) { return getBestAccessibleBrick(arm.heldSaw.color, arm.x, arm.y) !== null; }
+            return false;
+        });
+        if (!anySawCanWork && !armsAreWorking) {
+            triggerGameOver("Tray full and no matching bricks are reachable.");
+        }
+    }
+
+    function init() {
+        resize();
+        const colorCounts = { red: 0, blue: 0, green: 0, yellow: 0, purple: 0 };
+        const startOffset = CONFIG.maxRows - CONFIG.levelRows;
+        for(let r=0; r < CONFIG.levelRows; r++) { 
+            const logicalRow = startOffset + r;
+            for(let c=0; c < CONFIG.cols; c++) { 
+                const brick = new Brick(c, logicalRow, getClusteredColor(c, logicalRow, bricks));
+                bricks.push(brick);
+                colorCounts[brick.color]++;
+            } 
+        }
+        let sawPool = [];
+        Object.entries(colorCounts).forEach(([color, count]) => {
+            let remaining = count;
+            while(remaining > 0) {
+                const val = Math.min(remaining, CONFIG.sawCapacity);
+                sawPool.push(new Buzzsaw(color, val));
+                remaining -= val;
+            }
+        });
+        sawPool = sawPool.sort(() => Math.random() - 0.5);
+        sawPool.forEach((saw, idx) => { columns[idx % 4].push(saw); });
+        for (let i = 0; i < CONFIG.armCount; i++) { arms.push(new MechanicalArm(i, width * (0.1 + i * 0.2))); }
+        renderFooter(); 
+        requestAnimationFrame(loop);
+    }
+
+    function loop() {
+        ctx.clearRect(0, 0, width, height);
+        if (gameActive) {
+            updateStructuralIntegrity();
+            updateReachability();
+            const brickGrid = getBrickGrid();
+            let bottomRowEmpty = true;
+            for (let c = 0; c < CONFIG.cols; c++) { if (brickGrid[c][CONFIG.maxRows - 1]) { bottomRowEmpty = false; break; } }
+            const hasBricksAbove = bricks.some(b => b.row < CONFIG.maxRows - 1 && !b.isLoose && !b.isSmashed);
+            if (bottomRowEmpty && hasBricksAbove) { bricks.forEach(b => { if(!b.isLoose && !b.isSmashed) b.row++; }); }
+            dispatchTasks();
+            checkStalemate();
+            if (bricks.filter(b => !b.isSmashed).length === 0 && !gameOver) { triggerGameOver("Level Clear! Mission Successful."); }
+        }
+        drawMachinery();
+        bricks.forEach(b => { b.update(); b.draw(); });
+        fallingBricks = fallingBricks.filter(b => b.y < height + 100); 
+        fallingBricks.forEach(b => { b.update(); b.draw(); });
+        bricks = bricks.filter(b => b.y < height + 50);
+        particles = particles.filter(p => p.life > 0); 
+        particles.forEach(p => { p.update(); p.draw(); });
+        arms.forEach(a => { if(gameActive) a.update(); a.draw(); });
+        requestAnimationFrame(loop);
+    }
+
+    window.onload = init; 
+    window.onresize = resize;
+    </script>
+</body>
+
+</html>

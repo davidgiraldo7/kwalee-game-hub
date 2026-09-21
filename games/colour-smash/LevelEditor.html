@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Color Smash — Level Editor</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap');
+
+    * { box-sizing: border-box; }
+    body, html {
+      margin: 0; padding: 0; min-height: 100%;
+      background: #1a1c29; color: #fff;
+      font-family: 'Nunito', sans-serif;
+    }
+    #app {
+      display: flex; flex-wrap: wrap; gap: 20px;
+      padding: 20px; align-items: flex-start;
+    }
+    h1 { font-weight: 900; text-transform: uppercase; letter-spacing: 2px; margin: 0 0 14px; font-size: 22px; }
+    h2 { font-weight: 900; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 10px; color: #9aa0b5; }
+    .panel {
+      background: #282a3a; border-radius: 18px; padding: 18px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.35), inset 0 2px 0 rgba(255,255,255,0.05);
+    }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+    label { font-weight: 700; font-size: 13px; color: #c7ccdd; }
+    input[type="text"], input[type="number"], textarea, select {
+      background: #1f2130; border: 2px solid #3a3d52; color: #fff;
+      border-radius: 10px; padding: 8px 10px; font-family: inherit; font-weight: 700; font-size: 13px;
+    }
+    input[type="number"] { width: 64px; }
+    input[type="text"] { min-width: 180px; }
+    textarea { width: 100%; min-height: 140px; resize: vertical; font-size: 11px; line-height: 1.4; font-weight: 600; }
+    button {
+      background: #05c46b; color: #fff; border: none; padding: 9px 14px;
+      font-size: 13px; font-weight: 700; border-radius: 12px; cursor: pointer;
+      box-shadow: 0 4px 0 #049451; font-family: inherit;
+    }
+    button:active { transform: translateY(3px); box-shadow: 0 0 0 #049451; }
+    button.secondary { background: #576574; box-shadow: 0 4px 0 #3c4653; }
+    button.secondary:active { box-shadow: 0 0 0 #3c4653; }
+    button.danger { background: #ff5a5f; box-shadow: 0 4px 0 #c43d42; }
+    .tool-btn {
+      background: #1f2130; box-shadow: none; border: 2px solid #3a3d52; padding: 7px 12px;
+    }
+    .tool-btn.active { border-color: #05c46b; background: #14361f; }
+    .tool-btn:active { transform: none; }
+    .swatch {
+      width: 32px; height: 32px; border-radius: 9px; cursor: pointer;
+      border: 3px solid transparent;
+      box-shadow: inset 0 2px 4px rgba(255,255,255,0.3);
+    }
+    .swatch.active { border-color: #fff; }
+    #grid-wrap { width: 100%; overflow: auto; }
+    #grid {
+      display: grid; gap: 3px; touch-action: none;
+      width: max-content;
+    }
+    .cell {
+      width: var(--cell-size, 56px); height: var(--cell-size, 56px);
+      border-radius: 8px; background: #2f3547; cursor: pointer;
+      position: relative; user-select: none;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 900; font-size: 11px; color: rgba(0,0,0,0.5);
+    }
+    .cell.wall {
+      background: transparent; outline: 2px dashed #383c52; outline-offset: -4px;
+      color: transparent;
+    }
+        .cell.piece-edge {
+            box-shadow: inset 0 0 0 2px rgba(255,255,255,0.55);
+        }
+        .cell .edge-mark {
+            position: absolute; pointer-events: none;
+            background: rgba(255,255,255,0.88);
+            box-shadow: 0 0 0 1px rgba(0,0,0,0.2);
+        }
+        .cell .edge-mark.N { left: 18%; right: 18%; top: 3px; height: 4px; border-radius: 2px; }
+        .cell .edge-mark.S { left: 18%; right: 18%; bottom: 3px; height: 4px; border-radius: 2px; }
+        .cell .edge-mark.W { top: 18%; bottom: 18%; left: 3px; width: 4px; border-radius: 2px; }
+        .cell .edge-mark.E { top: 18%; bottom: 18%; right: 3px; width: 4px; border-radius: 2px; }
+        .cell .edge-arrow {
+            position: absolute; pointer-events: none;
+            width: 0; height: 0;
+            border-style: solid;
+            filter: drop-shadow(0 0 1px rgba(0,0,0,0.35));
+        }
+        .cell .edge-arrow.E {
+            right: 10px; top: 50%; transform: translateY(-50%);
+            border-width: 6px 0 6px 9px;
+            border-color: transparent transparent transparent rgba(255,255,255,0.95);
+        }
+        .cell .edge-arrow.W {
+            left: 10px; top: 50%; transform: translateY(-50%);
+            border-width: 6px 9px 6px 0;
+            border-color: transparent rgba(255,255,255,0.95) transparent transparent;
+        }
+        .cell .edge-arrow.S {
+            bottom: 10px; left: 50%; transform: translateX(-50%);
+            border-width: 9px 6px 0 6px;
+            border-color: rgba(255,255,255,0.95) transparent transparent transparent;
+        }
+        .cell .edge-arrow.N {
+            top: 10px; left: 50%; transform: translateX(-50%);
+            border-width: 0 6px 9px 6px;
+            border-color: transparent transparent rgba(255,255,255,0.95) transparent;
+        }
+        .hint { color: #8890a8; font-size: 12px; line-height: 1.5; max-width: 560px; }
+    .status { font-size: 12px; font-weight: 700; margin-top: 6px; min-height: 16px; }
+    .status.error { color: #ff6b5e; }
+    .status.ok { color: #05c46b; }
+    .spacer { flex: 1; }
+    #level-list {
+      display: flex; flex-direction: column; gap: 6px;
+      max-height: 340px; overflow: auto; margin-bottom: 10px;
+    }
+    .lv {
+      display: flex; align-items: center; gap: 8px;
+      background: #1f2130; border: 2px solid #3a3d52; border-radius: 10px;
+      padding: 8px 10px; cursor: pointer; font-weight: 700; font-size: 12px;
+    }
+    .lv.sel { border-color: #05c46b; background: #14361f; }
+    .lv .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .lv .meta { color: #8890a8; font-size: 11px; }
+    .lv button { padding: 4px 8px; font-size: 11px; box-shadow: 0 2px 0 #3c4653; }
+    .lv button:active { transform: translateY(2px); }
+    .badge {
+      display: inline-block; background: #3a3d52; border-radius: 999px;
+      padding: 2px 8px; font-size: 11px; color: #c7ccdd; font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div class="panel" style="flex: 0 1 320px; min-width: 280px;">
+    <h1>Color Smash Editor</h1>
+
+    <h2>Campaign</h2>
+    <div class="row">
+      <button id="new-level-btn">+ New</button>
+      <button class="secondary" id="dup-level-btn">Duplicate</button>
+      <button class="secondary" id="load-manifest-btn">Load folder</button>
+      <input type="file" id="folder-input" multiple accept=".json,application/json" style="display:none">
+    </div>
+    <div id="level-list"></div>
+    <div class="row">
+      <button id="download-all-btn">Download all + manifest</button>
+    </div>
+    <p class="hint">
+      Drop saved files into <code>levels/</code> and list them top→bottom in
+      <code>levels/manifest.json</code>. The game loads that order as levels 1…n (loops).
+    </p>
+
+    <h2 style="margin-top:16px;">Level</h2>
+    <div class="row">
+      <label>Title</label>
+      <input type="text" id="title" value="New Level">
+    </div>
+    <div class="row">
+      <label>File</label>
+      <input type="text" id="filename" value="02-new-level.json" title="Saved filename">
+    </div>
+    <div class="row">
+      <label>Cols</label>
+      <input type="number" id="cols" value="6" min="2" max="16">
+      <label>Rows</label>
+      <input type="number" id="rows" value="6" min="2" max="16">
+      <button class="secondary" id="resize-btn">Resize</button>
+    </div>
+    <div class="row">
+      <button class="secondary" id="fill-btn">Fill floor</button>
+      <button class="secondary" id="void-btn">Void all</button>
+      <button class="danger" id="clear-blocks-btn">Clear blocks</button>
+    </div>
+
+    <h2>Tool</h2>
+    <div class="row" id="tools">
+      <button class="tool-btn active" data-tool="terrain">Floor / Void</button>
+      <button class="tool-btn" data-tool="paint">Paint blocks</button>
+      <button class="tool-btn" data-tool="erase">Erase blocks</button>
+      <button class="tool-btn" data-tool="smashEdge">Smash edges</button>
+      <button class="tool-btn" data-tool="winart">Win art</button>
+    </div>
+
+    <h2>Colour</h2>
+    <div class="row" id="swatches"></div>
+    <div class="row">
+      <button class="secondary" id="winart-clear-btn">Clear win art</button>
+      <button class="secondary" id="winart-gen-btn">Generate pixel art</button>
+      <button class="secondary" id="winart-smile-btn">Smile preset</button>
+    </div>
+
+    <div class="status" id="status"></div>
+    <p class="hint" style="margin-top:10px;">
+      Paint <b>1×1</b> cells; same-colour cells that touch orthogonally auto-combine
+      into one piece (rects, L-shapes, etc.) on export.<br>
+      <b>Smash edges</b> (optional): click near a piece's outer edge to mark it.
+      Marked pieces only smash when joined on that edge. Clear with shift-click.
+    </p>
+  </div>
+
+  <div class="panel" style="flex: 3 1 520px; min-width: 360px;">
+    <div class="row">
+      <h2 style="margin:0;">Board</h2>
+      <span class="badge" id="piece-count">0 pieces</span>
+    </div>
+    <div id="grid-wrap"><div id="grid"></div></div>
+  </div>
+
+  <div class="panel" style="flex: 1 1 380px; min-width: 320px;">
+    <h2>Export</h2>
+    <div class="row">
+      <button id="export-btn">Refresh JSON</button>
+      <button class="secondary" id="copy-btn">Copy</button>
+      <button id="download-btn">Download level</button>
+    </div>
+    <div class="row">
+      <button class="secondary" id="import-btn">Import JSON ↑</button>
+      <input type="file" id="import-file" accept=".json,application/json" style="display:none">
+    </div>
+    <textarea id="json" spellcheck="false" placeholder="Level JSON…"></textarea>
+    <p class="hint">
+      Format: <code>grid</code>, <code>blocks[{id,color,cells,smashEdges?}]</code>, <code>winArt</code>.
+      Optional <code>smashEdges: [{dx,dy,dir}]</code> restricts which faces can smash.
+      Saving always includes a full-grid pixel-art pattern (auto-generated if you
+      haven't painted one). Colours are palette names (<code>red</code>, <code>blue</code>, …).
+    </p>
+  </div>
+</div>
+
+<script>
+  const PALETTE = {
+    red:    '#f04e66',
+    blue:   '#627ce8',
+    green:  '#45c977',
+    orange: '#f09a42',
+    purple: '#a979de',
+    yellow: '#f3c33d',
+    cyan:   '#5bc6d5',
+    pink:   '#ed6e94',
+  };
+  const HEX_TO_NAME = {};
+  Object.keys(PALETTE).forEach((k) => { HEX_TO_NAME[PALETTE[k].toLowerCase()] = k; });
+
+  function colorName(c) {
+    if (typeof c !== 'string') return 'red';
+    if (PALETTE[c]) return c;
+    return HEX_TO_NAME[c.toLowerCase()] || 'red';
+  }
+
+  const SMILE_ART = [
+    ['orange', 'yellow', 'yellow', 'yellow', 'yellow', 'orange'],
+    ['yellow', 'yellow', 'yellow', 'yellow', 'yellow', 'yellow'],
+    ['yellow', 'blue',   'yellow', 'yellow', 'blue',   'yellow'],
+    ['yellow', 'yellow', 'yellow', 'yellow', 'yellow', 'yellow'],
+    ['yellow', 'yellow', 'red',    'red',    'yellow', 'yellow'],
+    ['orange', 'yellow', 'yellow', 'yellow', 'yellow', 'orange'],
+  ];
+
+  const ART_COLORS = ['red', 'blue', 'green', 'yellow', 'orange', 'purple', 'cyan', 'pink'];
+
+  function hashStr(s) {
+    let h = 2166136261;
+    for (let i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return h >>> 0;
+  }
+
+  // Build a full cols×rows pixel-art pattern (every cell coloured — including
+  // void cells so they can light up on level complete).
+  function generateWinArt(cols, rows, seed) {
+    const s = (seed == null ? hashStr(document.getElementById('title').value || '') : seed) >>> 0;
+    const motifs = ['smile', 'heart', 'star', 'diamond', 'burst', 'invader'];
+    const motif = motifs[s % motifs.length];
+    const bg = ART_COLORS[(s >>> 3) % ART_COLORS.length];
+    let fg = ART_COLORS[(s >>> 7) % ART_COLORS.length];
+    let accent = ART_COLORS[(s >>> 11) % ART_COLORS.length];
+    if (fg === bg) fg = ART_COLORS[(ART_COLORS.indexOf(fg) + 1) % ART_COLORS.length];
+    if (accent === bg || accent === fg)
+      accent = ART_COLORS[(ART_COLORS.indexOf(accent) + 2) % ART_COLORS.length];
+
+    const art = makeEmptyArt(cols, rows);
+    const nx = (c) => (c + 0.5) / cols;
+    const ny = (r) => (r + 0.5) / rows;
+    const inCircle = (c, r, cx, cy, rad) => {
+      const dx = nx(c) - cx, dy = ny(r) - cy;
+      return dx * dx + dy * dy <= rad * rad;
+    };
+
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const x = nx(c), y = ny(r);
+        let col = bg;
+
+        if (motif === 'smile') {
+          if (inCircle(c, r, 0.5, 0.5, 0.46)) col = 'yellow';
+          if (inCircle(c, r, 0.34, 0.38, 0.08) || inCircle(c, r, 0.66, 0.38, 0.08)) col = 'blue';
+          if (y > 0.55 && y < 0.78 && x > 0.28 && x < 0.72) {
+            const smile = Math.abs(y - (0.55 + 0.55 * Math.pow(Math.abs(x - 0.5) / 0.28, 1.6)));
+            if (smile < 0.07) col = 'red';
+          }
+          if (!inCircle(c, r, 0.5, 0.5, 0.46)) col = bg === 'yellow' ? 'orange' : bg;
+        } else if (motif === 'heart') {
+          const hx = (x - 0.5) * 1.35, hy = (y - 0.42) * 1.35;
+          const a = hx * hx + hy * hy - 0.22;
+          const heart = a * a * a - hx * hx * hy * hy * hy < 0;
+          col = heart ? 'red' : bg;
+          if (heart && y < 0.38 && (x < 0.42 || x > 0.58)) col = 'pink';
+        } else if (motif === 'star') {
+          const dx = x - 0.5, dy = y - 0.5;
+          const ang = Math.atan2(dy, dx);
+          const rad = Math.hypot(dx, dy);
+          const spike = 0.18 + 0.28 * Math.pow(Math.abs(Math.cos(ang * 2.5)), 1.8);
+          if (rad < spike) col = 'yellow';
+          else if (rad < spike + 0.06) col = 'orange';
+          else col = bg;
+        } else if (motif === 'diamond') {
+          const d = Math.abs(x - 0.5) + Math.abs(y - 0.5);
+          if (d < 0.22) col = accent;
+          else if (d < 0.38) col = fg;
+          else if (d < 0.52) col = accent === fg ? bg : fg;
+          else col = bg;
+        } else if (motif === 'burst') {
+          const dx = x - 0.5, dy = y - 0.5;
+          const ang = (Math.atan2(dy, dx) + Math.PI) / (Math.PI * 2);
+          const band = Math.floor(ang * 8) % 2;
+          const rad = Math.hypot(dx, dy);
+          if (rad < 0.18) col = 'yellow';
+          else col = band ? fg : bg;
+        } else { // invader
+          const gx = Math.floor(x * 11);
+          const gy = Math.floor(y * 9);
+          const sprite = [
+            '00100000100',
+            '00010001000',
+            '00111111100',
+            '01101110110',
+            '11111111111',
+            '10111111101',
+            '10100000101',
+            '00011011000',
+            '00000000000',
+          ];
+          const ch = sprite[Math.min(gy, sprite.length - 1)][Math.min(gx, 10)];
+          col = ch === '1' ? fg : bg;
+          if (ch === '1' && (gy === 3) && (gx === 3 || gx === 7)) col = 'red';
+        }
+
+        art[r][c] = col;
+      }
+    }
+    return art;
+  }
+
+  function winArtIsEmpty() {
+    for (let r = 0; r < rows; r++)
+      for (let c = 0; c < cols; c++)
+        if (winArt[r] && winArt[r][c]) return false;
+    return true;
+  }
+
+  // Campaign: ordered list of { filename, data }
+  let campaign = [];
+  let activeIdx = -1;
+
+  let cols = 6, rows = 6;
+  let grid = [];           // 1 floor / 0 void
+  let paint = [];          // paint[r][c] = palette name | null
+  let winArt = [];         // winArt[r][c] = palette name | null
+  let smashEdges = {};     // key "x,y,DIR" -> true (absolute cells)
+  let tool = 'paint';
+  let currentColor = 'red';
+  let painting = false;
+  let paintMode = null;    // 'add' | 'remove' | 'floor' | 'void' | 'art' | 'artClear'
+
+  const EDGE_DIRS = ['N', 'E', 'S', 'W'];
+  const EDGE_DELTA = { E: [1, 0], W: [-1, 0], S: [0, 1], N: [0, -1] };
+
+  const gridEl = document.getElementById('grid');
+  const statusEl = document.getElementById('status');
+  const jsonEl = document.getElementById('json');
+  const listEl = document.getElementById('level-list');
+  const pieceCountEl = document.getElementById('piece-count');
+
+  function setStatus(msg, kind) {
+    statusEl.textContent = msg || '';
+    statusEl.className = 'status' + (kind ? ' ' + kind : '');
+  }
+
+  function makeEmptyArt(c, r) {
+    const a = [];
+    for (let y = 0; y < r; y++) {
+      a[y] = [];
+      for (let x = 0; x < c; x++) a[y][x] = null;
+    }
+    return a;
+  }
+
+  function resizeBoard(newCols, newRows, preserve) {
+    const oldG = grid, oldP = paint, oldW = winArt;
+    cols = newCols; rows = newRows;
+    grid = []; paint = []; winArt = [];
+    for (let r = 0; r < rows; r++) {
+      grid[r] = []; paint[r] = []; winArt[r] = [];
+      for (let c = 0; c < cols; c++) {
+        grid[r][c] = (preserve && oldG[r] && oldG[r][c] !== undefined) ? oldG[r][c] : 1;
+        paint[r][c] = (preserve && oldP[r] && oldP[r][c] != null) ? oldP[r][c] : null;
+        winArt[r][c] = (preserve && oldW[r] && oldW[r][c] != null) ? oldW[r][c] : null;
+        if (grid[r][c] === 0) paint[r][c] = null;
+      }
+    }
+    document.getElementById('cols').value = cols;
+    document.getElementById('rows').value = rows;
+    render();
+    refreshJson();
+  }
+
+  // Connected components of same-colour paint → pieces.
+  function combinePieces() {
+    const seen = Array.from({ length: rows }, () => Array(cols).fill(false));
+    const pieces = [];
+    const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        if (seen[r][c] || !paint[r][c] || grid[r][c] !== 1) continue;
+        const color = paint[r][c];
+        const cells = [];
+        const stack = [[c, r]];
+        seen[r][c] = true;
+        while (stack.length) {
+          const [x, y] = stack.pop();
+          cells.push([x, y]);
+          for (const [dx, dy] of dirs) {
+            const nx = x + dx, ny = y + dy;
+            if (nx < 0 || ny < 0 || nx >= cols || ny >= rows) continue;
+            if (seen[ny][nx] || paint[ny][nx] !== color || grid[ny][nx] !== 1) continue;
+            seen[ny][nx] = true;
+            stack.push([nx, ny]);
+          }
+        }
+        cells.sort((a, b) => a[1] - b[1] || a[0] - b[0]);
+        pieces.push({ color, cells });
+      }
+    }
+    return pieces;
+  }
+
+  function cellPieceId() {
+    const pieces = combinePieces();
+    const map = {};
+    pieces.forEach((p, i) => {
+      for (const [x, y] of p.cells) map[x + ',' + y] = i + 1;
+    });
+    return { pieces, map };
+  }
+
+  function buildLevelData() {
+    const title = document.getElementById('title').value.trim() || 'Untitled';
+    const pieces = combinePieces();
+    const blocks = pieces.map((p, i) => {
+      const minX = Math.min(...p.cells.map((c) => c[0]));
+      const minY = Math.min(...p.cells.map((c) => c[1]));
+      const cellSet = new Set(p.cells.map(([x, y]) => x + ',' + y));
+      const edges = [];
+      for (const [x, y] of p.cells) {
+        for (const dir of EDGE_DIRS) {
+          const key = x + ',' + y + ',' + dir;
+          if (!smashEdges[key]) continue;
+          const [ox, oy] = EDGE_DELTA[dir];
+          // Only keep exterior edges of this piece.
+          if (cellSet.has((x + ox) + ',' + (y + oy))) continue;
+          edges.push({ dx: x - minX, dy: y - minY, dir });
+        }
+      }
+      const block = {
+        id: String(i + 1),
+        color: p.color,
+        cells: p.cells,
+      };
+      if (edges.length) block.smashEdges = edges;
+      return block;
+    });
+    // Always include a full-grid pixel art in the saved JSON. Auto-generate when
+    // the board art is blank (does not overwrite a hand-painted pattern).
+    const art = winArtIsEmpty()
+      ? generateWinArt(cols, rows, hashStr(title + '|' + cols + 'x' + rows))
+      : winArt.map((row) => row.map((v) => v || null));
+    return {
+      title,
+      grid: grid.map((row) => row.slice()),
+      blocks,
+      winArt: art,
+    };
+  }
+
+  function slugify(title) {
+    return (title || 'level').toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '') || 'level';
+  }
+
+  function suggestFilename(index, title) {
+    const n = String(index + 1).padStart(2, '0');
+    return n + '-' + slugify(title) + '.json';
+  }
+
+  function refreshJson() {
+    const data = buildLevelData();
+    jsonEl.value = JSON.stringify(data, null, 2);
+    const { pieces } = cellPieceId();
+    pieceCountEl.textContent = pieces.length + (pieces.length === 1 ? ' piece' : ' pieces');
+    return data;
+  }
+
+  function loadLevelData(data, filename) {
+    if (!data || !Array.isArray(data.grid)) throw new Error('Invalid level JSON');
+    const g = data.grid;
+    rows = g.length;
+    cols = g[0].length;
+    grid = g.map((row) => row.map((v) => (v ? 1 : 0)));
+    paint = makeEmptyArt(cols, rows);
+    winArt = makeEmptyArt(cols, rows);
+    smashEdges = {};
+    if (Array.isArray(data.blocks)) {
+      for (const b of data.blocks) {
+        const col = colorName(b.color);
+        let cells = b.cells;
+        let originX = 0, originY = 0;
+        if (!cells && typeof b.x === 'number') {
+          const w = b.w || 2, h = b.h || 2;
+          cells = [];
+          for (let r = 0; r < h; r++)
+            for (let c = 0; c < w; c++) cells.push([b.x + c, b.y + r]);
+          originX = b.x; originY = b.y;
+        } else if (cells && cells.length) {
+          originX = Math.min(...cells.map((p) => Array.isArray(p) ? p[0] : p.x));
+          originY = Math.min(...cells.map((p) => Array.isArray(p) ? p[1] : p.y));
+        }
+        for (const p of (cells || [])) {
+          const x = Array.isArray(p) ? p[0] : p.x;
+          const y = Array.isArray(p) ? p[1] : p.y;
+          if (y >= 0 && x >= 0 && y < rows && x < cols && grid[y][x]) paint[y][x] = col;
+        }
+        if (Array.isArray(b.smashEdges)) {
+          for (const e of b.smashEdges) {
+            if (!e || !e.dir) continue;
+            const dir = String(e.dir).toUpperCase();
+            if (!EDGE_DELTA[dir]) continue;
+            let x, y;
+            if (typeof e.dx === 'number' && typeof e.dy === 'number') {
+              x = originX + (e.dx | 0); y = originY + (e.dy | 0);
+            } else if (typeof e.x === 'number' && typeof e.y === 'number') {
+              x = e.x | 0; y = e.y | 0;
+            } else continue;
+            smashEdges[x + ',' + y + ',' + dir] = true;
+          }
+        }
+      }
+    }
+    if (Array.isArray(data.winArt)) {
+      for (let r = 0; r < rows; r++)
+        for (let c = 0; c < cols; c++) {
+          const v = data.winArt[r] && data.winArt[r][c];
+          winArt[r][c] = v ? colorName(v) : null;
+        }
+    }
+    document.getElementById('title').value = data.title || 'Untitled';
+    document.getElementById('filename').value = filename || suggestFilename(Math.max(0, activeIdx), data.title);
+    document.getElementById('cols').value = cols;
+    document.getElementById('rows').value = rows;
+    render();
+    refreshJson();
+  }
+
+  function syncActiveFromForm() {
+    if (activeIdx < 0 || !campaign[activeIdx]) return;
+    const data = buildLevelData();
+    campaign[activeIdx].data = data;
+    campaign[activeIdx].filename = document.getElementById('filename').value.trim()
+      || suggestFilename(activeIdx, data.title);
+    renderList();
+  }
+
+  function selectLevel(idx) {
+    if (activeIdx >= 0) syncActiveFromForm();
+    activeIdx = idx;
+    const entry = campaign[idx];
+    if (!entry) return;
+    loadLevelData(entry.data, entry.filename);
+    renderList();
+  }
+
+  function renderList() {
+    listEl.innerHTML = '';
+    campaign.forEach((entry, i) => {
+      const el = document.createElement('div');
+      el.className = 'lv' + (i === activeIdx ? ' sel' : '');
+      const blocks = (entry.data.blocks || []).length;
+      el.innerHTML =
+        '<span class="name">' + (i + 1) + '. ' + (entry.data.title || entry.filename) + '</span>' +
+        '<span class="meta">' + blocks + ' pcs</span>';
+      const up = document.createElement('button');
+      up.className = 'secondary'; up.textContent = '▲'; up.title = 'Move up';
+      up.onclick = (e) => { e.stopPropagation(); moveLevel(i, -1); };
+      const down = document.createElement('button');
+      down.className = 'secondary'; down.textContent = '▼'; down.title = 'Move down';
+      down.onclick = (e) => { e.stopPropagation(); moveLevel(i, 1); };
+      const del = document.createElement('button');
+      del.className = 'danger'; del.textContent = '×'; del.title = 'Remove';
+      del.onclick = (e) => { e.stopPropagation(); removeLevel(i); };
+      el.appendChild(up); el.appendChild(down); el.appendChild(del);
+      el.onclick = () => selectLevel(i);
+      listEl.appendChild(el);
+    });
+  }
+
+  function moveLevel(i, dir) {
+    const j = i + dir;
+    if (j < 0 || j >= campaign.length) return;
+    syncActiveFromForm();
+    const tmp = campaign[i]; campaign[i] = campaign[j]; campaign[j] = tmp;
+    if (activeIdx === i) activeIdx = j;
+    else if (activeIdx === j) activeIdx = i;
+    renderList();
+  }
+
+  function removeLevel(i) {
+    syncActiveFromForm();
+    campaign.splice(i, 1);
+    if (!campaign.length) {
+      activeIdx = -1;
+      newLevel(false);
+      return;
+    }
+    if (activeIdx >= campaign.length) activeIdx = campaign.length - 1;
+    else if (activeIdx > i) activeIdx--;
+    selectLevel(activeIdx);
+  }
+
+  function newLevel(pushOnly) {
+    syncActiveFromForm();
+    const data = {
+      title: 'New Level',
+      grid: Array.from({ length: 6 }, () => Array(6).fill(1)),
+      blocks: [],
+    };
+    const filename = suggestFilename(campaign.length, data.title);
+    campaign.push({ filename, data });
+    if (!pushOnly) selectLevel(campaign.length - 1);
+    else renderList();
+  }
+
+  function dupLevel() {
+    syncActiveFromForm();
+    if (activeIdx < 0) return;
+    const src = campaign[activeIdx];
+    const data = JSON.parse(JSON.stringify(src.data));
+    data.title = (data.title || 'Level') + ' copy';
+    const filename = suggestFilename(campaign.length, data.title);
+    campaign.push({ filename, data });
+    selectLevel(campaign.length - 1);
+  }
+
+  function clearSmashEdgesAt(c, r) {
+    for (const dir of EDGE_DIRS) delete smashEdges[c + ',' + r + ',' + dir];
+  }
+
+  function isExteriorEdge(c, r, dir) {
+    if (!paint[r] || !paint[r][c]) return false;
+    const [ox, oy] = EDGE_DELTA[dir];
+    const nx = c + ox, ny = r + oy;
+    if (nx < 0 || ny < 0 || nx >= cols || ny >= rows) return true;
+    return paint[ny][nx] !== paint[r][c];
+  }
+
+  function edgeFromPointer(e, cellEl) {
+    const rect = cellEl.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    const u = (e.clientX - rect.left) / rect.width;
+    const v = (e.clientY - rect.top) / rect.height;
+    const scores = [
+      { dir: 'N', d: v },
+      { dir: 'S', d: 1 - v },
+      { dir: 'W', d: u },
+      { dir: 'E', d: 1 - u },
+    ];
+    scores.sort((a, b) => a.d - b.d);
+    if (scores[0].d > 0.38) return null;
+    return scores[0].dir;
+  }
+
+  function toggleSmashEdge(c, r, dir, forceOff) {
+    if (!dir || !paint[r] || !paint[r][c]) return;
+    if (!isExteriorEdge(c, r, dir)) {
+      setStatus('Pick an outer edge of the piece', 'error');
+      return;
+    }
+    const key = c + ',' + r + ',' + dir;
+    if (forceOff || smashEdges[key]) delete smashEdges[key];
+    else smashEdges[key] = true;
+  }
+
+  function render() {
+    const { pieces, map } = cellPieceId();
+    gridEl.style.gridTemplateColumns = 'repeat(' + cols + ', var(--cell-size, 56px))';
+    gridEl.innerHTML = '';
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.dataset.c = c; cell.dataset.r = r;
+        if (grid[r][c] === 0) {
+          cell.classList.add('wall');
+        } else if (tool === 'winart') {
+          const art = winArt[r][c];
+          cell.style.background = art ? PALETTE[art] : '#3a4055';
+          if (art) cell.textContent = '✦';
+        } else if (paint[r][c]) {
+          cell.style.background = PALETTE[paint[r][c]];
+          const id = map[c + ',' + r];
+          if (id) {
+            cell.textContent = id;
+            cell.classList.add('piece-edge');
+          }
+          for (const dir of EDGE_DIRS) {
+            if (!smashEdges[c + ',' + r + ',' + dir]) continue;
+            const mark = document.createElement('div');
+            mark.className = 'edge-mark ' + dir;
+            cell.appendChild(mark);
+            const arrow = document.createElement('div');
+            arrow.className = 'edge-arrow ' + dir;
+            cell.appendChild(arrow);
+          }
+        } else {
+          cell.style.background = '#2f3547';
+        }
+        cell.addEventListener('pointerdown', onCellDown);
+        gridEl.appendChild(cell);
+      }
+    }
+    pieceCountEl.textContent = pieces.length + (pieces.length === 1 ? ' piece' : ' pieces');
+  }
+
+  function applyCell(c, r) {
+    if (c < 0 || r < 0 || c >= cols || r >= rows) return;
+    if (tool === 'terrain') {
+      if (paintMode === 'floor') {
+        grid[r][c] = 1;
+      } else {
+        grid[r][c] = 0;
+        paint[r][c] = null;
+        clearSmashEdgesAt(c, r);
+      }
+    } else if (tool === 'paint') {
+      if (grid[r][c] === 0) return;
+      paint[r][c] = currentColor;
+    } else if (tool === 'erase') {
+      paint[r][c] = null;
+      clearSmashEdgesAt(c, r);
+    } else if (tool === 'winart') {
+      if (paintMode === 'artClear') winArt[r][c] = null;
+      else winArt[r][c] = currentColor;
+    }
+  }
+
+  function onCellDown(e) {
+    e.preventDefault();
+    const c = +e.currentTarget.dataset.c;
+    const r = +e.currentTarget.dataset.r;
+    if (tool === 'smashEdge') {
+      const dir = edgeFromPointer(e, e.currentTarget);
+      if (!dir) {
+        setStatus('Click near an edge of the cell', 'error');
+        return;
+      }
+      toggleSmashEdge(c, r, dir, e.shiftKey);
+      render();
+      refreshJson();
+      syncActiveFromForm();
+      return;
+    }
+    painting = true;
+    if (tool === 'terrain') {
+      paintMode = grid[r][c] === 1 ? 'void' : 'floor';
+    } else if (tool === 'winart') {
+      paintMode = (e.shiftKey || winArt[r][c] === currentColor) ? 'artClear' : 'art';
+    } else {
+      paintMode = 'add';
+    }
+    applyCell(c, r);
+    render();
+    e.currentTarget.setPointerCapture && e.currentTarget.setPointerCapture(e.pointerId);
+  }
+
+  gridEl.addEventListener('pointermove', (e) => {
+    if (!painting) return;
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    if (!el || !el.classList.contains('cell')) return;
+    applyCell(+el.dataset.c, +el.dataset.r);
+    render();
+  });
+  window.addEventListener('pointerup', () => {
+    if (!painting) return;
+    painting = false;
+    refreshJson();
+    syncActiveFromForm();
+  });
+
+  // Swatches
+  const swatchRow = document.getElementById('swatches');
+  Object.keys(PALETTE).forEach((name) => {
+    const s = document.createElement('div');
+    s.className = 'swatch' + (name === currentColor ? ' active' : '');
+    s.style.background = PALETTE[name];
+    s.title = name;
+    s.onclick = () => {
+      currentColor = name;
+      [...swatchRow.children].forEach((el) => el.classList.toggle('active', el.title === name));
+      if (tool === 'terrain') {
+        tool = 'paint';
+        document.querySelectorAll('.tool-btn').forEach((b) =>
+          b.classList.toggle('active', b.dataset.tool === 'paint'));
+      }
+    };
+    swatchRow.appendChild(s);
+  });
+
+  document.querySelectorAll('.tool-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      tool = btn.dataset.tool;
+      document.querySelectorAll('.tool-btn').forEach((b) =>
+        b.classList.toggle('active', b === btn));
+      render();
+    });
+  });
+
+  document.getElementById('resize-btn').onclick = () => {
+    const nc = Math.max(2, Math.min(16, +document.getElementById('cols').value || 6));
+    const nr = Math.max(2, Math.min(16, +document.getElementById('rows').value || 6));
+    resizeBoard(nc, nr, true);
+    syncActiveFromForm();
+    setStatus('Resized to ' + nc + '×' + nr, 'ok');
+  };
+  document.getElementById('fill-btn').onclick = () => {
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) grid[r][c] = 1;
+    render(); refreshJson(); syncActiveFromForm();
+  };
+  document.getElementById('void-btn').onclick = () => {
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+      grid[r][c] = 0; paint[r][c] = null;
+    }
+    render(); refreshJson(); syncActiveFromForm();
+  };
+  document.getElementById('clear-blocks-btn').onclick = () => {
+    paint = makeEmptyArt(cols, rows);
+    smashEdges = {};
+    render(); refreshJson(); syncActiveFromForm();
+  };
+  document.getElementById('winart-clear-btn').onclick = () => {
+    winArt = makeEmptyArt(cols, rows);
+    render(); refreshJson(); syncActiveFromForm();
+  };
+  document.getElementById('winart-gen-btn').onclick = () => {
+    const title = document.getElementById('title').value || '';
+    winArt = generateWinArt(cols, rows, hashStr(title + '|' + Date.now()));
+    tool = 'winart';
+    document.querySelectorAll('.tool-btn').forEach((b) =>
+      b.classList.toggle('active', b.dataset.tool === 'winart'));
+    render(); refreshJson(); syncActiveFromForm();
+    setStatus('Generated ' + cols + '×' + rows + ' pixel art', 'ok');
+  };
+  document.getElementById('winart-smile-btn').onclick = () => {
+    winArt = generateWinArt(cols, rows, 0); // motif index 0 = smile (seed % 6)
+    // Force smile colours onto any size via the smile branch (seed 0 → smile).
+    render(); refreshJson(); syncActiveFromForm();
+    setStatus('Smile win-art applied', 'ok');
+  };
+
+  document.getElementById('export-btn').onclick = () => {
+    refreshJson(); syncActiveFromForm(); setStatus('JSON refreshed', 'ok');
+  };
+  document.getElementById('copy-btn').onclick = async () => {
+    refreshJson();
+    try {
+      await navigator.clipboard.writeText(jsonEl.value);
+      setStatus('Copied', 'ok');
+    } catch (_) {
+      jsonEl.select();
+      setStatus('Select & copy manually', 'error');
+    }
+  };
+
+  function downloadBlob(filename, text) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+    a.download = filename;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+  }
+
+  document.getElementById('download-btn').onclick = () => {
+    const data = refreshJson();
+    syncActiveFromForm();
+    const name = document.getElementById('filename').value.trim()
+      || suggestFilename(Math.max(0, activeIdx), data.title);
+    downloadBlob(name, JSON.stringify(data, null, 2) + '\n');
+    setStatus('Downloaded ' + name + ' — put it in levels/', 'ok');
+  };
+
+  document.getElementById('download-all-btn').onclick = () => {
+    syncActiveFromForm();
+    if (!campaign.length) { setStatus('No levels', 'error'); return; }
+    const names = [];
+    campaign.forEach((entry, i) => {
+      let name = entry.filename || suggestFilename(i, entry.data.title);
+      if (!/^\d{2}-/.test(name)) name = suggestFilename(i, entry.data.title);
+      entry.filename = name;
+      names.push(name);
+      downloadBlob(name, JSON.stringify(entry.data, null, 2) + '\n');
+    });
+    const manifest = { levels: names };
+    downloadBlob('manifest.json', JSON.stringify(manifest, null, 2) + '\n');
+    renderList();
+    setStatus('Downloaded ' + names.length + ' levels + manifest.json → copy into levels/', 'ok');
+  };
+
+  document.getElementById('import-btn').onclick = () =>
+    document.getElementById('import-file').click();
+  document.getElementById('import-file').onchange = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const data = JSON.parse(await file.text());
+      syncActiveFromForm();
+      campaign.push({ filename: file.name, data });
+      selectLevel(campaign.length - 1);
+      setStatus('Imported ' + file.name, 'ok');
+    } catch (err) {
+      setStatus('Import failed: ' + err.message, 'error');
+    }
+  };
+
+  document.getElementById('load-manifest-btn').onclick = () =>
+    document.getElementById('folder-input').click();
+  document.getElementById('folder-input').onchange = async (e) => {
+    const files = [...(e.target.files || [])];
+    e.target.value = '';
+    if (!files.length) return;
+    try {
+      let manifestNames = null;
+      const byName = {};
+      for (const f of files) {
+        const text = await f.text();
+        const data = JSON.parse(text);
+        if (f.name === 'manifest.json' || (data && Array.isArray(data.levels))) {
+          manifestNames = data.levels || data;
+        } else if (data && Array.isArray(data.grid)) {
+          byName[f.name] = data;
+        }
+      }
+      const ordered = [];
+      if (manifestNames && manifestNames.length) {
+        for (const name of manifestNames) {
+          if (byName[name]) ordered.push({ filename: name, data: byName[name] });
+        }
+        for (const name of Object.keys(byName)) {
+          if (!ordered.some((e) => e.filename === name))
+            ordered.push({ filename: name, data: byName[name] });
+        }
+      } else {
+        Object.keys(byName).sort().forEach((name) =>
+          ordered.push({ filename: name, data: byName[name] }));
+      }
+      if (!ordered.length) throw new Error('No level JSON found');
+      campaign = ordered;
+      selectLevel(0);
+      setStatus('Loaded ' + campaign.length + ' levels', 'ok');
+    } catch (err) {
+      setStatus('Load failed: ' + err.message, 'error');
+    }
+  };
+
+  document.getElementById('new-level-btn').onclick = () => newLevel(false);
+  document.getElementById('dup-level-btn').onclick = () => dupLevel();
+
+  document.getElementById('title').addEventListener('change', () => {
+    syncActiveFromForm();
+    setStatus('', '');
+  });
+  document.getElementById('filename').addEventListener('change', () => syncActiveFromForm());
+
+  // Boot: try fetch existing campaign, else seed First Clash.
+  async function boot() {
+    try {
+      const man = await fetch('levels/manifest.json', { cache: 'no-store' }).then((r) => {
+        if (!r.ok) throw new Error('no manifest');
+        return r.json();
+      });
+      const names = Array.isArray(man) ? man : man.levels;
+      const loaded = [];
+      for (const name of names) {
+        const data = await fetch('levels/' + encodeURIComponent(name), { cache: 'no-store' })
+          .then((r) => { if (!r.ok) throw new Error(name); return r.json(); });
+        loaded.push({ filename: name, data });
+      }
+      if (loaded.length) {
+        campaign = loaded;
+        selectLevel(0);
+        setStatus('Loaded levels/manifest.json (' + loaded.length + ')', 'ok');
+        return;
+      }
+    } catch (_) { /* seed below */ }
+    campaign = [];
+    newLevel(false);
+    // Prefer baking a starter that matches the shipped first clash if fetchable.
+    try {
+      const data = await fetch('levels/01-first-clash.json', { cache: 'no-store' })
+        .then((r) => (r.ok ? r.json() : null));
+      if (data) {
+        campaign = [{ filename: '01-first-clash.json', data }];
+        selectLevel(0);
+        setStatus('Loaded 01-first-clash.json', 'ok');
+        return;
+      }
+    } catch (_) {}
+    setStatus('New blank campaign — paint blocks, then Download all', 'ok');
+  }
+
+  boot();
+</script>
+</body>
+</html>

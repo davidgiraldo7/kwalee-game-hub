@@ -26,7 +26,7 @@
       "heat": 98,
       "description": "Divide the grid into tiles. Each number is the size of its rectangle.",
       "cover": "covers/grid-filler.jpg",
-      "src": "grid-filler.html"
+      "src": "grid-filler/index.html"
     },
     {
       "id": "pixel-blocks",
@@ -35,7 +35,7 @@
       "heat": 97,
       "description": "Sort colors, collect blocks, and keep the waiting tray clear.",
       "cover": "covers/pixel-blocks.jpg",
-      "src": "pixel-blocks.html"
+      "src": "pixel-blocks/index.html"
     },
     {
       "id": "link-flow",
@@ -44,7 +44,7 @@
       "heat": 96,
       "description": "Connect matching colors, tiles, and paths without crossing the flow.",
       "cover": "covers/link-flow.jpg",
-      "src": "link-flow.html"
+      "src": "link-flow/index.html"
     },
     {
       "id": "blade-flow",
@@ -53,7 +53,7 @@
       "heat": 95,
       "description": "Grind the cubes, carve a path, and clear every colorful slice.",
       "cover": "covers/blade-flow.jpg",
-      "src": "blade-flow.html"
+      "src": "blade-flow/index.html"
     },
     {
       "id": "colour-smash",
@@ -62,7 +62,7 @@
       "heat": 94,
       "description": "Connect the dots and smash matching color blocks off the board.",
       "cover": "covers/colour-smash.jpg",
-      "src": "colour-smash.html"
+      "src": "colour-smash/index.html"
     },
     {
       "id": "sausage-sort",
@@ -71,7 +71,7 @@
       "heat": 93,
       "description": "Sort sausages by color before the tray jams.",
       "cover": "covers/sausage-sort.jpg",
-      "src": "sausage-sort.html"
+      "src": "sausage-sort/index.html"
     },
     {
       "id": "aqua-block-jam",
@@ -80,7 +80,7 @@
       "heat": 92,
       "description": "Slide the water blocks and sort every drop into its tube.",
       "cover": "covers/aqua-block-jam.jpg",
-      "src": "aqua-block-jam.html"
+      "src": "aqua-block-jam/index.html"
     },
     {
       "id": "claw-sort",
@@ -89,7 +89,7 @@
       "heat": 91,
       "description": "Grab, sort, and clear the claw machine one color at a time.",
       "cover": "covers/claw-sort.jpg",
-      "src": "claw-sort.html"
+      "src": "claw-sort/index.html"
     },
     {
       "id": "flock-feast",
@@ -98,7 +98,7 @@
       "heat": 90,
       "description": "Feed the flock in the right order and keep the line moving.",
       "cover": "covers/flock-feast.jpg",
-      "src": "flock-feast.html"
+      "src": "flock-feast/index.html"
     }
   ]
 }

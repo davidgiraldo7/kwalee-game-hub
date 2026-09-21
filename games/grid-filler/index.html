@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Grid Solver - Logic Puzzle</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Varela+Round&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f8fafc;
+            --panel: #ffffff;
+            --empty: #e2e8f0;
+            --blue: #2563eb;
+            --blue-light: #3b82f6;
+            --blue-dark: #1e3a8a;
+            --green: #10b981;
+            --green-light: #34d399;
+            --green-dark: #064e3b;
+            --locked: #475569;
+            --locked-dark: #1e293b;
+            --danger: #ef4444;
+            --indigo: #6366f1;
+            --hint: #f59e0b;
+            --error-pale: #ffe4e6;
+            --error-dark: #fb7185;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: #1e293b;
+            font-family: 'Varela Round', sans-serif;
+            overflow: hidden;
+            touch-action: none;
+            user-select: none;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Hide scrollbars but allow scrolling if needed on tiny screens */
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+        .clay-card {
+            background: var(--panel);
+            border-radius: 32px;
+            box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.1), 
+                        inset 0 -6px 0 rgba(0,0,0,0.03);
+            border: 1px solid rgba(0,0,0,0.02);
+        }
+
+        #game-board-container {
+            display: grid;
+            gap: 0;
+            position: relative;
+            box-sizing: content-box;
+            /* Auto-sized by JS */
+        }
+
+        .grid-cell {
+            aspect-ratio: 1 / 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            box-sizing: border-box;
+        }
+
+        .slot-visual {
+            width: 85%;
+            height: 85%;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            pointer-events: none;
+        }
+
+        .slot-empty {
+            background-color: var(--empty);
+            box-shadow: inset 0 3px 6px rgba(0,0,0,0.08);
+            border: 1px solid #cbd5e1;
+        }
+
+        .slot-error {
+            background-color: var(--error-pale);
+            box-shadow: inset 0 3px 6px rgba(251, 113, 133, 0.15);
+            border: 1px solid var(--error-dark);
+        }
+
+        /* Locked / Obstacle Cells */
+        .cell-locked {
+            width: 100%; height: 100%;
+            position: relative;
+            display: flex; align-items: center; justify-content: center;
+            font-size: clamp(16px, 4vw, 24px); font-weight: 900;
+            color: rgba(255,255,255,0.7);
+            z-index: 5;
+            border: clamp(2px, 0.5vw, 4px) solid black;
+            border-radius: 14px;
+            box-sizing: border-box;
+        }
+        .locked-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.25); border-radius: 10px; }
+        
+        .blue-gradient { background: linear-gradient(180deg, var(--blue-light) 0%, var(--blue) 100%) !important; }
+        .green-gradient { background: linear-gradient(180deg, var(--green-light) 0%, var(--green) 100%) !important; }
+        
+        /* Hint Outline */
+        .hint-outline {
+            position: absolute;
+            inset: 4px;
+            z-index: 30;
+            pointer-events: none;
+            box-sizing: border-box;
+            border: 3px dashed var(--hint);
+            border-radius: 10px;
+        }
+
+        /* Boosters */
+        .booster-btn {
+            background: white; border: 2px solid #e2e8f0; border-radius: 16px;
+            padding: 8px 16px; display: flex; flex-direction: column; align-items: center;
+            gap: 4px; transition: all 0.2s; min-width: 80px;
+        }
+        .booster-btn:active { transform: scale(0.95); }
+        .booster-btn.active { border-color: var(--hint); background: #fffcf0; }
+        .booster-icon { font-size: 20px; }
+        .booster-label { font-size: 10px; font-weight: 900; text-transform: uppercase; color: #64748b; }
+
+        /* Responsive Target Bars */
+        .target-bar { border-radius: clamp(4px, 1.5vw, 8px); flex-shrink: 0; transition: all 0.2s ease; box-sizing: border-box; }
+        .bar-v { width: clamp(16px, 4vw, 22px); height: clamp(28px, 6vw, 38px); } 
+        .bar-h { width: clamp(28px, 6vw, 38px); height: clamp(16px, 4vw, 22px); }
+        .bar-empty-blue { background: #fff; border: clamp(2px, 0.6vw, 4px) solid var(--blue); }
+        .bar-empty-green { background: #fff; border: clamp(2px, 0.6vw, 4px) solid var(--green); }
+        .bar-blue { background: var(--blue); border: 2px solid var(--blue-dark); box-shadow: 0 3px 0 var(--blue-dark); }
+        .bar-green { background: var(--green); border: 2px solid var(--green-dark); box-shadow: 0 3px 0 var(--green-dark); }
+        .bar-over-blue { background: repeating-linear-gradient(45deg, var(--blue), var(--blue) 6px, #fff 6px, #fff 12px); border: 2px solid var(--blue-dark); }
+        .bar-over-green { background: repeating-linear-gradient(45deg, var(--green), var(--green) 6px, #fff 6px, #fff 12px); border: 2px solid var(--green-dark); }
+        
+        #inventory-tray {
+            height: 140px; background: white; border-top: 1px solid #e2e8f0;
+            display: flex; align-items: center; padding: 0 24px; overflow-x: auto;
+            gap: 20px; scrollbar-width: none;
+        }
+
+        .inventory-item {
+            background: #f8fafc; border-radius: 24px; padding: 12px; flex-shrink: 0; cursor: grab;
+            border: 2px solid #f1f5f9; display: flex; align-items: center; justify-content: center;
+            min-width: 90px; height: 100px;
+        }
+
+        #drag-follower { position: fixed; pointer-events: none; z-index: 9999; display: none; filter: drop-shadow(0 15px 30px rgba(0,0,0,0.25)); }
+
+        .difficulty-btn { padding: 8px 20px; border-radius: 100px; font-weight: 800; background: #fff; color: #94a3b8; border: 2px solid #e2e8f0; font-size: 11px; }
+        .difficulty-btn.active { background: var(--indigo); color: white; border-color: var(--indigo); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); }
+
+        .btn-primary { background: var(--indigo); color: white; padding: 18px 48px; border-radius: 100px; font-weight: 800; text-transform: uppercase; box-shadow: 0 6px 0 #4338ca; transition: all 0.1s; letter-spacing: 2px; }
+        .btn-primary:active { transform: translateY(4px); box-shadow: 0 2px 0 #4338ca; }
+
+        #splash-screen { position: fixed; inset: 0; background: var(--bg); z-index: 200; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+    </style>
+</head>
+<body>
+
+    <div id="drag-follower"></div>
+
+    <div id="splash-screen">
+        <div class="w-full max-w-xl text-center">
+            <h1 class="text-5xl font-black text-slate-800 mb-8 tracking-tighter">Grid Solver</h1>
+            <p class="text-slate-500 mb-12 font-bold uppercase tracking-widest text-center">Tactical Logic Interface Engaged</p>
+            <button onclick="startGame()" class="btn-primary w-full max-w-xs py-6 text-xl tracking-widest">Start Mission</button>
+        </div>
+    </div>
+
+    <div class="px-4 pt-6 pb-2 text-center shrink-0">
+        <div class="flex justify-center gap-2 mb-4">
+            <button onclick="setDifficulty('easy')" id="btn-easy" class="difficulty-btn">EASY</button>
+            <button onclick="setDifficulty('medium')" id="btn-medium" class="difficulty-btn">HEART</button>
+            <button onclick="setDifficulty('hard')" id="btn-hard" class="difficulty-btn">HARD</button>
+        </div>
+        <div class="flex justify-center gap-4">
+            <button onclick="toggleHint()" id="hint-btn" class="booster-btn">
+                <span class="booster-icon">💡</span>
+                <span class="booster-label">Hint</span>
+            </button>
+            <button onclick="useReveal()" id="reveal-btn" class="booster-btn">
+                <span class="booster-icon">✨</span>
+                <span class="booster-label">Reveal</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="flex-grow flex items-center justify-center p-2 sm:p-4 min-h-0">
+        <!-- Overflow auto ensures no clipping on tiny screens -->
+        <div class="relative clay-card p-4 sm:p-8 md:p-12 max-w-full max-h-full flex items-center justify-center overflow-auto scrollbar-hide">
+            <div id="game-board-container"></div>
+            <div id="win-message" class="hidden absolute inset-0 flex flex-col items-center justify-center rounded-[32px] z-[100] text-center bg-white/95 backdrop-blur-sm">
+                <h2 class="text-4xl font-black text-slate-900 mb-8 uppercase tracking-tighter">Mission Perfect</h2>
+                <button onclick="handleNextLevel()" class="btn-primary">Next Challenge</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="shrink-0 bg-white">
+        <div id="inventory-tray"></div>
+    </div>
+
+    <script>
+        const SHAPE_LIBRARY = [
+            [[1, 1], [1, 0]], [[1, 1], [0, 1]], [[1, 1], [1, 1]], 
+            [[1, 1, 1]], [[1, 1]], [[1]], [[1, 0], [1, 1], [1, 0]], [[1, 1, 0], [0, 1, 1]]
+        ];
+
+        const THEME = {
+            blue: { fillClass: 'blue-gradient', outline: 'black', previewBg: 'rgba(37, 99, 235, 0.2)' },
+            green: { fillClass: 'green-gradient', outline: 'black', previewBg: 'rgba(16, 185, 129, 0.2)' }
+        };
+
+        const MASKS = {
+            medium: [[0,1,1,0,1,1,0],[1,1,1,1,1,1,1],[1,1,1,1,1,1,1],[0,1,1,1,1,1,0],[0,0,1,1,1,0,0],[0,0,0,1,0,0,0]],
+            hard: [[0,0,1,1,1,0,0],[0,1,1,1,1,1,0],[1,1,1,1,1,1,1],[1,1,1,1,1,1,1],[0,1,1,1,1,1,0],[0,0,1,1,1,0,0],[0,0,0,1,0,0,0]]
+        };
+
+        const EASY_MASKS = [
+            [[1,1,1],[1,1,1]], 
+            [[1,1,1],[1,1,1],[1,1,1]], 
+            [[1,1,1,1],[1,1,1,1],[1,1,1,1]], 
+            [[1,1,1,1],[1,1,1,1],[1,1,1,1],[1,1,1,1]] 
+        ];
+
+        let currentDifficulty = 'easy', levelsCleared = 0, currentLevel = null;
+        let gridSizeX, gridSizeY, cellSize, board = [], placedShapes = [], currentInventoryShapes = [];
+        let isDragging = false, draggedShapeData = null, lastHoveredX = -1, lastHoveredY = -1;
+        let showHint = false;
+
+        function startGame() { document.getElementById('splash-screen').style.display = 'none'; setDifficulty('easy'); }
+
+        function setDifficulty(d) {
+            currentDifficulty = d; levelsCleared = 0; showHint = false;
+            document.getElementById('hint-btn').classList.remove('active');
+            document.querySelectorAll('.difficulty-btn').forEach(btn => btn.classList.toggle('active', btn.id === `btn-${d}`));
+            initGame();
+        }
+
+        function handleNextLevel() { levelsCleared++; initGame(); }
+
+        function toggleHint() {
+            showHint = !showHint;
+            document.getElementById('hint-btn').classList.toggle('active', showHint);
+            updateBoardUI();
+        }
+
+        function useReveal() {
+            if (!currentLevel) return;
+            const unplaced = currentLevel.solutionShapes.find(sol => !placedShapes.some(ps => ps.id === sol.id));
+            if (!unplaced) return;
+
+            const revealShape = { ...unplaced, isRevealed: true };
+            placedShapes.push(revealShape);
+            
+            for (let r = 0; r < revealShape.data.length; r++) {
+                for (let c = 0; c < revealShape.data[r].length; c++) {
+                    if (revealShape.data[r][c] === 1) board[revealShape.y + r][revealShape.x + c] = { id: revealShape.id, color: revealShape.color, isRevealed: true };
+                }
+            }
+            updateLogic(); updateBoardUI(); renderInventory();
+        }
+
+        function startDragging(shape, clientX, clientY, gx = 0, gy = 0) {
+            isDragging = true;
+            draggedShapeData = { ...JSON.parse(JSON.stringify(shape)), grabOffsetX: gx, grabOffsetY: gy };
+            const f = document.getElementById('drag-follower');
+            f.innerHTML = ''; 
+            f.appendChild(createShapeGrid(draggedShapeData, cellSize, true)); // Scale perfectly to board size
+            f.style.display = 'block';
+            updateFollower(clientX, clientY);
+        }
+
+        function updateFollower(clientX, clientY) {
+            const f = document.getElementById('drag-follower');
+            if (!f) return;
+            
+            const gx = draggedShapeData.grabOffsetX || 0;
+            const gy = draggedShapeData.grabOffsetY || 0;
+            
+            // perfectly align the grabbed cell under the cursor
+            f.style.left = (clientX - (cellSize / 2) - (gx * cellSize)) + 'px';
+            f.style.top = (clientY - (cellSize / 2) - (gy * cellSize)) + 'px';
+
+            const container = document.getElementById('game-board-container');
+            if (!container) return;
+            const rect = container.getBoundingClientRect();
+            
+            const tx = Math.floor((clientX - rect.left) / cellSize);
+            const ty = Math.floor((clientY - rect.top) / cellSize);
+
+            if (tx >= 0 && tx < gridSizeX && ty >= 0 && ty < gridSizeY && currentLevel.mask[ty][tx]) {
+                const anchorX = tx - gx, anchorY = ty - gy;
+                if (anchorX !== lastHoveredX || anchorY !== lastHoveredY) { 
+                    lastHoveredX = anchorX; lastHoveredY = anchorY; renderGhost(anchorX, anchorY); 
+                }
+            } else { lastHoveredX = -1; lastHoveredY = -1; clearGhost(); }
+        }
+
+        function renderGhost(startX, startY) {
+            clearGhost();
+            if(!draggedShapeData) return;
+            const valid = canPlace(draggedShapeData.data, startX, startY);
+            const theme = THEME[draggedShapeData.color], radius = 16;
+            const border = `3px dashed ${valid ? 'black' : 'var(--danger)'}`, divider = `2px dashed rgba(255,255,255,0.4)`;
+
+            for (let r = 0; r < draggedShapeData.data.length; r++) {
+                for (let c = 0; c < draggedShapeData.data[r].length; c++) {
+                    if (draggedShapeData.data[r][c] === 1) {
+                        const tx = startX + c, ty = startY + r;
+                        const cell = document.querySelector(`.grid-cell[data-x="${tx}"][data-y="${ty}"]`);
+                        if (cell) {
+                            const g = document.createElement('div');
+                            g.className = 'preview-ghost'; 
+                            g.style.cssText = `width:100%; height:100%; position:absolute; z-index:15; box-sizing:border-box; background:${theme.previewBg};`;
+                            const hasT = r > 0 && draggedShapeData.data[r-1][c], hasB = r < draggedShapeData.data.length - 1 && draggedShapeData.data[r+1][c], hasL = c > 0 && draggedShapeData.data[r][c-1], hasR = c < draggedShapeData.data[r].length - 1 && draggedShapeData.data[r][c+1];
+                            if (!hasT) g.style.borderTop = border; else g.style.borderTop = divider;
+                            if (!hasB) g.style.borderBottom = border;
+                            if (!hasL) g.style.borderLeft = border; else g.style.borderLeft = divider;
+                            if (!hasR) g.style.borderRight = border;
+                            if (!hasT && !hasL) g.style.borderTopLeftRadius = radius+'px';
+                            if (!hasT && !hasR) g.style.borderTopRightRadius = radius+'px';
+                            if (!hasB && !hasL) g.style.borderBottomLeftRadius = radius+'px';
+                            if (!hasB && !hasR) g.style.borderBottomRightRadius = radius+'px';
+                            cell.appendChild(g);
+                        }
+                    }
+                }
+            }
+        }
+
+        function clearGhost() { document.querySelectorAll('.preview-ghost').forEach(g => g.remove()); }
+
+        window.addEventListener('pointermove', (e) => { if (isDragging) updateFollower(e.clientX, e.clientY); });
+        window.addEventListener('pointerup', () => {
+            if (!isDragging) return;
+            if (lastHoveredX !== -1 && lastHoveredY !== -1 && canPlace(draggedShapeData.data, lastHoveredX, lastHoveredY)) placeShape(draggedShapeData, lastHoveredX, lastHoveredY);
+            isDragging = false; draggedShapeData = null; document.getElementById('drag-follower').style.display = 'none'; clearGhost(); renderInventory();
+        });
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && isDragging && draggedShapeData) {
+                e.preventDefault(); draggedShapeData.data = rotateMatrix(draggedShapeData.data);
+                const f = document.getElementById('drag-follower'); f.innerHTML = ''; f.appendChild(createShapeGrid(draggedShapeData, cellSize, true));
+                if (lastHoveredX !== -1) renderGhost(lastHoveredX, lastHoveredY);
+            }
+        });
+
+        function rotateMatrix(m) { return m[0].map((_, i) => m.map(row => row[i]).reverse()); }
+
+        function canPlace(shape, startX, startY) {
+            if (!board || board.length === 0) return false;
+            for (let r = 0; r < shape.length; r++) {
+                for (let c = 0; c < shape[r].length; c++) {
+                    if (shape[r][c] === 1) {
+                        const tx = startX + c, ty = startY + r;
+                        if (ty < 0 || ty >= gridSizeY || tx < 0 || tx >= gridSizeX || !currentLevel.mask[ty][tx] || board[ty][tx] !== null) return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        function placeShape(shape, x, y) {
+            placedShapes.push({ ...shape, x, y });
+            for (let r = 0; r < shape.data.length; r++) {
+                for (let c = 0; c < shape.data[r].length; c++) {
+                    if (shape.data[r][c] === 1) board[y + r][x + c] = { id: shape.id, color: shape.color };
+                }
+            }
+            updateLogic(); updateBoardUI();
+        }
+
+        function pickUpFromGrid(x, y, clientX, clientY) {
+            const idx = placedShapes.findIndex(s => {
+                if (s.isRevealed) return false;
+                for (let r = 0; r < s.data.length; r++) for (let c = 0; c < s.data[r].length; c++) if (s.data[r][c] === 1 && s.x + c === x && s.y + r === y) return true;
+                return false;
+            });
+            if (idx > -1) {
+                const s = placedShapes[idx], gx = x - s.x, gy = y - s.y, data = JSON.parse(JSON.stringify(s));
+                for (let r = 0; r < s.data.length; r++) for (let c = 0; c < s.data[r].length; c++) if (s.data[r][c] === 1) board[s.y + r][s.x + c] = null;
+                placedShapes.splice(idx, 1); updateLogic(); updateBoardUI(); startDragging(data, clientX, clientY, gx, gy);
+            }
+        }
+
+        function initGame() {
+            document.getElementById('win-message').classList.add('hidden');
+            currentLevel = generateSolvableLevel();
+            gridSizeX = currentLevel.mask[0].length; gridSizeY = currentLevel.mask.length;
+            board = JSON.parse(JSON.stringify(currentLevel.initialBoard));
+            placedShapes = []; currentInventoryShapes = JSON.parse(JSON.stringify(currentLevel.shapes));
+            rowOverflow = Array(gridSizeY).fill(false); colOverflow = Array(gridSizeX).fill(false);
+            renderBoard(); renderInventory(); updateLogic(); updateBoardUI();
+        }
+
+        function generateSolvableLevel() {
+            let mask;
+            if (currentDifficulty === 'easy') {
+                const stage = Math.floor(levelsCleared / 2);
+                mask = JSON.parse(JSON.stringify(EASY_MASKS[Math.min(stage, EASY_MASKS.length - 1)]));
+                if (stage >= 3) {
+                    let rx = Math.floor(Math.random() * mask[0].length), ry = Math.floor(Math.random() * mask.length);
+                    if (mask[ry][rx]) mask[ry][rx] = 0;
+                }
+            } else mask = JSON.parse(JSON.stringify(MASKS[currentDifficulty]));
+            
+            const sizeY = mask.length, sizeX = mask[0].length;
+            if (currentDifficulty !== 'easy') {
+                for (let i = 0; i < (currentDifficulty === 'hard' ? 2 : 1); i++) {
+                    let rx = Math.floor(Math.random() * sizeX), ry = Math.floor(Math.random() * sizeY);
+                    if (mask[ry][rx]) mask[ry][rx] = 0;
+                }
+            }
+
+            let tempBoard = Array(sizeY).fill().map(() => Array(sizeX).fill(null));
+            let shapes = [], solutionShapes = [];
+            const mode = Math.random() > 0.4 ? 'dual' : (Math.random() > 0.5 ? 'blue' : 'green');
+            
+            const numObs = Math.max(1, Math.floor(Math.random() * (currentDifficulty === 'hard' ? 3 : 2)));
+            for (let i = 0; i < numObs; i++) {
+                let att = 0;
+                while(att < 50) {
+                    let ox = Math.floor(Math.random() * sizeX), oy = Math.floor(Math.random() * sizeY);
+                    if (mask[oy] && mask[oy][ox] && !tempBoard[oy][ox]) { tempBoard[oy][ox] = { type: 'locked', color: Math.random() > 0.5 ? 'blue' : 'green' }; break; }
+                    att++;
+                }
+            }
+
+            const range = currentDifficulty === 'easy' ? [2, 3] : [3, 5];
+            const countToGen = Math.floor(Math.random() * (range[1] - range[0] + 1)) + range[0];
+            for (let i = 0; i < countToGen; i++) {
+                let placed = false, att = 0;
+                let color = mode === 'dual' ? (i % 2 === 0 ? 'blue' : 'green') : mode;
+                while (!placed && att < 1000) {
+                    att++;
+                    let b = SHAPE_LIBRARY[Math.floor(Math.random() * SHAPE_LIBRARY.length)], rot = JSON.parse(JSON.stringify(b));
+                    for (let r = 0; r < Math.floor(Math.random() * 4); r++) rot = rotateMatrix(rot);
+                    if (rot.length > sizeY || rot[0].length > sizeX) continue;
+                    let sx = Math.floor(Math.random() * (sizeX - rot[0].length + 1)), sy = Math.floor(Math.random() * (sizeY - rot.length + 1));
+                    let fits = true;
+                    for (let r = 0; r < rot.length; r++) for (let c = 0; c < rot[r].length; c++) if (rot[r][c] === 1 && (!mask[sy+r] || !mask[sy+r][sx+c] || tempBoard[sy+r][sx+c])) fits = false;
+                    if (fits) {
+                        for (let r = 0; r < rot.length; r++) for (let c = 0; c < rot[r].length; c++) if (rot[r][c] === 1) tempBoard[sy+r][sx+c] = color;
+                        shapes.push({ id: i, data: rot, color });
+                        solutionShapes.push({ id: i, data: rot, color, x: sx, y: sy });
+                        placed = true;
+                    }
+                }
+            }
+            if (shapes.length < range[0]) return generateSolvableLevel();
+
+            const rowT = tempBoard.map((row, y) => {
+                let bc = 0, gc = 0;
+                row.forEach((cell, x) => {
+                    if (mask[y][x]) {
+                        if (cell === 'blue' || (cell && cell.color === 'blue')) bc++;
+                        if (cell === 'green' || (cell && cell.color === 'green')) gc++;
+                    }
+                });
+                return { blue: bc, green: gc };
+            });
+            const colT = Array(sizeX).fill(0).map((_, x) => {
+                let bc = 0, gc = 0;
+                for (let y = 0; y < sizeY; y++) if (mask[y] && mask[y][x]) {
+                    const c = tempBoard[y][x];
+                    if (c === 'blue' || (c && c.color === 'blue')) bc++;
+                    if (c === 'green' || (c && c.color === 'green')) gc++;
+                }
+                return { blue: bc, green: gc };
+            });
+
+            return { mask, rowTargets: rowT, colTargets: colT, shapes, solutionShapes, initialBoard: tempBoard.map(r => r.map(c => c && c.type === 'locked' ? c : null)) };
+        }
+
+        function renderBoard() {
+            if (!currentLevel) return;
+            const container = document.getElementById('game-board-container');
+            container.innerHTML = '';
+            
+            const screenW = window.innerWidth;
+            const screenH = window.innerHeight;
+            // More aggressive padding reserves to ensure no clipping
+            const availW = screenW - 80; 
+            const availH = screenH - 350;
+            
+            cellSize = Math.max(25, Math.floor(Math.min(availW / (gridSizeX + 1.5), availH / (gridSizeY + 1.5), 65)));
+            
+            container.style.width = 'max-content';
+            container.style.height = 'max-content';
+            container.style.gridTemplateColumns = `repeat(${gridSizeX}, ${cellSize}px) max-content`;
+            
+            for (let y = 0; y <= gridSizeY; y++) {
+                for (let x = 0; x <= gridSizeX; x++) {
+                    const c = document.createElement('div'); 
+                    if (x < gridSizeX && y < gridSizeY) {
+                        c.style.width = cellSize + 'px'; c.style.height = cellSize + 'px';
+                        if (currentLevel.mask[y][x]) {
+                            c.className = 'grid-cell cursor-pointer'; c.dataset.x = x; c.dataset.y = y;
+                            c.onpointerdown = (e) => { if (board[y][x] && board[y][x].type !== 'locked') pickUpFromGrid(x, y, e.clientX, e.clientY); };
+                        } else c.className = 'grid-cell opacity-0 pointer-events-none';
+                    } else if (x === gridSizeX && y < gridSizeY && currentLevel.mask[y].some(m => m)) {
+                        const w = document.createElement('div'); w.className = 'flex items-center justify-start w-full h-full';
+                        const i = document.createElement('div'); i.id = `row-target-${y}`; i.className = 'flex flex-row items-center gap-1.5 p-2 ml-1 sm:ml-2 rounded-2xl border-2 border-transparent transition-all duration-300 min-w-min';
+                        w.appendChild(i); c.appendChild(w);
+                    } else if (y === gridSizeY && x < gridSizeX && currentLevel.mask.some(row => row[x])) {
+                        const w = document.createElement('div'); w.className = 'flex items-start justify-center w-full h-full';
+                        const i = document.createElement('div'); i.id = `col-target-${x}`; i.className = 'flex flex-col items-center gap-1.5 p-2 mt-1 sm:mt-2 rounded-2xl border-2 border-transparent transition-all duration-300 min-h-min';
+                        w.appendChild(i); c.appendChild(w);
+                    } else {
+                        // Bottom right corner space
+                        c.style.width = '100%'; c.style.height = '100%';
+                    }
+                    container.appendChild(c);
+                }
+            }
+        }
+
+        function renderInventory() {
+            const tray = document.getElementById('inventory-tray'); tray.innerHTML = '';
+            currentInventoryShapes.forEach(s => {
+                if (placedShapes.some(ps => ps.id === s.id)) return;
+                const item = document.createElement('div'); item.className = 'inventory-item';
+                item.onpointerdown = (e) => startDragging(s, e.clientX, e.clientY);
+                item.appendChild(createShapeGrid(s, 28, true)); tray.appendChild(item);
+            });
+        }
+
+        function createShapeGrid(shape, size, contour) {
+            const g = document.createElement('div'); g.className = 'grid gap-0'; g.style.gridTemplateColumns = `repeat(${shape.data[0].length}, ${size}px)`;
+            const rad = Math.max(4, Math.floor(size / 3)), theme = THEME[shape.color], border = `max(2px, ${size/12}px) solid ${theme.outline}`, divider = `max(1.5px, ${size/15}px) solid rgba(255,255,255,0.45)`;
+            shape.data.forEach((row, r) => row.forEach((cell, c) => {
+                const b = document.createElement('div'); b.style.width = size+'px'; b.style.height = size+'px'; b.style.display = 'flex'; b.style.alignItems = 'center'; b.style.justifyContent = 'center'; b.style.boxSizing = 'border-box';
+                if (cell) {
+                    b.classList.add(theme.fillClass);
+                    if (contour) {
+                        const hasT = r > 0 && shape.data[r-1][c], hasB = r < shape.data.length - 1 && shape.data[r+1][c], hasL = c > 0 && shape.data[r][c-1], hasR = c < shape.data[r].length - 1 && shape.data[r][c+1];
+                        if (!hasT) b.style.borderTop = border; else b.style.borderTop = divider;
+                        if (!hasB) b.style.borderBottom = border;
+                        if (!hasL) b.style.borderLeft = border; else b.style.borderLeft = divider;
+                        if (!hasR) b.style.borderRight = border;
+                        if (!hasT && !hasL) b.style.borderTopLeftRadius = rad+'px';
+                        if (!hasT && !hasR) b.style.borderTopRightRadius = rad+'px';
+                        if (!hasB && !hasL) b.style.borderBottomLeftRadius = rad+'px';
+                        if (!hasB && !hasR) b.style.borderBottomRightRadius = rad+'px';
+                    }
+                } else b.className = 'opacity-0';
+                g.appendChild(b);
+            }));
+            return g;
+        }
+
+        function updateBoardUI() {
+            if (!board || board.length === 0) return;
+            for (let y = 0; y < gridSizeY; y++) {
+                for (let x = 0; x < gridSizeX; x++) {
+                    const cell = document.querySelector(`.grid-cell[data-x="${x}"][data-y="${y}"]`);
+                    if (!cell) continue;
+                    
+                    cell.innerHTML = ''; 
+                    cell.className = 'grid-cell cursor-pointer'; 
+                    cell.style.borderRadius = '0'; 
+                    cell.style.border = 'none';
+                    cell.style.borderTop = '';
+                    cell.style.borderBottom = '';
+                    cell.style.borderLeft = '';
+                    cell.style.borderRight = '';
+                    cell.style.background = '';
+                    cell.style.boxShadow = '';
+
+                    const current = board[y][x];
+                    if (current && (current.type === 'locked' || current.isRevealed)) { 
+                        const div = document.createElement('div');
+                        div.className = `cell-locked ${THEME[current.color].fillClass}`;
+                        div.innerHTML = `<div class="locked-overlay"></div><span class="locked-x">✕</span>`;
+                        if (current.isRevealed) div.style.boxShadow = '0 0 15px var(--blue-light)';
+                        cell.appendChild(div);
+                    } else if (current) { 
+                        const theme = THEME[current.color]; 
+                        cell.classList.add(theme.fillClass);
+                        const borderStyle = `4px solid ${theme.outline}`, dividerStyle = `3.5px solid rgba(255,255,255,0.45)`, rad = 16;
+                        
+                        const hasT = board[y-1] && board[y-1][x] && board[y-1][x].id === current.id, 
+                              hasB = board[y+1] && board[y+1][x] && board[y+1][x].id === current.id;
+                        const hasL = board[y][x-1] && board[y][x-1].id === current.id, 
+                              hasR = board[y][x+1] && board[y][x+1].id === current.id;
+
+                        if (!hasT) cell.style.borderTop = borderStyle; else cell.style.borderTop = dividerStyle;
+                        if (!hasB) cell.style.borderBottom = borderStyle;
+                        if (!hasL) cell.style.borderLeft = borderStyle; else cell.style.borderLeft = dividerStyle;
+                        if (!hasR) cell.style.borderRight = borderStyle;
+
+                        if (!hasT && !hasL) cell.style.borderTopLeftRadius = rad+'px';
+                        if (!hasT && !hasR) cell.style.borderTopRightRadius = rad+'px';
+                        if (!hasB && !hasL) cell.style.borderBottomLeftRadius = rad+'px';
+                        if (!hasB && !hasR) cell.style.borderBottomRightRadius = rad+'px';
+                    } else {
+                        const slot = document.createElement('div');
+                        slot.className = `slot-visual ${rowOverflow[y] || colOverflow[x] ? 'slot-error' : 'slot-empty'}`;
+                        cell.appendChild(slot);
+                        if (showHint) {
+                            const isSol = currentLevel.solutionShapes.some(s => {
+                                for(let r=0; r<s.data.length; r++) for(let c=0; c<s.data[r].length; c++) if(s.data[r][c] === 1 && s.x + c === x && s.y + r === y) return true;
+                                return false;
+                            });
+                            if (isSol) cell.appendChild(Object.assign(document.createElement('div'), { className: 'hint-outline' }));
+                        }
+                    }
+                }
+            }
+        }
+
+        function updateLogic() {
+            if (!currentLevel || !board || board.length === 0) return;
+            let allComplete = true;
+            for (let y = 0; y < gridSizeY; y++) if (currentLevel.mask[y] && currentLevel.mask[y].some(m => m)) {
+                const row = board[y], count = { blue: row.filter((c, x) => currentLevel.mask[y][x] && (c && (c.color === 'blue' || c === 'blue'))).length, green: row.filter((c, x) => currentLevel.mask[y][x] && (c && (c.color === 'green' || c === 'green'))).length };
+                const targets = currentLevel.rowTargets[y]; rowOverflow[y] = count.blue > targets.blue || count.green > targets.green;
+                updateBars(document.getElementById(`row-target-${y}`), targets, count, 'v', rowOverflow[y]);
+                if (count.blue !== targets.blue || count.green !== targets.green) allComplete = false;
+            }
+            for (let x = 0; x < gridSizeX; x++) if (currentLevel.mask.some(row => row[x])) {
+                const col = board.map(r => r[x]), count = { blue: col.filter((c, y) => currentLevel.mask[y] && currentLevel.mask[y][x] && (c && (c.color === 'blue' || c === 'blue'))).length, green: col.filter((c, y) => currentLevel.mask[y] && currentLevel.mask[y][x] && (c && (c.color === 'green' || c === 'green'))).length };
+                const targets = currentLevel.colTargets[x]; colOverflow[x] = count.blue > targets.blue || count.green > targets.green;
+                updateBars(document.getElementById(`col-target-${x}`), targets, count, 'h', colOverflow[x]);
+                if (count.blue !== targets.blue || count.green !== targets.green) allComplete = false;
+            }
+            if (allComplete && placedShapes.length === currentInventoryShapes.length) setTimeout(() => document.getElementById('win-message').classList.remove('hidden'), 400);
+        }
+
+        function updateBars(container, target, current, orient, overflow) {
+            if (!container) return; container.innerHTML = '';
+            if (overflow) container.classList.add('bg-rose-100', 'border-rose-400'); else container.classList.remove('bg-rose-100', 'border-rose-400');
+            const cls = orient === 'v' ? 'bar-v' : 'bar-h';
+            ['blue', 'green'].forEach(col => {
+                if (target[col] === 0 && current[col] === 0) return;
+                for (let i = 0; i < target[col]; i++) { const b = document.createElement('div'); b.className = `target-bar ${cls} ${i < current[col] ? 'bar-' + col : 'bar-empty-' + col}`; container.appendChild(b); }
+                if (current[col] > target[col]) for (let i = 0; i < (current[col] - target[col]); i++) { const b = document.createElement('div'); b.className = `target-bar ${cls} bar-over-${col}`; container.appendChild(b); }
+            });
+        }
+
+        function clearBoard() { if (!currentLevel) return; board = JSON.parse(JSON.stringify(currentLevel.initialBoard)); placedShapes = []; rowOverflow = Array(gridSizeY).fill(false); colOverflow = Array(gridSizeX).fill(false); renderInventory(); updateLogic(); updateBoardUI(); }
+        window.onresize = () => { if (currentLevel) { renderBoard(); updateBoardUI(); updateLogic(); } };
+    </script>
+</body>
+</html>

@@ -1,0 +1,1515 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pixel Flow - Polished Edition</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Rajdhani:wght@500;700&display=swap');
+
+        :root {
+            /* Dark Theme Variables (Default) */
+            --bg-dark: #0f172a;
+            --bg-gradient: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+            --bg-panel: rgba(30, 41, 59, 0.7);
+            --bg-panel-solid: #1e293b;
+            --accent: #38bdf8;
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --border-panel: rgba(255, 255, 255, 0.1);
+        }
+
+        body.light-theme {
+            /* Light Theme Variables */
+            --bg-dark: #e2e8f0;
+            --bg-gradient: radial-gradient(circle at center, #f8fafc 0%, #e2e8f0 100%);
+            --bg-panel: rgba(255, 255, 255, 0.85);
+            --bg-panel-solid: #ffffff;
+            --accent: #0284c7;
+            --text-main: #0f172a;
+            --text-dim: #475569;
+            --border-panel: rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-dark);
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            font-family: 'Rajdhani', sans-serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            touch-action: none;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        #game-container {
+            position: relative;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            background: transparent;
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            border-radius: 16px;
+        }
+
+        /* Full Screen Overlays */
+        .overlay-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+            z-index: 20;
+            transition: opacity 0.3s;
+        }
+
+        body.light-theme .overlay-screen {
+            background: rgba(248, 250, 252, 0.85);
+        }
+
+        /* Glassmorphism UI Layer */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .hud-panel {
+            background: var(--bg-panel);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--border-panel);
+            border-radius: 12px;
+            padding: 10px 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: background 0.3s, border 0.3s;
+        }
+
+        .hud-top {
+            margin: 10px 15px 15px 15px;
+            /* Shifted slightly upwards */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: 'Fredoka One', cursive;
+            font-size: 20px;
+            pointer-events: none;
+        }
+
+        #settings-btn {
+            position: absolute;
+            top: 10px;
+            left: 15px;
+            width: 44px;
+            height: 44px;
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            pointer-events: auto;
+            box-shadow: none;
+            transition: all 0.2s;
+            z-index: 15;
+        }
+
+        #settings-btn:active {
+            transform: scale(0.9);
+        }
+
+        .stat-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .stat-label {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 12px;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: -2px;
+        }
+
+        .progress-wrapper {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            margin: 0 20px 0 60px;
+            /* Offset for settings icon */
+        }
+
+        .progress-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+
+        .progress-icon {
+            position: relative;
+            width: 14px;
+            height: 14px;
+        }
+
+        .mini-block {
+            position: absolute;
+            width: 7px;
+            height: 7px;
+            border-radius: 1px;
+            box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .progress-bar-bg {
+            width: 100%;
+            height: 8px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #38bdf8, #3b82f6);
+            border-radius: 4px;
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
+        }
+
+        .go-panel {
+            background: var(--bg-panel-solid);
+            border: 1px solid var(--border-panel);
+            padding: 40px 50px;
+            border-radius: 24px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            font-family: 'Fredoka One', cursive;
+            font-size: 48px;
+            margin: 0 0 10px 0;
+            letter-spacing: 2px;
+            color: var(--text-main);
+        }
+
+        .message {
+            font-size: 20px;
+            font-weight: 500;
+            margin-bottom: 35px;
+            color: var(--text-dim);
+        }
+
+        button {
+            background: linear-gradient(135deg, #0ea5e9, #2563eb);
+            border: none;
+            padding: 15px 40px;
+            color: white;
+            font-family: 'Fredoka One', cursive;
+            font-size: 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 8px 0 #1d4ed8, 0 15px 20px rgba(0, 0, 0, 0.4);
+            transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        button.btn-secondary {
+            background: var(--bg-panel);
+            color: var(--text-main);
+            box-shadow: 0 6px 0 rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-panel);
+        }
+
+        button:active {
+            transform: translateY(6px);
+            box-shadow: 0 2px 0 transparent, 0 5px 10px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Home Screen specific */
+        .home-icon-container {
+            width: 80px;
+            height: 80px;
+            position: relative;
+            margin: 0 auto 20px auto;
+        }
+
+        .home-block {
+            position: absolute;
+            width: 38px;
+            height: 38px;
+            border-radius: 14px;
+            /* Squishier blocks */
+            box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.4), 0 4px 8px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Settings Modal specific */
+        .settings-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .settings-btn {
+            font-size: 16px;
+            padding: 12px 10px;
+            margin: 0;
+        }
+
+        .shake {
+            animation: errorShake 0.3s cubic-bezier(.36, .07, .19, .97) both;
+        }
+
+        @keyframes errorShake {
+
+            10%,
+            90% {
+                transform: translate3d(-2px, 0, 0);
+            }
+
+            20%,
+            80% {
+                transform: translate3d(4px, 0, 0);
+            }
+
+            30%,
+            50%,
+            70% {
+                transform: translate3d(-6px, 0, 0);
+            }
+
+            40%,
+            60% {
+                transform: translate3d(6px, 0, 0);
+            }
+        }
+    </style>
+</head>
+
+<body class="light-theme">
+
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+
+        <div id="ui-layer">
+            <button id="settings-btn" onclick="openSettings()">⚙️</button>
+
+            <div class="hud-top hud-panel"
+                style="border: none; background: transparent; box-shadow: none; padding-top: 0;">
+                <div class="progress-wrapper">
+                    <div class="progress-header">
+                        <div class="progress-icon">
+                            <div class="mini-block" style="background:#ef4444; top:0; left:3.5px;"></div>
+                            <div class="mini-block" style="background:#10b981; top:7px; left:0;"></div>
+                            <div class="mini-block" style="background:#f59e0b; top:7px; left:7px;"></div>
+                        </div>
+                        <span class="stat-label">CLEAR PROGRESS</span>
+                    </div>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill" id="progress-fill"></div>
+                    </div>
+                </div>
+                <div class="stat-box hud-panel" style="margin-top: 15px;">
+                    <span class="stat-label">Stage</span>
+                    <span id="level-display">1</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Home Screen -->
+        <div id="home-screen" class="overlay-screen">
+            <div class="go-panel" style="background: transparent; border: none; box-shadow: none;">
+                <div class="home-icon-container">
+                    <div class="home-block" style="background:#ef4444; top:0; left:20px; z-index: 3;"></div>
+                    <div class="home-block" style="background:#10b981; top:40px; left:0; z-index: 2;"></div>
+                    <div class="home-block" style="background:#3b82f6; top:40px; left:40px; z-index: 1;"></div>
+                </div>
+                <h1 style="font-size: 54px; margin-bottom: 0;"> Pixel Block Jam</h1>
+                <p class="message"
+                    style="margin-top: 0; font-size: 16px; letter-spacing: 2px; text-transform: uppercase;">Strategic
+                    Sorting Game</p>
+                <button onclick="startGame()">PLAY</button>
+            </div>
+        </div>
+
+        <!-- Settings Screen -->
+        <div id="settings-screen" class="overlay-screen" style="display: none;">
+            <div class="go-panel">
+                <h1 style="font-size: 32px; margin-bottom: 30px;">SYSTEM SETTINGS</h1>
+                <div class="settings-grid">
+                    <button class="btn-secondary settings-btn" id="toggle-sound-btn" onclick="toggleSound()">🔊 SOUND: ON</button>
+                    <button class="btn-secondary settings-btn" id="toggle-music-btn" onclick="toggleMusic()">🎵 BGM: ON</button>
+                    <button class="btn-secondary settings-btn" id="toggle-theme-btn" onclick="toggleTheme()" style="grid-column: span 2;">☀️ THEME: LIGHT</button>
+                </div>
+                <button class="btn-secondary" style="background: #ef4444; color: white; border: none; box-shadow: 0 6px 0 #b91c1c;" onclick="restartLevelExact()">↻ RESTART STAGE</button>
+                <button onclick="closeSettings()" style="margin-top: 15px;">RESUME</button>
+            </div>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="game-over" class="overlay-screen" style="display: none;">
+            <div class="go-panel">
+                <h1 id="go-title">CLEARED!</h1>
+                <div class="message" id="go-message">Great flow management!</div>
+                <button onclick="onGameOverClick()" id="go-primary-btn">NEXT STAGE</button>
+                <button class="btn-secondary" onclick="restartLevelExact()" id="go-secondary-btn" style="display: none; margin-top: 15px; font-size: 16px;">TRY STAGE AGAIN</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**
+ * PIXEL FLOW - COMPLETE POLISHED EDITION
+ */
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const gameContainer = document.getElementById('game-container');
+const homeScreen = document.getElementById('home-screen');
+const settingsScreen = document.getElementById('settings-screen');
+const gameOverScreen = document.getElementById('game-over');
+const progressFill = document.getElementById('progress-fill');
+const levelDisplay = document.getElementById('level-display');
+const goTitle = document.getElementById('go-title');
+const goMessage = document.getElementById('go-message');
+const goPrimaryBtn = document.getElementById('go-primary-btn');
+const goSecondaryBtn = document.getElementById('go-secondary-btn');
+
+// --- AUDIO SYSTEM ---
+const AudioContext = window.AudioContext || window.webkitAudioContext;
+const audioCtx = new AudioContext();
+
+let soundEnabled = true;
+let musicEnabled = true;
+
+const Sound = {
+    playTone: (freq, type, duration, vol = 0.1) => {
+        if (!soundEnabled) return;
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+    },
+    shoot: () => Sound.playTone(600, 'square', 0.08, 0.03),
+    hit: () => Sound.playTone(200, 'sawtooth', 0.1, 0.05),
+    deploy: () => Sound.playTone(400, 'sine', 0.15, 0.08),
+    dock: () => Sound.playTone(300, 'triangle', 0.15, 0.08),
+    error: () => Sound.playTone(150, 'square', 0.2, 0.1),
+    win: () => {
+        setTimeout(() => Sound.playTone(400, 'sine', 0.2), 0);
+        setTimeout(() => Sound.playTone(600, 'sine', 0.2), 150);
+        setTimeout(() => Sound.playTone(800, 'sine', 0.4), 300);
+    },
+    fail: () => {
+        setTimeout(() => Sound.playTone(300, 'sawtooth', 0.3), 0);
+        setTimeout(() => Sound.playTone(200, 'sawtooth', 0.4), 250);
+    }
+};
+
+// --- BGM SEQUENCER ---
+let bgmStep = 0;
+let nextNoteTime = 0;
+const arpNotes = [65.41, 65.41, 77.78, 65.41, 87.31, 65.41, 77.78, 58.27]; 
+
+function playBGMNote(time) {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    const filter = audioCtx.createBiquadFilter();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(arpNotes[bgmStep], time);
+    
+    gain.gain.setValueAtTime(0, time);
+    gain.gain.linearRampToValueAtTime(0.05, time + 0.02); 
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.12); 
+
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(1500, time);
+    filter.frequency.exponentialRampToValueAtTime(100, time + 0.1);
+
+    osc.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(time); osc.stop(time + 0.15);
+}
+
+function updateBGM() {
+    if (!musicEnabled || !state.isRunning || audioCtx.state === 'suspended') return;
+    while (nextNoteTime < audioCtx.currentTime + 0.1) {
+        playBGMNote(nextNoteTime);
+        nextNoteTime += 0.14; 
+        bgmStep = (bgmStep + 1) % arpNotes.length;
+    }
+}
+
+// --- THEMING SYSTEM ---
+let currentTheme = 'light';
+const THEME_COLORS = {
+    dark: { 
+        gridStroke: 'rgba(255, 255, 255, 0.03)', beltBase: '#0f172a', beltInner: '#1e293b', 
+        gridBg: 'rgba(15, 23, 42, 0.6)', dockBase: '#1e293b', dockStroke: '#334155', 
+        queueLine: '#334155', dimShooter: 'rgba(15, 23, 42, 0.7)' 
+    },
+    light: { 
+        gridStroke: 'rgba(0, 0, 0, 0.05)', beltBase: '#94a3b8', beltInner: '#cbd5e1', 
+        gridBg: 'rgba(255, 255, 255, 0.5)', dockBase: '#e2e8f0', dockStroke: '#cbd5e1', 
+        queueLine: '#cbd5e1', dimShooter: 'rgba(255, 255, 255, 0.6)' 
+    }
+};
+
+// Configuration
+const CONFIG = {
+    gridRows: 20, gridCols: 20, 
+    colors: ['#ef4444', '#3b82f6', '#10b981', '#f59e0b'], 
+    blockSize: 20, beltSpeed: 3.5, 
+    shooterRadius: 27, 
+    dockCount: 5, queueCols: 4, queueRows: 3,
+    bulletSpeed: 7, fireRate: 5,
+    beltPadding: 60, beltGap: 55, 
+    fixedAmmo: 10, queueRowOffset: 60, 
+    beltCapacity: 5 
+};
+
+// Game State
+let state = {
+    blocks: [],
+    shooters: [], 
+    reserveShooters: [], 
+    spawnQueues: Array.from({ length: CONFIG.queueCols }, () => []), 
+    bullets: [], particles: [], floatingTexts: [], docks: [],
+    level: 1, totalBlocks: 0, isRunning: false, 
+    width: 0, height: 0, gridOffsetX: 0, gridOffsetY: 0,
+    beltPath: { rect: {x:0, y:0, w:0, h:0}, totalLength: 0, segments: [] },
+    dockY: 0, queueY: 0, queuePositions: [], initialState: null,
+    incomingShooters: [], isFillingBatch: false
+};
+
+let lastGameWon = false;
+let globalTime = 0; 
+
+// --- Resizing & Geometry ---
+
+function resize() {
+    let w = Math.max(window.innerWidth, 320); 
+    let h = Math.max(window.innerHeight, 480);
+    
+    if (w > 600 || w / h > 0.8) { 
+        h = Math.min(Math.max(window.innerHeight * 0.95, 480), 1000); 
+        w = h * 0.5625; 
+    }
+
+    canvas.width = w; canvas.height = h;
+    state.width = w; state.height = h;
+    
+    const topUIHeight = 180; 
+    const bottomUIHeight = 480; 
+    
+    CONFIG.beltPadding = w * 0.18; 
+    const maxGridW = w - (CONFIG.beltPadding * 2);
+    const maxGridH = h - topUIHeight - bottomUIHeight;
+
+    CONFIG.blockSize = Math.max(5, Math.floor(Math.min(maxGridW / CONFIG.gridCols, maxGridH / CONFIG.gridRows)));
+    
+    let calculatedRadius = Math.max(16, CONFIG.blockSize * 1.5);
+    const maxRadiusForScreen = (w - 40) / 15;
+    CONFIG.shooterRadius = Math.max(10, Math.min(calculatedRadius, maxRadiusForScreen));
+    
+    CONFIG.queueRowOffset = CONFIG.shooterRadius * 3.4; 
+    CONFIG.beltGap = CONFIG.shooterRadius * 2 + 15;
+
+    const gridW = CONFIG.blockSize * CONFIG.gridCols;
+    const gridH = CONFIG.blockSize * CONFIG.gridRows;
+    
+    state.gridOffsetX = (w - gridW) / 2;
+    state.gridOffsetY = topUIHeight; 
+    
+    const beltDist = CONFIG.shooterRadius + 15; 
+    const bx = state.gridOffsetX - beltDist;
+    const by = state.gridOffsetY - beltDist;
+    const bw = gridW + beltDist * 2;
+    const bh = gridH + beltDist * 2;
+    
+    state.beltPath.rect = { x: bx, y: by, w: bw, h: bh };
+    const gap = CONFIG.beltGap;
+    const pBL_Start = { x: bx + gap, y: by + bh }; 
+    const pBR = { x: bx + bw, y: by + bh };
+    const pTR = { x: bx + bw, y: by };
+    const pTL = { x: bx, y: by };
+    const pBL_End = { x: bx, y: by + bh - gap }; 
+    
+    state.beltPath.segments = [
+        { dir: 'right', start: pBL_Start, end: pBR, length: (bx + bw) - (bx + gap), type: 'bottom' },
+        { dir: 'up',    start: pBR, end: pTR, length: bh, type: 'right' },
+        { dir: 'left',  start: pTR, end: pTL, length: bw, type: 'top' },
+        { dir: 'down',  start: pTL, end: pBL_End, length: (by + bh) - (by) - gap, type: 'left' }
+    ];
+    state.beltPath.totalLength = state.beltPath.segments.reduce((acc, seg) => acc + seg.length, 0);
+    
+    const beltBottom = by + bh;
+    
+    state.dockY = beltBottom + CONFIG.shooterRadius + 60; 
+    state.queueY = state.dockY + CONFIG.shooterRadius * 2.5 + 15; 
+
+    const slotW = CONFIG.shooterRadius * 2.2; 
+    const spacing = CONFIG.shooterRadius * 0.8; 
+    
+    const totalDockW = (slotW * CONFIG.dockCount) + (spacing * (CONFIG.dockCount - 1));
+    const startDockX = (w - totalDockW) / 2;
+    
+    const oldDocks = state.docks || [];
+    state.docks = [];
+    for(let i=0; i<CONFIG.dockCount; i++) {
+        state.docks.push({
+            x: startDockX + i * (slotW + spacing) + slotW/2,
+            y: state.dockY,
+            content: oldDocks[i] ? oldDocks[i].content : null
+        });
+    }
+
+    const totalQueueW = (slotW * CONFIG.queueCols) + (spacing * (CONFIG.queueCols - 1));
+    const startQueueX = (w - totalQueueW) / 2;
+    state.queuePositions = [];
+    for(let i=0; i<CONFIG.queueCols; i++) state.queuePositions.push(startQueueX + i * (slotW + spacing) + slotW/2);
+
+    state.docks.forEach(d => { if (d.content) { d.content.x = d.x; d.content.y = d.y; } });
+    gameContainer.style.width = `${w}px`; gameContainer.style.height = `${h}px`;
+
+    if (state.blocks.length > 0) {
+        state.blocks.forEach(b => {
+            b.x = state.gridOffsetX + b.c * CONFIG.blockSize;
+            b.y = state.gridOffsetY + b.r * CONFIG.blockSize;
+        });
+    }
+}
+
+// --- Drawing Helpers for New Shooter Asset ---
+
+function drawRoundedRect(ctx, x, y, width, height, radius) {
+    ctx.beginPath(); ctx.moveTo(x + radius, y); ctx.lineTo(x + width - radius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius); ctx.lineTo(x + width, y + height - radius);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height); ctx.lineTo(x + radius, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius); ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y); ctx.closePath();
+}
+
+function drawShooterAsset(ctx, x, y, color, size, ammo, isDimmed, rotation) {
+    ctx.save(); ctx.translate(x, y);
+    if (isDimmed) {
+        // Shadowed look: Keeps the original color but darkens it significantly
+        ctx.filter = 'brightness(45%) saturate(85%)';
+    }
+
+    ctx.shadowColor = color; ctx.shadowBlur = isDimmed ? 0 : 15; ctx.fillStyle = color;
+    drawRoundedRect(ctx, -size*1.1, -size*1.1, size*2.2, size*2.2, size*0.7);
+    ctx.fill(); ctx.shadowBlur = 0;
+
+    // Fixed: Added exactly 180 degree (Math.PI) rotation so it shoots from the front face!
+    ctx.save(); ctx.rotate(rotation + Math.PI);
+
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = '#000000';
+
+    // Nozzles (Legs)
+    ctx.fillStyle = color;
+    drawRoundedRect(ctx, size*0.5, -size*0.65, size*0.8, size*0.45, size*0.2); ctx.fill(); ctx.stroke();
+    drawRoundedRect(ctx, size*0.5, size*0.2, size*0.8, size*0.45, size*0.2); ctx.fill(); ctx.stroke();
+
+    // Mouth (Single protrusion matching the legs)
+    drawRoundedRect(ctx, -size*1.3, -size*0.225, size*0.8, size*0.45, size*0.2); ctx.fill(); ctx.stroke();
+
+    // Body
+    drawRoundedRect(ctx, -size, -size, size*2, size*2, size*0.6); ctx.fill();
+    ctx.save(); ctx.clip(); 
+    
+    const gradDark = ctx.createLinearGradient(size, -size, -size, size);
+    gradDark.addColorStop(0, 'rgba(0,0,0,0)'); gradDark.addColorStop(1, 'rgba(0,0,0,0.6)');
+    ctx.fillStyle = gradDark; ctx.fillRect(-size, -size, size*2, size*2);
+
+    const gradLight = ctx.createLinearGradient(-size*0.5, size*0.5, size*0.8, -size*0.8);
+    gradLight.addColorStop(0, 'rgba(255,255,255,0)'); gradLight.addColorStop(1, 'rgba(255,255,255,0.7)');
+    ctx.fillStyle = gradLight; ctx.fillRect(-size, -size, size*2, size*2);
+    
+    ctx.beginPath(); ctx.ellipse(size*0.6, -size*0.6, size*0.3, size*0.15, Math.PI/4, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.fill(); ctx.restore();
+
+    ctx.lineWidth = 2.5; drawRoundedRect(ctx, -size, -size, size*2, size*2, size*0.6); ctx.stroke();
+    ctx.restore(); 
+
+    // Locked Ammo Text
+    ctx.fillStyle = '#ffffff'; ctx.font = `bold 20px 'Fredoka One', cursive`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 5;
+    ctx.strokeStyle = '#000000'; ctx.lineJoin = 'round';
+    ctx.strokeText(ammo, 0, 0); ctx.fillText(ammo, 0, 0);
+
+    ctx.restore();
+}
+
+// --- Classes ---
+
+class Block {
+    constructor(c, r, color) {
+        this.c = c; this.r = r; this.x = 0; this.y = 0;
+        this.color = color; this.active = true; this.targeted = false; this.scale = 1;
+    }
+    draw(ctx) {
+        if (!this.active) return;
+        const padding = 1; const s = CONFIG.blockSize - padding * 2;
+        let drawSize = s * this.scale; let offset = (s - drawSize) / 2;
+        let px = this.x + padding + offset; let py = this.y + padding + offset;
+
+        ctx.fillStyle = this.color; ctx.fillRect(px, py, drawSize, drawSize);
+        ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + drawSize, py); ctx.lineTo(px + drawSize - 3, py + 3); ctx.lineTo(px + 3, py + 3); ctx.fill();
+        ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.beginPath(); ctx.moveTo(px, py + drawSize); ctx.lineTo(px + drawSize, py + drawSize); ctx.lineTo(px + drawSize - 3, py + drawSize - 3); ctx.lineTo(px + 3, py + drawSize - 3); ctx.fill();
+        ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.beginPath(); ctx.moveTo(px + drawSize, py); ctx.lineTo(px + drawSize, py + drawSize); ctx.lineTo(px + drawSize - 3, py + drawSize - 3); ctx.lineTo(px + drawSize - 3, py + 3); ctx.fill();
+    }
+}
+
+class FloatingText {
+    constructor(x, y, text, color) {
+        this.x = x; this.y = y; this.text = text; this.color = color;
+        this.life = 1.0; this.vy = -1.5;
+    }
+    update() { this.y += this.vy; this.life -= 0.03; }
+    draw(ctx) {
+        if (this.life <= 0) return;
+        ctx.save(); ctx.globalAlpha = this.life; ctx.fillStyle = this.color;
+        ctx.font = 'bold 16px Fredoka One'; ctx.textAlign = 'center';
+        ctx.lineWidth = 2; ctx.strokeStyle = currentTheme === 'dark' ? '#0f172a' : '#ffffff'; 
+        ctx.strokeText(this.text, this.x, this.y); ctx.fillText(this.text, this.x, this.y); ctx.restore();
+    }
+}
+
+class Shooter {
+    constructor(color, ammo, startX, startY) {
+        this.color = color; this.ammo = ammo; this.x = startX; this.y = startY;
+        this.state = 'deploying'; this.onBelt = false; this.dist = 0; 
+        this.radius = CONFIG.shooterRadius; 
+        this.cooldown = 0; this.scale = 1; this.active = true; this.returnTarget = null; this.rotation = -Math.PI/2;
+        
+        // Pathing properties
+        this.waypoints = [];
+    }
+    update() {
+        if (this.state === 'deploying') {
+            const finalPt = state.beltPath.segments[0].start;
+            
+            if (!this.waypoints || this.waypoints.length === 0) {
+                 this.waypoints = [finalPt];
+            }
+            
+            let target = this.waypoints[0];
+            let dx = target.x - this.x; let dy = target.y - this.y; let d = Math.sqrt(dx*dx + dy*dy);
+            
+            if (d < 5) {
+                this.x = target.x; this.y = target.y;
+                
+                if (this.waypoints.length === 1) {
+                    // Reached the final point, try to merge onto the belt
+                    let canMerge = true; 
+                    const safeDist = this.radius * 3.5; 
+                    if (state.shooters.filter(s => s.state === 'belt').length >= CONFIG.beltCapacity) canMerge = false;
+                    else { 
+                        for (let other of state.shooters) { 
+                            if (other === this || other.state !== 'belt') continue; 
+                            if (other.dist < safeDist) { canMerge = false; break; } 
+                        } 
+                    }
+                    
+                    if (canMerge) { 
+                        this.state = 'belt'; this.onBelt = true; this.dist = 0; 
+                        this.waypoints.shift();
+                    }
+                } else {
+                    this.waypoints.shift(); // Reached a grid waypoint, move to next
+                }
+            } else {
+                let canMove = true;
+                let speed = 6;
+                let nextX = this.x + (dx / d) * speed; 
+                let nextY = this.y + (dy / d) * speed;
+                
+                for (let other of state.shooters) {
+                    if (other !== this && other.state === 'deploying') {
+                        let myD = Math.hypot(finalPt.x - this.x, finalPt.y - this.y);
+                        let otherD = Math.hypot(finalPt.x - other.x, finalPt.y - other.y);
+                        
+                        // Intelligent Collision Waiting
+                        if (Math.hypot(nextX - other.x, nextY - other.y) < this.radius * 2.2) {
+                            // Yield to the shooter closer to the destination to prevent deadlock
+                            if (myD > otherD) { canMove = false; break; }
+                        }
+                    }
+                }
+                
+                if (canMove) { 
+                    this.x = nextX; this.y = nextY; 
+                    
+                    // Rotate body to face walking direction
+                    let targetRotation = Math.atan2(dy, dx);
+                    let diff = targetRotation - this.rotation;
+                    while (diff < -Math.PI) diff += Math.PI * 2; while (diff > Math.PI) diff -= Math.PI * 2;
+                    this.rotation += diff * 0.2;
+                }
+            }
+        }
+        else if (this.state === 'belt') { 
+            this.updateBeltLogic(); 
+        }
+        else if (this.state === 'returning') {
+            if (this.returnTarget) {
+                let dx = this.returnTarget.x - this.x; let dy = this.returnTarget.y - this.y; let d = Math.sqrt(dx*dx + dy*dy);
+                if (d < 5) { 
+                    this.state = 'docked'; this.onBelt = false; this.x = this.returnTarget.x; this.y = this.returnTarget.y; 
+                    this.rotation = -Math.PI/2;
+                    Sound.dock(); 
+                } 
+                else { 
+                    this.x += dx * 0.15; this.y += dy * 0.15; 
+                    
+                    let targetRotation = Math.atan2(dy, dx);
+                    let diff = targetRotation - this.rotation;
+                    while (diff < -Math.PI) diff += Math.PI * 2; while (diff > Math.PI) diff -= Math.PI * 2;
+                    this.rotation += diff * 0.2;
+                }
+            }
+        }
+        if (this.cooldown > 0) this.cooldown--;
+    }
+    updateBeltLogic() {
+        const pos = this.getPositionOnPath(this.dist);
+        this.x = pos.x; this.y = pos.y; const currentSeg = state.beltPath.segments[pos.segIndex];
+        let targetRotation = 0;
+        if (currentSeg.type === 'bottom') targetRotation = -Math.PI/2;
+        if (currentSeg.type === 'right') targetRotation = Math.PI;
+        if (currentSeg.type === 'top') targetRotation = Math.PI/2;
+        if (currentSeg.type === 'left') targetRotation = 0;
+        let diff = targetRotation - this.rotation;
+        while (diff < -Math.PI) diff += Math.PI * 2; while (diff > Math.PI) diff -= Math.PI * 2;
+        this.rotation += diff * 0.2;
+
+        this.handleShooting(currentSeg);
+
+        let blocked = false; 
+        const safeDist = this.radius * 3.5; 
+        for (let other of state.shooters) {
+            if (other === this || other.state !== 'belt') continue;
+            if (other.dist - this.dist > 0 && other.dist - this.dist < safeDist) { blocked = true; break; }
+        }
+        if (this.dist >= state.beltPath.totalLength) {
+            const dockIndex = findEmptyDock();
+            if (dockIndex !== -1) {
+                this.state = 'returning'; this.onBelt = false;
+                const dock = state.docks[dockIndex]; this.returnTarget = { x: dock.x, y: dock.y }; dock.content = this; 
+            } else endGame(false); 
+        }
+        if (!blocked && this.state === 'belt') this.dist += CONFIG.beltSpeed;
+    }
+    handleShooting(currentSeg) {
+        let targetBlock = null; let tCol = -1, tRow = -1;
+        const centerOffset = CONFIG.blockSize / 2; const alignTol = 8; 
+
+        if (currentSeg.type === 'bottom') {
+            const relX = this.x - state.gridOffsetX; const col = Math.floor(relX / CONFIG.blockSize);
+            if (Math.abs(relX - (col * CONFIG.blockSize + centerOffset)) < alignTol) { targetBlock = this.checkLoSCol(col, 'up'); if (targetBlock) tCol = col; }
+        } else if (currentSeg.type === 'right') {
+            const relY = this.y - state.gridOffsetY; const row = Math.floor(relY / CONFIG.blockSize);
+            if (Math.abs(relY - (row * CONFIG.blockSize + centerOffset)) < alignTol) { targetBlock = this.checkLoSRow(row, 'left'); if (targetBlock) tRow = row; }
+        } else if (currentSeg.type === 'top') {
+            const relX = this.x - state.gridOffsetX; const col = Math.floor(relX / CONFIG.blockSize);
+            if (Math.abs(relX - (col * CONFIG.blockSize + centerOffset)) < alignTol) { targetBlock = this.checkLoSCol(col, 'down'); if (targetBlock) tCol = col; }
+        } else if (currentSeg.type === 'left') {
+            const relY = this.y - state.gridOffsetY; const row = Math.floor(relY / CONFIG.blockSize);
+            if (Math.abs(relY - (row * CONFIG.blockSize + centerOffset)) < alignTol) { targetBlock = this.checkLoSRow(row, 'right'); if (targetBlock) tRow = row; }
+        }
+
+        if (targetBlock && this.ammo > 0 && this.cooldown <= 0) {
+            targetBlock.targeted = true; 
+            this.shoot(currentSeg.type, tCol, tRow, targetBlock);
+            this.cooldown = CONFIG.fireRate;
+        }
+    }
+    checkLoSCol(c, dir) {
+        if (c < 0 || c >= CONFIG.gridCols) return null;
+        let start = (dir === 'up') ? CONFIG.gridRows - 1 : 0; let end = (dir === 'up') ? -1 : CONFIG.gridRows; let step = (dir === 'up') ? -1 : 1;
+        for (let r = start; r !== end; r += step) {
+            const b = getBlock(c, r);
+            if (b && b.active) { if (b.targeted) continue; if (b.color === this.color) return b; return null; }
+        }
+        return null;
+    }
+    checkLoSRow(r, dir) {
+        if (r < 0 || r >= CONFIG.gridRows) return null;
+        let start = (dir === 'left') ? CONFIG.gridCols - 1 : 0; let end = (dir === 'left') ? -1 : CONFIG.gridCols; let step = (dir === 'left') ? -1 : 1;
+        for (let c = start; c !== end; c += step) {
+            const b = getBlock(c, r);
+            if (b && b.active) { if (b.targeted) continue; if (b.color === this.color) return b; return null; }
+        }
+        return null;
+    }
+    shoot(type, tCol, tRow, targetBlock) {
+        this.ammo--; let vx = 0, vy = 0; let startX = this.x, startY = this.y;
+        if (type === 'bottom' || type === 'top') {
+            if (tCol !== -1) startX = state.gridOffsetX + tCol * CONFIG.blockSize + CONFIG.blockSize/2;
+            vy = (type === 'bottom') ? -CONFIG.bulletSpeed : CONFIG.bulletSpeed;
+        } else {
+            if (tRow !== -1) startY = state.gridOffsetY + tRow * CONFIG.blockSize + CONFIG.blockSize/2;
+            vx = (type === 'right') ? -CONFIG.bulletSpeed : CONFIG.bulletSpeed;
+        }
+        state.bullets.push(new Bullet(startX, startY, vx, vy, this.color, targetBlock));
+        Sound.shoot(); 
+        if (this.ammo <= 0) setTimeout(() => { this.active = false; clearDock(this); }, 200);
+    }
+    getPositionOnPath(d) {
+        let remaining = d;
+        for (let i = 0; i < state.beltPath.segments.length; i++) {
+            const seg = state.beltPath.segments[i];
+            if (remaining <= seg.length) {
+                let px = seg.start.x, py = seg.start.y;
+                if (seg.dir === 'right') px += remaining; if (seg.dir === 'left') px -= remaining;
+                if (seg.dir === 'up') py -= remaining; if (seg.dir === 'down') py += remaining;
+                return { x: px, y: py, segIndex: i };
+            }
+            remaining -= seg.length;
+        }
+        const last = state.beltPath.segments[state.beltPath.segments.length-1];
+        return { x: last.end.x, y: last.end.y, segIndex: state.beltPath.segments.length-1 };
+    }
+    draw(ctx) {
+        // Draw sizes based perfectly on the true physics radius
+        const size = this.radius * this.scale;
+        drawShooterAsset(ctx, this.x, this.y, this.color, size, this.ammo, false, this.rotation);
+    }
+}
+
+class Bullet {
+    constructor(x, y, vx, vy, color, targetBlock) {
+        this.x = x; this.y = y; this.vx = vx; this.vy = vy; this.color = color;
+        this.targetBlock = targetBlock; this.active = true; this.radius = 4; 
+    }
+    update() {
+        const speed = Math.sqrt(this.vx*this.vx + this.vy*this.vy);
+        const steps = Math.ceil(speed / (CONFIG.blockSize / 2));
+        const dx = this.vx / steps; const dy = this.vy / steps;
+
+        if (Math.random() > 0.5) {
+            let p = new Particle(this.x, this.y, this.color); p.vx = 0; p.vy = 0; p.life = 0.5; state.particles.push(p);
+        }
+
+        for(let i=0; i<steps; i++) {
+            this.x += dx; this.y += dy;
+            if (this.x > state.gridOffsetX && this.x < state.gridOffsetX + CONFIG.gridCols * CONFIG.blockSize &&
+                this.y > state.gridOffsetY && this.y < state.gridOffsetY + CONFIG.gridRows * CONFIG.blockSize) {
+                 const c = Math.floor((this.x - state.gridOffsetX) / CONFIG.blockSize);
+                 const r = Math.floor((this.y - state.gridOffsetY) / CONFIG.blockSize);
+                 const block = getBlock(c, r);
+                 if (block && block.active) {
+                     if (block === this.targetBlock || !block.targeted) {
+                         this.active = false;
+                         if (block === this.targetBlock) {
+                             block.active = false; 
+                             createParticles(this.x, this.y, this.color, 8);
+                             state.floatingTexts.push(new FloatingText(this.x, this.y, "+1", this.color));
+                             Sound.hit(); updateScore();
+                         } else {
+                             createParticles(this.x, this.y, '#fff', 3); 
+                             if (this.targetBlock) this.targetBlock.targeted = false; 
+                         }
+                         return; 
+                     }
+                 }
+            }
+            if (this.x < 0 || this.x > state.width || this.y < 0 || this.y > state.height) {
+                this.active = false; if (this.targetBlock) this.targetBlock.targeted = false; return;
+            }
+        }
+    }
+    draw(ctx) {
+        ctx.fillStyle = this.color; ctx.shadowColor = this.color; ctx.shadowBlur = 8;
+        ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+        ctx.fillStyle = 'white'; ctx.beginPath(); ctx.arc(this.x, this.y, this.radius/2, 0, Math.PI * 2); ctx.fill();
+    }
+}
+
+class Particle {
+    constructor(x, y, color) {
+        this.x = x; this.y = y; this.color = color;
+        const angle = Math.random() * Math.PI * 2; const speed = Math.random() * 4 + 1;
+        this.vx = Math.cos(angle) * speed; this.vy = Math.sin(angle) * speed;
+        this.life = 1.0; this.size = Math.random() * 3 + 2;
+    }
+    update() { this.x += this.vx; this.y += this.vy; this.life -= 0.05; this.vx *= 0.9; this.vy *= 0.9; }
+    draw(ctx) {
+        ctx.globalAlpha = Math.max(0, this.life); ctx.fillStyle = this.color; ctx.shadowColor = this.color; ctx.shadowBlur = 5;
+        ctx.fillRect(this.x - this.size/2, this.y - this.size/2, this.size, this.size); ctx.globalAlpha = 1.0; ctx.shadowBlur = 0;
+    }
+}
+
+// --- Logic Helpers ---
+
+function getBlock(c, r) { return state.blocks.find(b => b.c === c && b.r === r); }
+function createParticles(x, y, color, count = 4) { for (let i = 0; i < count; i++) state.particles.push(new Particle(x, y, color)); }
+
+// -- Grid Pathfinding (Breadth-First Search) --
+function findQueuePath(startC, startR) {
+    let queue = [{ c: startC, r: startR, path: [] }];
+    let visited = new Set();
+    visited.add(`${startC},${startR}`);
+    
+    // Priorities: Up, Left, Right, Down (fallback)
+    const dirs = [{dc: 0, dr: -1}, {dc: -1, dr: 0}, {dc: 1, dr: 0}, {dc: 0, dr: 1}];
+    
+    while (queue.length > 0) {
+        let curr = queue.shift();
+        if (curr.r === -1) return curr.path; // Successfully reached top exit
+        
+        for (let d of dirs) {
+            let nc = curr.c + d.dc;
+            let nr = curr.r + d.dr;
+            
+            if (nc >= 0 && nc < CONFIG.queueCols && nr < CONFIG.queueRows) {
+                let key = `${nc},${nr}`;
+                if (!visited.has(key)) {
+                    // It's a valid move if it's the exit (-1) or the slot is empty
+                    if (nr === -1 || state.spawnQueues[nc][nr] === null) {
+                        visited.add(key);
+                        queue.push({c: nc, r: nr, path: [...curr.path, {c: nc, r: nr}]});
+                    }
+                }
+            }
+        }
+    }
+    return []; // No path found
+}
+
+function checkFailState() {
+    if (!state.isRunning) return;
+    const blocksLeft = state.blocks.some(b => b.active);
+    if (!blocksLeft) return; 
+    if (state.bullets.length > 0 || state.shooters.length > 0 || state.spawnQueues.some(col => col.some(item => item !== null)) || state.reserveShooters.length > 0 || state.incomingShooters.length > 0) return;
+    endGame(false);
+}
+
+function updateScore() {
+    const left = state.blocks.filter(b => b.active).length;
+    if (state.totalBlocks > 0) {
+        const destroyed = state.totalBlocks - left;
+        const percent = (destroyed / state.totalBlocks) * 100;
+        progressFill.style.width = `${percent}%`;
+    } else progressFill.style.width = `0%`;
+}
+
+function endGame(win) {
+    state.isRunning = false; lastGameWon = win; gameOverScreen.style.display = 'flex';
+    goTitle.innerText = win ? "STAGE CLEARED" : "SYSTEM FAILURE";
+    goTitle.style.color = win ? "#38bdf8" : "#ef4444";
+    goMessage.innerText = win ? `Stage ${state.level} Complete. Preparing next sequence.` : "Out of deployed shooters. Data lost.";
+    
+    goPrimaryBtn.innerText = win ? "NEXT STAGE" : "REBOOT SYSTEM";
+    goPrimaryBtn.style.background = win ? "linear-gradient(135deg, #0ea5e9, #2563eb)" : "linear-gradient(135deg, #ef4444, #b91c1c)";
+    goPrimaryBtn.style.boxShadow = win ? "0 8px 0 #1d4ed8, 0 15px 20px rgba(0,0,0,0.4)" : "0 8px 0 #7f1d1d, 0 15px 20px rgba(0,0,0,0.4)";
+    
+    goSecondaryBtn.style.display = win ? 'none' : 'block';
+    
+    if (win) Sound.win(); else Sound.fail(); 
+}
+
+function onGameOverClick() {
+    if (lastGameWon) state.level++;
+    gameOverScreen.style.display = 'none';
+    state.isRunning = true;
+    generateLevel();
+}
+
+// Resets perfectly to the exact initial snapshot of the level
+function restartLevelExact() {
+    if (!state.initialState) return generateLevel(); // Failsafe
+    
+    state.blocks = state.initialState.blocks.map(b => new Block(b.c, b.r, b.color));
+    state.reserveShooters = state.initialState.shooters.map(s => ({color: s.color, ammo: s.ammo}));
+    
+    // Clear active objects
+    state.shooters = []; state.bullets = []; state.particles = []; state.floatingTexts = [];
+    state.docks.forEach(d => d.content = null);
+    for(let i=0; i<CONFIG.queueCols; i++) state.spawnQueues[i] = [null, null, null];
+    
+    state.totalBlocks = state.blocks.length;
+    state.incomingShooters = [];
+    state.isFillingBatch = false;
+    
+    fillBatch();
+    resize();
+    updateScore();
+    
+    settingsScreen.style.display = 'none';
+    gameOverScreen.style.display = 'none';
+    state.isRunning = true;
+}
+
+function findEmptyDock() { return state.docks.findIndex(d => d.content === null); }
+function clearDock(shooter) { const dock = state.docks.find(d => d.content === shooter); if (dock) dock.content = null; }
+
+function isShooterDeployable(col, row) {
+    if (state.spawnQueues[col][row] === null) return false;
+    return findQueuePath(col, row).length > 0;
+}
+
+function getLevelSettings(lvl) {
+    if (lvl === 1) return { shooterCount: 12, colors: ['#ef4444', '#10b981', '#3b82f6'] };
+    return { shooterCount: Math.min(12 + (lvl - 1) * 4, 38), colors: CONFIG.colors };
+}
+
+function generateLevel() {
+    state.blocks = []; state.shooters = []; state.spawnQueues = [];
+    for(let i=0; i<CONFIG.queueCols; i++) state.spawnQueues.push([]);
+    state.bullets = []; state.particles = []; state.floatingTexts = []; state.docks = []; state.reserveShooters = [];
+    
+    const settings = getLevelSettings(state.level);
+    const currentColors = settings.colors; const totalShooters = settings.shooterCount;
+    levelDisplay.innerText = state.level;
+    
+    let availableSlots = [];
+    const centerC = (CONFIG.gridCols - 1) / 2; const centerR = (CONFIG.gridRows - 1) / 2;
+    for (let r = 0; r < CONFIG.gridRows; r++) {
+        for (let c = 0; c < CONFIG.gridCols; c++) {
+            availableSlots.push({c, r, distSq: Math.pow(c - centerC, 2) + Math.pow(r - centerR, 2)});
+        }
+    }
+    availableSlots.sort((a, b) => b.distSq - a.distSq);
+    
+    let allShooters = []; let blockColorsPool = []; 
+
+    for (let i = 0; i < totalShooters; i++) {
+        const color = currentColors[Math.floor(Math.random() * currentColors.length)];
+        let ammo = CONFIG.fixedAmmo;
+        if (availableSlots.length < blockColorsPool.length + ammo) break; 
+        allShooters.push({ color: color, ammo: ammo });
+        for(let b = 0; b < ammo; b++) blockColorsPool.push(color);
+    }
+
+    for (let i = blockColorsPool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [blockColorsPool[i], blockColorsPool[j]] = [blockColorsPool[j], blockColorsPool[i]];
+    }
+
+    for (let i = 0; i < blockColorsPool.length; i++) {
+        const slot = availableSlots.pop();
+        state.blocks.push(new Block(slot.c, slot.r, blockColorsPool[i]));
+    }
+    
+    state.totalBlocks = state.blocks.length;
+
+    for (let i = allShooters.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [allShooters[i], allShooters[j]] = [allShooters[j], allShooters[i]];
+    }
+    
+    // Save Snapshot for exact resets
+    state.initialState = {
+        blocks: state.blocks.map(b => ({c: b.c, r: b.r, color: b.color})),
+        shooters: allShooters.map(s => ({color: s.color, ammo: s.ammo}))
+    };
+
+    state.reserveShooters = allShooters;
+    state.incomingShooters = [];
+    state.isFillingBatch = false;
+    fillBatch(); resize(); updateScore();
+}
+
+function fillBatch() {
+    if (state.isFillingBatch) return;
+    let isBatchClear = true;
+    for (let c=0; c<CONFIG.queueCols; c++) {
+        for (let r=0; r<CONFIG.queueRows; r++) { if (state.spawnQueues[c][r] !== undefined && state.spawnQueues[c][r] !== null) { isBatchClear = false; break; } }
+    }
+    if (isBatchClear && state.reserveShooters.length > 0) {
+        state.isFillingBatch = true;
+        const startY = state.height + 150; // Start off-screen
+        
+        for (let r=0; r<CONFIG.queueRows; r++) {
+            for (let c=0; c<CONFIG.queueCols; c++) { 
+                if (state.reserveShooters.length > 0) {
+                    let sData = state.reserveShooters.shift();
+                    state.incomingShooters.push({
+                        color: sData.color,
+                        ammo: sData.ammo,
+                        c: c,
+                        r: r,
+                        x: state.queuePositions[c],
+                        y: startY + (r * 120) + (c * 20), // Stagger the entry slightly
+                        targetY: state.queueY + (r * CONFIG.queueRowOffset)
+                    });
+                }
+            }
+        }
+        updateScore();
+    }
+}
+
+function isBatchEmpty() { return !state.spawnQueues.some(col => col.some(item => item !== null)) && state.incomingShooters.length === 0; }
+
+function isBeltFull() {
+    const activeCount = state.shooters.filter(s => s.state === 'belt' || s.state === 'deploying').length;
+    if (activeCount >= CONFIG.beltCapacity) {
+        gameContainer.classList.add('shake'); setTimeout(() => gameContainer.classList.remove('shake'), 300);
+        return true;
+    }
+    return false;
+}
+
+// --- Menu UI Controls ---
+function startGame() {
+    homeScreen.style.display = 'none';
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    nextNoteTime = audioCtx.currentTime + 0.1; 
+    state.isRunning = true;
+    generateLevel();
+    requestAnimationFrame(loop);
+}
+
+function openSettings() {
+    if (homeScreen.style.display !== 'none') return;
+    state.isRunning = false;
+    settingsScreen.style.display = 'flex';
+}
+
+function closeSettings() {
+    settingsScreen.style.display = 'none';
+    if (gameOverScreen.style.display === 'none') state.isRunning = true;
+    nextNoteTime = audioCtx.currentTime + 0.1; // reset BGM timer
+}
+
+function toggleSound() {
+    soundEnabled = !soundEnabled;
+    document.getElementById('toggle-sound-btn').innerText = soundEnabled ? '🔊 SOUND: ON' : '🔈 SOUND: OFF';
+}
+
+function toggleMusic() {
+    musicEnabled = !musicEnabled;
+    document.getElementById('toggle-music-btn').innerText = musicEnabled ? '🎵 BGM: ON' : '🎵 BGM: OFF';
+    if (musicEnabled) nextNoteTime = audioCtx.currentTime + 0.1;
+}
+
+function toggleTheme() {
+    currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    document.body.className = currentTheme === 'light' ? 'light-theme' : '';
+    document.getElementById('toggle-theme-btn').innerText = currentTheme === 'dark' ? '🌙 THEME: DARK' : '☀️ THEME: LIGHT';
+}
+
+// --- Input ---
+canvas.addEventListener('pointerdown', (e) => {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    if (!state.isRunning) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left; const y = e.clientY - rect.top; 
+    const radius = CONFIG.shooterRadius + 10; 
+
+    for (let i = 0; i < state.docks.length; i++) {
+        const d = state.docks[i];
+        if (d.content && d.content.state === 'docked' && Math.sqrt(Math.pow(x - d.x, 2) + Math.pow(y - d.y, 2)) < radius) {
+            if (isBeltFull()) { Sound.error(); return; }
+            Sound.deploy(); d.content.state = 'deploying'; d.content = null; return;
+        }
+    }
+
+    const headY = state.queueY;
+    const colW = CONFIG.shooterRadius * 2 + 15; 
+    for (let i = 0; i < CONFIG.queueCols; i++) {
+        const cx = state.queuePositions[i];
+        if (Math.abs(x - cx) < colW/2) {
+            for(let r=0; r<CONFIG.queueRows; r++) {
+                if(state.spawnQueues[i][r] !== null) {
+                    const targetY = headY + (r * CONFIG.queueRowOffset);
+                    if (Math.abs(y - targetY) < radius) {
+                        if (isShooterDeployable(i, r)) {
+                            if (isBeltFull()) { Sound.error(); return; }
+                            
+                            let path = findQueuePath(i, r);
+                            Sound.deploy(); 
+                            const sData = state.spawnQueues[i][r]; 
+                            state.spawnQueues[i][r] = null; 
+                            
+                            let shooter = new Shooter(sData.color, sData.ammo, cx, targetY);
+                            
+                            // Map grid path to pixel coordinates (Waypoints)
+                            let waypoints = [];
+                            for (let step of path) {
+                                if (step.r === -1) {
+                                    waypoints.push({ x: state.queuePositions[step.c], y: headY - CONFIG.shooterRadius - 15 });
+                                } else {
+                                    waypoints.push({ x: state.queuePositions[step.c], y: headY + (step.r * CONFIG.queueRowOffset) });
+                                }
+                            }
+                            waypoints.push({ x: state.beltPath.segments[0].start.x, y: state.beltPath.segments[0].start.y });
+                            
+                            shooter.waypoints = waypoints;
+                            state.shooters.push(shooter);
+                            
+                            if (isBatchEmpty()) setTimeout(fillBatch, 500); 
+                        } else Sound.error();
+                        return;
+                    }
+                }
+            }
+        }
+    }
+});
+
+// --- Drawing Rendering ---
+function update() {
+    globalTime++;
+    state.shooters.forEach(s => s.update());
+    state.bullets.forEach(b => b.update());
+    state.particles.forEach(p => p.update());
+    state.floatingTexts.forEach(t => t.update());
+
+    // Process incoming queue refill shooters
+    if (state.incomingShooters.length > 0) {
+        for (let i = state.incomingShooters.length - 1; i >= 0; i--) {
+            let inc = state.incomingShooters[i];
+            let dy = inc.targetY - inc.y;
+            if (dy > -10) { 
+                // Snap to slot when close
+                state.spawnQueues[inc.c][inc.r] = { color: inc.color, ammo: inc.ammo };
+                state.incomingShooters.splice(i, 1);
+            } else {
+                inc.y -= 14; // Smooth, crisp sliding speed
+            }
+        }
+    } else {
+        state.isFillingBatch = false;
+    }
+
+    state.shooters = state.shooters.filter(s => s.active);
+    state.bullets = state.bullets.filter(b => b.active);
+    state.particles = state.particles.filter(p => p.life > 0);
+    state.floatingTexts = state.floatingTexts.filter(t => t.life > 0);
+    
+    updateBGM();
+
+    if (state.isRunning) {
+        if (!state.blocks.some(b => b.active)) { endGame(true); updateScore(); } 
+        else checkFailState();
+    }
+}
+
+function draw() {
+    ctx.clearRect(0, 0, state.width, state.height);
+    const tColor = THEME_COLORS[currentTheme];
+    
+    // Grid Lines
+    ctx.strokeStyle = tColor.gridStroke; ctx.lineWidth = 1;
+    for(let i=0; i<state.width; i+=40) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, state.height); ctx.stroke(); }
+    for(let i=0; i<state.height; i+=40) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(state.width, i); ctx.stroke(); }
+    
+    // Conveyor Belt 
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.strokeStyle = tColor.beltBase; ctx.lineWidth = CONFIG.shooterRadius * 2 + 12; 
+    ctx.beginPath();
+    state.beltPath.segments.forEach((seg, i) => {
+        if (i===0) ctx.moveTo(seg.start.x, seg.start.y); else ctx.lineTo(seg.start.x, seg.start.y); ctx.lineTo(seg.end.x, seg.end.y);
+    }); ctx.stroke();
+    
+    ctx.strokeStyle = tColor.beltInner; ctx.lineWidth = CONFIG.shooterRadius * 2 + 2; ctx.stroke();
+    ctx.strokeStyle = currentTheme === 'dark' ? '#38bdf8' : '#0284c7'; ctx.lineWidth = 2; ctx.globalAlpha = 0.5;
+    ctx.setLineDash([10, 25]); ctx.lineDashOffset = -(globalTime * CONFIG.beltSpeed * 0.5); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1.0;
+
+    // Grid Area Background
+    ctx.fillStyle = tColor.gridBg;
+    ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 15;
+    const buff = 8;
+    ctx.fillRect(state.gridOffsetX - buff, state.gridOffsetY - buff, CONFIG.gridCols * CONFIG.blockSize + buff*2, CONFIG.gridRows * CONFIG.blockSize + buff*2);
+    ctx.shadowBlur = 0;
+
+    state.blocks.forEach(b => b.draw(ctx));
+    drawDocks(ctx, tColor);
+    drawQueues(ctx, tColor);
+    drawIncoming(ctx, tColor);
+    drawBeltCapacity(ctx, tColor);
+
+    state.shooters.forEach(s => s.draw(ctx));
+    state.bullets.forEach(b => b.draw(ctx));
+    state.particles.forEach(p => p.draw(ctx));
+    state.floatingTexts.forEach(t => t.draw(ctx));
+}
+
+function drawBeltCapacity(ctx, tColor) {
+    const activeCount = state.shooters.filter(s => s.state === 'belt' || s.state === 'deploying').length;
+    const max = CONFIG.beltCapacity;
+    
+    // Find the bottom-left corner entry point
+    const bx = state.beltPath.rect.x;
+    const by = state.beltPath.rect.y;
+    const bh = state.beltPath.rect.h;
+    const gap = CONFIG.beltGap;
+    
+    const cx = bx + (gap / 2);
+    const cy = by + bh; 
+    
+    const radius = CONFIG.shooterRadius;
+    const panelW = radius * 2.4;
+    const panelH = radius * 2.4;
+    const px = cx - panelW/2;
+    const py = cy - panelH/2;
+    
+    // Entry Pad Glow / Background
+    ctx.fillStyle = currentTheme === 'dark' ? 'rgba(30, 41, 59, 0.85)' : 'rgba(255, 255, 255, 0.85)';
+    ctx.strokeStyle = activeCount >= max ? '#ef4444' : tColor.dockStroke;
+    ctx.lineWidth = 2;
+    ctx.shadowColor = activeCount >= max ? 'rgba(239, 68, 68, 0.4)' : 'rgba(0,0,0,0.2)';
+    ctx.shadowBlur = 10;
+    drawRoundedRect(ctx, px, py, panelW, panelH, 12);
+    ctx.fill();
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // "BELT LOAD" text
+    ctx.fillStyle = currentTheme === 'dark' ? '#94a3b8' : '#64748b';
+    ctx.font = `bold 10px 'Rajdhani', sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText("BELT LOAD", cx, py + panelH * 0.22);
+
+    // Indicator Slots
+    const slotW = (panelW - 20) / max; 
+    const slotH = 8;
+    const startX = px + 10;
+    const slotY = py + panelH * 0.42;
+    
+    for (let i = 0; i < max; i++) {
+        const isFilled = i < activeCount;
+        const isFull = activeCount >= max;
+        
+        const sx = startX + (i * slotW) + 2;
+        const sw = slotW - 4;
+        
+        drawRoundedRect(ctx, sx, slotY, sw, slotH, 4);
+        
+        if (isFilled) {
+            ctx.fillStyle = isFull ? '#ef4444' : '#10b981'; 
+            ctx.shadowColor = ctx.fillStyle;
+            ctx.shadowBlur = 8;
+        } else {
+            ctx.fillStyle = currentTheme === 'dark' ? '#0f172a' : '#cbd5e1';
+            ctx.shadowBlur = 0;
+        }
+        ctx.fill();
+        ctx.shadowBlur = 0;
+    }
+
+    // Percentage/Fraction Text
+    ctx.fillStyle = activeCount >= max ? '#ef4444' : (currentTheme === 'dark' ? '#f8fafc' : '#0f172a');
+    ctx.font = `bold 16px 'Fredoka One', cursive`;
+    ctx.fillText(`${activeCount} / ${max}`, cx, py + panelH * 0.78);
+}
+
+function drawDocks(ctx, tColor) {
+    state.docks.forEach(item => {
+        // Draw dynamically sized pads using strictly safe radii
+        const padRadius = Math.max(1, CONFIG.shooterRadius + 6);
+        const innerRadius = Math.max(1, CONFIG.shooterRadius - 2);
+        
+        ctx.fillStyle = tColor.dockBase; ctx.beginPath(); ctx.arc(item.x, item.y, padRadius, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = tColor.dockStroke; ctx.lineWidth = 3; ctx.stroke();
+        ctx.strokeStyle = currentTheme === 'dark' ? 'rgba(56, 189, 248, 0.3)' : 'rgba(2, 132, 199, 0.3)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(item.x, item.y, innerRadius, 0, Math.PI * 2); ctx.stroke();
+    });
+}
+
+function drawQueues(ctx, tColor) {
+    const yStart = state.queueY; const offset = CONFIG.queueRowOffset; 
+    
+    for(let i=0; i<CONFIG.queueCols; i++) {
+        const queue = state.spawnQueues[i];
+        if (!queue) continue; 
+        const cx = state.queuePositions[i];
+        for(let j=0; j<queue.length; j++) {
+            const item = queue[j]; if (item === null) continue; 
+            const y = yStart + (j * offset); const isAvailable = isShooterDeployable(i, j);
+
+            // Option 5: Miniaturize locked shooters for depth effect
+            const scale = isAvailable ? 1 : 0.72;
+
+            // Base Pad dynamically sized safely
+            const padRadius = Math.max(1, (CONFIG.shooterRadius * scale) + 4);
+            ctx.fillStyle = tColor.dockBase; ctx.beginPath(); ctx.arc(cx, y, padRadius, 0, Math.PI * 2); ctx.fill();
+            
+            // Pulse if available
+            if (isAvailable) {
+                const pulse = Math.sin(globalTime * 0.1) * 2; ctx.strokeStyle = item.color; ctx.lineWidth = 2; ctx.globalAlpha = 0.6;
+                ctx.beginPath(); ctx.arc(cx, y, Math.max(1, padRadius + pulse), 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1.0;
+            }
+
+            // Correctly sized Shooter Asset with failsafe size limit
+            const size = Math.max(5, CONFIG.shooterRadius * scale);
+            drawShooterAsset(ctx, cx, y, item.color, size, item.ammo, !isAvailable, -Math.PI/2);
+        }
+    }
+}
+
+function drawIncoming(ctx, tColor) {
+    state.incomingShooters.forEach(inc => {
+        const isAvailable = (inc.r === 0);
+        const scale = isAvailable ? 1 : 0.95;
+        const padRadius = Math.max(1, (CONFIG.shooterRadius * scale) + 4);
+        
+        ctx.fillStyle = tColor.dockBase; 
+        ctx.beginPath(); 
+        ctx.arc(inc.x, inc.y, padRadius, 0, Math.PI * 2); 
+        ctx.fill();
+
+        const size = Math.max(5, CONFIG.shooterRadius * scale);
+        drawShooterAsset(ctx, inc.x, inc.y, inc.color, size, inc.ammo, !isAvailable, -Math.PI/2);
+    });
+}
+
+function loop() {
+    if (state.isRunning) { update(); draw(); }
+    requestAnimationFrame(loop);
+}
+
+window.onload = () => { resize(); draw(); };
+window.onresize = resize;
+
+    </script>
+</body>
+
+</html>

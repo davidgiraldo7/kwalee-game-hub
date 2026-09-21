@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sausage Sort – Level Editor</title>
+<style>
+  @font-face {
+    font-family: "Fredoka";
+    src: url("Fredoka-Medium.ttf") format("truetype");
+    font-weight: 500;
+  }
+  @font-face {
+    font-family: "Fredoka";
+    src: url("Fredoka-SemiBold.ttf") format("truetype");
+    font-weight: 600;
+  }
+  @font-face {
+    font-family: "Fredoka";
+    src: url("Fredoka-Bold.ttf") format("truetype");
+    font-weight: 700;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Fredoka", "Trebuchet MS", system-ui, sans-serif;
+    font-weight: 500;
+    background: #f0f4fa;
+    color: #2c3e50;
+    padding: 20px;
+  }
+  h1 {
+    text-align: center;
+    font-weight: 700;
+    font-size: 28px;
+    margin-bottom: 6px;
+    color: #e8455f;
+  }
+  .subtitle {
+    text-align: center;
+    font-size: 14px;
+    color: #7a8492;
+    margin-bottom: 20px;
+  }
+  .toolbar {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 0;
+  }
+  .toolbar-wrap {
+    position: sticky;
+    top: 10px;
+    z-index: 30;
+    max-width: 760px;
+    margin: 0 auto 20px auto;
+    padding: 10px;
+    background: rgba(240, 244, 250, 0.94);
+    border: 1px solid rgba(74, 144, 226, 0.15);
+    border-radius: 14px;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 4px 16px rgba(44, 62, 80, 0.08);
+  }
+  .toolbar button {
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 14px;
+    border: none;
+    border-radius: 12px;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.15s;
+  }
+  .toolbar button:active { transform: scale(0.96); }
+  .btn-add {
+    background: linear-gradient(180deg, #38dc85, #28c76f);
+    color: #fff;
+    box-shadow: 0 3px 0 #1fa85a;
+  }
+  .btn-import {
+    background: linear-gradient(180deg, #5d9bff, #4a90e2);
+    color: #fff;
+    box-shadow: 0 3px 0 #3a7bd5;
+  }
+  .btn-export {
+    background: linear-gradient(180deg, #f5b43c, #e8a020);
+    color: #fff;
+    box-shadow: 0 3px 0 #c8891a;
+  }
+  .btn-clear {
+    background: linear-gradient(180deg, #e8455f, #d63050);
+    color: #fff;
+    box-shadow: 0 3px 0 #b82845;
+  }
+
+  #levelList {
+    max-width: 700px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .level-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 16px 18px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border: 2px solid transparent;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    cursor: grab;
+    position: relative;
+  }
+  .level-card:active { cursor: grabbing; }
+  .level-card.dragging {
+    opacity: 0.5;
+    border-color: #4a90e2;
+  }
+  .level-card.drag-over {
+    border-color: #38dc85;
+    box-shadow: 0 0 0 3px rgba(56, 220, 133, 0.25);
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 0;
+    cursor: pointer;
+  }
+  .level-number {
+    background: #e8455f;
+    color: #fff;
+    font-weight: 700;
+    font-size: 14px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .level-name-input {
+    flex: 1;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 16px;
+    border: 2px solid #e8ecf2;
+    border-radius: 10px;
+    padding: 6px 12px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .level-name-input:focus { border-color: #4a90e2; }
+  .drag-handle {
+    cursor: grab;
+    font-size: 20px;
+    color: #b0bec5;
+    user-select: none;
+    padding: 4px;
+  }
+  .drag-handle:active { cursor: grabbing; }
+  .expand-toggle {
+    width: 26px;
+    height: 26px;
+    border: none;
+    border-radius: 50%;
+    background: #edf3ff;
+    color: #4a90e2;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .expand-toggle.collapsed {
+    transform: rotate(-90deg);
+  }
+  .level-summary {
+    font-size: 12px;
+    font-weight: 600;
+    color: #7a8492;
+    margin-left: 4px;
+    margin-right: auto;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 190px;
+  }
+  .level-fields-wrap {
+    margin-top: 12px;
+  }
+  .level-fields-wrap.collapsed {
+    display: none;
+  }
+  .btn-delete {
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: #e8455f;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 8px;
+    transition: background 0.15s;
+  }
+  .btn-delete:hover { background: #fde8ec; }
+
+  .fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+  }
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .field label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #7a8492;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .field input[type="number"],
+  .field select {
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 14px;
+    border: 2px solid #e8ecf2;
+    border-radius: 10px;
+    padding: 6px 10px;
+    outline: none;
+    background: #fafbfd;
+    transition: border-color 0.15s;
+    width: 100%;
+  }
+  .field input[type="number"]:focus,
+  .field select:focus { border-color: #4a90e2; }
+
+  .slider-field {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 4px;
+  }
+  .slider-field label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #7a8492;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+  .slider-field input[type="range"] {
+    flex: 1;
+    accent-color: #4a90e2;
+  }
+  .slider-value {
+    font-weight: 700;
+    font-size: 14px;
+    color: #4a90e2;
+    min-width: 36px;
+    text-align: right;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #b0bec5;
+    font-size: 16px;
+  }
+
+  /* JSON modal */
+  .modal-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-backdrop.show { display: flex; }
+  .modal {
+    background: #fff;
+    border-radius: 16px;
+    padding: 24px;
+    width: 90%;
+    max-width: 560px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  }
+  .modal h2 {
+    font-weight: 700;
+    font-size: 20px;
+    color: #2c3e50;
+  }
+  .modal textarea {
+    font-family: "Courier New", monospace;
+    font-size: 13px;
+    border: 2px solid #e8ecf2;
+    border-radius: 10px;
+    padding: 12px;
+    resize: vertical;
+    min-height: 200px;
+    outline: none;
+    flex: 1;
+  }
+  .modal textarea:focus { border-color: #4a90e2; }
+  .modal-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+  .modal-buttons button {
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 14px;
+    border: none;
+    border-radius: 10px;
+    padding: 8px 18px;
+    cursor: pointer;
+  }
+  .btn-modal-cancel { background: #e8ecf2; color: #7a8492; }
+  .btn-modal-ok { background: #4a90e2; color: #fff; }
+  .btn-modal-copy { background: #38dc85; color: #fff; }
+  .error-msg { color: #e8455f; font-size: 13px; font-weight: 600; min-height: 18px; }
+</style>
+</head>
+<body>
+
+<h1>🌭 Sausage Sort Level Editor</h1>
+<p class="subtitle">Design levels, reorder by drag & drop, then export JSON for the game</p>
+
+<div class="toolbar-wrap">
+  <div class="toolbar">
+    <button class="btn-add" onclick="addLevel()">+ Add Level</button>
+    <button class="btn-import" onclick="openImport()">Import JSON</button>
+    <button class="btn-export" onclick="openExport()">Export JSON</button>
+    <button class="btn-clear" onclick="clearAll()">Clear All</button>
+  </div>
+</div>
+
+<div id="globalSettings" class="level-card" style="max-width:700px;margin:0 auto 14px auto;cursor:default;">
+  <div class="card-header" style="margin-bottom:10px;">
+    <span class="level-number" style="background:#4a90e2;">⚙</span>
+    <strong style="font-size:16px;">Global Settings</strong>
+  </div>
+  <div class="fields">
+    <div class="field">
+      <label>Box Width</label>
+      <input id="globalBoxW" type="number" min="180" max="320" value="210" onchange="updateGlobalField('boxW', +this.value)">
+    </div>
+    <div class="field">
+      <label>Box Height</label>
+      <input id="globalBoxH" type="number" min="220" max="400" value="265" onchange="updateGlobalField('boxH', +this.value)">
+    </div>
+    <div class="field">
+      <label>Belt Capacity</label>
+      <input id="globalBeltCap" type="number" min="3" max="12" value="9" onchange="updateGlobalField('beltCap', +this.value)">
+    </div>
+  </div>
+</div>
+
+<div id="levelList"></div>
+
+<!-- Import Modal -->
+<div class="modal-backdrop" id="importModal">
+  <div class="modal">
+    <h2>Import Levels JSON</h2>
+    <textarea id="importText" placeholder='Paste your levels JSON here...'></textarea>
+    <p class="error-msg" id="importError"></p>
+    <div class="modal-buttons">
+      <button class="btn-modal-cancel" onclick="closeImport()">Cancel</button>
+      <button class="btn-modal-ok" onclick="doImport()">Import</button>
+    </div>
+  </div>
+</div>
+
+<!-- Export Modal -->
+<div class="modal-backdrop" id="exportModal">
+  <div class="modal">
+    <h2>Export Levels JSON</h2>
+    <textarea id="exportText" readonly></textarea>
+    <div class="modal-buttons">
+      <button class="btn-modal-cancel" onclick="closeExport()">Close</button>
+      <button class="btn-modal-copy" onclick="copyExport()">Copy</button>
+      <button class="btn-modal-ok" onclick="downloadExport()">Download</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var levels = [];
+var levelExpanded = [];
+var globalSettings = {
+  boxW: 210,
+  boxH: 265,
+  beltCap: 9
+};
+
+var DEFAULTS = {
+  name: "",
+  sausageCount: 8,
+  colorCount: 3,
+  bicoloredCount: 0,
+  mysteryCount: 0,
+  twoLongCount: 0,
+  threeLongCount: 0,
+  innerWallWidth: 104,
+  bunColumns: 4
+};
+
+function createLevelData(overrides) {
+  var d = {};
+  for (var k in DEFAULTS) d[k] = DEFAULTS[k];
+  if (overrides) for (var k2 in overrides) d[k2] = overrides[k2];
+  return d;
+}
+
+function addLevel(data) {
+  levels.push(data || createLevelData());
+  levelExpanded.push(true);
+  renderList();
+}
+
+function removeLevel(idx) {
+  levels.splice(idx, 1);
+  levelExpanded.splice(idx, 1);
+  renderList();
+}
+
+function clearAll() {
+  if (levels.length === 0) return;
+  if (!confirm("Remove all levels?")) return;
+  levels = [];
+  renderList();
+}
+
+function updateField(idx, field, value) {
+  levels[idx][field] = value;
+  // Auto-set name placeholder
+  if (field !== "name") updateNumberBadge(idx);
+}
+
+function updateGlobalField(field, value) {
+  globalSettings[field] = value;
+  saveLevels();
+}
+
+function normalizeGlobals(raw) {
+  var g = raw && typeof raw === "object" ? raw : {};
+  return {
+    boxW: +g.boxW || 210,
+    boxH: +g.boxH || 265,
+    beltCap: +g.beltCap || 9
+  };
+}
+
+function readLegacyGlobalsFromLevels(arr) {
+  var first = (Array.isArray(arr) && arr.length > 0) ? arr[0] : null;
+  if (!first || typeof first !== "object") return normalizeGlobals(null);
+  return normalizeGlobals({
+    boxW: first.boxW,
+    boxH: first.boxH,
+    beltCap: first.beltCap
+  });
+}
+
+function refreshGlobalInputs() {
+  var w = document.getElementById("globalBoxW");
+  var h = document.getElementById("globalBoxH");
+  var b = document.getElementById("globalBeltCap");
+  if (w) w.value = globalSettings.boxW;
+  if (h) h.value = globalSettings.boxH;
+  if (b) b.value = globalSettings.beltCap;
+}
+
+function updateNumberBadge(idx) {
+  var badge = document.querySelector('[data-level-idx="' + idx + '"] .level-number');
+  if (badge) badge.textContent = idx + 1;
+}
+
+function isLevelExpanded(idx) {
+  return !!levelExpanded[idx];
+}
+
+function toggleLevelExpanded(idx) {
+  levelExpanded[idx] = !isLevelExpanded(idx);
+  renderList();
+}
+
+function onCardHeaderClick(e, idx) {
+  if (e.target.closest(".level-name-input") || e.target.closest(".btn-delete") || e.target.closest(".drag-handle")) return;
+  toggleLevelExpanded(idx);
+}
+
+function levelSummary(lv) {
+  return lv.sausageCount + " sausages • " + lv.colorCount + " colours";
+}
+
+function renderList() {
+  var container = document.getElementById("levelList");
+  if (levels.length === 0) {
+    container.innerHTML = '<div class="empty-state">No levels yet. Click "+ Add Level" to get started.</div>';
+    return;
+  }
+  var html = "";
+  for (var i = 0; i < levels.length; i++) {
+    var lv = levels[i];
+    var expanded = isLevelExpanded(i);
+    html += '<div class="level-card" draggable="true" data-level-idx="' + i + '"'
+      + ' ondragstart="onDragStart(event)" ondragend="onDragEnd(event)"'
+      + ' ondragover="onDragOver(event)" ondragenter="onDragEnter(event)"'
+      + ' ondragleave="onDragLeave(event)" ondrop="onDrop(event)">'
+      + '<div class="card-header" onclick="onCardHeaderClick(event,' + i + ')">'
+      + '<button class="expand-toggle ' + (expanded ? '' : 'collapsed') + '" title="Expand/collapse" onclick="event.stopPropagation();toggleLevelExpanded(' + i + ')">⌄</button>'
+      + '<span class="drag-handle" title="Drag to reorder" onmousedown="armDrag(' + i + ')" ontouchstart="armDrag(' + i + ')">⠿</span>'
+      + '<span class="level-number">' + (i + 1) + '</span>'
+      + '<input class="level-name-input" type="text" placeholder="Level ' + (i + 1) + ' name (optional)"'
+      + ' value="' + escAttr(lv.name) + '"'
+      + ' onchange="updateField(' + i + ',\'name\',this.value)">'
+      + '<span class="level-summary">' + levelSummary(lv) + '</span>'
+      + '<button class="btn-delete" title="Delete level" onclick="removeLevel(' + i + ')">✕</button>'
+      + '</div>'
+      + '<div class="level-fields-wrap ' + (expanded ? '' : 'collapsed') + '">'
+      + '<div class="fields">'
+      + numField(i, "sausageCount", "Sausage No.", lv.sausageCount, 1, 30)
+      + numField(i, "colorCount", "Colour Count", lv.colorCount, 2, 6)
+      + numField(i, "bicoloredCount", "Bicoloured", lv.bicoloredCount, 0, 20)
+      + numField(i, "mysteryCount", "Mystery", lv.mysteryCount, 0, 20)
+      + numField(i, "twoLongCount", "2-Long Count", lv.twoLongCount, 0, 20)
+      + numField(i, "threeLongCount", "3-Long Count", lv.threeLongCount, 0, 20)
+      + numField(i, "bunColumns", "Bun Columns", lv.bunColumns, 2, 5)
+      + '<div class="slider-field">'
+      + '<label>Inner Wall Width</label>'
+      + '<input type="range" min="40" max="180" value="' + lv.innerWallWidth + '"'
+      + ' oninput="updateField(' + i + ',\'innerWallWidth\',+this.value);'
+      + 'this.nextElementSibling.textContent=this.value">'
+      + '<span class="slider-value">' + lv.innerWallWidth + '</span>'
+      + '</div>'
+      + '</div>'
+      + '</div>'
+      + '</div>';
+  }
+  container.innerHTML = html;
+}
+
+function numField(idx, field, label, val, min, max) {
+  return '<div class="field">'
+    + '<label>' + label + '</label>'
+    + '<input type="number" min="' + min + '" max="' + max + '" value="' + val + '"'
+    + ' onchange="updateField(' + idx + ',\'' + field + '\',+this.value)">'
+    + '</div>';
+}
+
+function escAttr(s) {
+  return String(s || "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+// ---- Drag & Drop ----
+var dragIdx = null;
+var dragArmedIdx = null;
+
+function armDrag(idx) {
+  dragArmedIdx = idx;
+}
+
+function onDragStart(e) {
+  var idx = +e.currentTarget.dataset.levelIdx;
+  if (dragArmedIdx !== idx) {
+    e.preventDefault();
+    return;
+  }
+  dragIdx = idx;
+  dragArmedIdx = null;
+  e.currentTarget.classList.add("dragging");
+  e.dataTransfer.effectAllowed = "move";
+}
+
+function onDragEnd(e) {
+  e.currentTarget.classList.remove("dragging");
+  document.querySelectorAll(".level-card").forEach(function(c) { c.classList.remove("drag-over"); });
+  dragIdx = null;
+  dragArmedIdx = null;
+}
+
+function onDragOver(e) { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }
+
+function onDragEnter(e) {
+  e.preventDefault();
+  var target = e.currentTarget;
+  if (+target.dataset.levelIdx !== dragIdx) target.classList.add("drag-over");
+}
+
+function onDragLeave(e) { e.currentTarget.classList.remove("drag-over"); }
+
+function onDrop(e) {
+  e.preventDefault();
+  var dropIdx = +e.currentTarget.dataset.levelIdx;
+  e.currentTarget.classList.remove("drag-over");
+  if (dragIdx === null || dragIdx === dropIdx) return;
+  var item = levels.splice(dragIdx, 1)[0];
+  var expanded = levelExpanded.splice(dragIdx, 1)[0];
+  levels.splice(dropIdx, 0, item);
+  levelExpanded.splice(dropIdx, 0, expanded);
+  renderList();
+}
+
+// ---- Import / Export ----
+function openImport() {
+  document.getElementById("importText").value = "";
+  document.getElementById("importError").textContent = "";
+  document.getElementById("importModal").classList.add("show");
+}
+
+function closeImport() {
+  document.getElementById("importModal").classList.remove("show");
+}
+
+function doImport() {
+  var raw = document.getElementById("importText").value.trim();
+  var errEl = document.getElementById("importError");
+  if (!raw) { errEl.textContent = "Paste some JSON first."; return; }
+  try {
+    var parsed = JSON.parse(raw);
+    var parsedLevels = [];
+    var parsedGlobals = null;
+    if (Array.isArray(parsed)) {
+      parsedLevels = parsed;
+      parsedGlobals = readLegacyGlobalsFromLevels(parsed);
+    } else if (parsed && typeof parsed === "object" && Array.isArray(parsed.levels)) {
+      parsedLevels = parsed.levels;
+      parsedGlobals = normalizeGlobals(parsed.globals);
+    } else {
+      errEl.textContent = "JSON must be either an array of levels or an object with { globals, levels }.";
+      return;
+    }
+    for (var i = 0; i < parsedLevels.length; i++) {
+      var lv = parsedLevels[i];
+      if (typeof lv !== "object" || lv === null) { errEl.textContent = "Item " + (i+1) + " is not a valid object."; return; }
+    }
+    levels = parsedLevels.map(function(lv) {
+      var clean = createLevelData(lv);
+      delete clean.boxW;
+      delete clean.boxH;
+      delete clean.beltCap;
+      return clean;
+    });
+    levelExpanded = levels.map(function() { return false; });
+    globalSettings = parsedGlobals;
+    refreshGlobalInputs();
+    renderList();
+    closeImport();
+  } catch (ex) {
+    errEl.textContent = "Invalid JSON: " + ex.message;
+  }
+}
+
+function buildExportData() {
+  var exportedLevels = levels.map(function(lv) {
+    var out = {};
+    for (var k in DEFAULTS) out[k] = lv[k];
+    return out;
+  });
+  return {
+    globals: normalizeGlobals(globalSettings),
+    levels: exportedLevels
+  };
+}
+
+function openExport() {
+  var json = JSON.stringify(buildExportData(), null, 2);
+  document.getElementById("exportText").value = json;
+  document.getElementById("exportModal").classList.add("show");
+}
+
+function closeExport() {
+  document.getElementById("exportModal").classList.remove("show");
+}
+
+function copyExport() {
+  var ta = document.getElementById("exportText");
+  ta.select();
+  navigator.clipboard.writeText(ta.value);
+}
+
+function downloadExport() {
+  var data = document.getElementById("exportText").value;
+  var blob = new Blob([data], { type: "application/json" });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url;
+  a.download = "levels.json";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ---- LocalStorage persistence ----
+var STORAGE_KEY = "sausageSort_editorLevels";
+
+function saveLevels() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    globals: normalizeGlobals(globalSettings),
+    levels: levels
+  }));
+}
+
+function loadLevels() {
+  try {
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      var parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        // Backward compatibility with old localStorage shape.
+        levels = parsed.map(function(lv) {
+          var clean = createLevelData(lv);
+          delete clean.boxW;
+          delete clean.boxH;
+          delete clean.beltCap;
+          return clean;
+        });
+        globalSettings = readLegacyGlobalsFromLevels(parsed);
+      } else if (parsed && typeof parsed === "object" && Array.isArray(parsed.levels)) {
+        levels = parsed.levels.map(function(lv) {
+          var clean = createLevelData(lv);
+          delete clean.boxW;
+          delete clean.boxH;
+          delete clean.beltCap;
+          return clean;
+        });
+        globalSettings = normalizeGlobals(parsed.globals);
+      }
+      levelExpanded = levels.map(function() { return false; });
+    }
+  } catch (e) { /* ignore */ }
+}
+
+// Auto-save on changes
+var _origUpdateField = updateField;
+updateField = function(idx, field, value) {
+  _origUpdateField(idx, field, value);
+  saveLevels();
+};
+
+var _origRenderList = renderList;
+renderList = function() {
+  _origRenderList();
+  refreshGlobalInputs();
+  saveLevels();
+};
+
+// Init
+loadLevels();
+renderList();
+</script>
+</body>
+</html>
