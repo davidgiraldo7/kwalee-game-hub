@@ -1,4 +1,5 @@
 (function (w) {
+  // vis6-hidden-fix: never re-read patched document.hidden
   "use strict";
 
   var NativeAC = w.AudioContext || w.webkitAudioContext;
