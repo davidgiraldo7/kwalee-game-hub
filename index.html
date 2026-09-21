@@ -276,16 +276,16 @@
 
   .game-art { position: relative; overflow: hidden; background: var(--game); }
   .game-art svg, .game-art img { width: 100%; height: 100%; display: block; }
-  .game-art img { object-fit: cover; }
+  .game-art img { object-fit: cover; object-position: center center; }
   .game-art.hero-art { height: 190px; }
   .game-art.tile-art { height: 112px; }
   .game-art.trend-art { height: 108px; border-radius: 15px 15px 0 0; }
 
   .game-frame {
     width: 100%;
-    height: 420px;
+    height: 100%;
     border: 0;
-    border-radius: 16px;
+    border-radius: 0;
     background: #141414;
     display: block;
   }
@@ -297,6 +297,18 @@
   .memory-match { --game: #1c1c1c; }
   .orbit-dodge { --game: #1032cf; }
   .star-tap { --game: #ffcb05; }
+  .hexiword { --game: #38bdf8; }
+  .stretch-block { --game: #7c3aed; }
+  .grid-filler { --game: #1d4ed8; }
+  .pixel-blocks { --game: #38bdf8; }
+  .link-flow { --game: #34d399; }
+  .blade-flow { --game: #818cf8; }
+  .colour-smash { --game: #fb7185; }
+  .sausage-sort { --game: #fb7185; }
+  .aqua-block-jam { --game: #22d3ee; }
+  .claw-sort { --game: #fb923c; }
+  .flock-feast { --game: #4ade80; }
+  .game-frame.hexiword { background: #38bdf8; }
 
   .featured-body { padding: 16px; background: rgba(26,26,26,.55); }
   .featured-kicker { display: flex; align-items: center; gap: 7px; color: var(--accent); font-size: 11px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
@@ -410,8 +422,184 @@
   .unlock-card h2 { font-size: 18px; line-height: 1.25; }
   .unlock-card .sub { margin: 8px 0 16px; line-height: 1.5; }
 
-  .game-page { padding-bottom: calc(env(safe-area-inset-bottom) + 28px) !important; }
-  .game-page .card { background: var(--surface); }
+  body:has(#app.game-page) {
+    overflow: hidden;
+    height: 100dvh;
+  }
+  #app.game-page {
+    --play-chrome-h: calc(env(safe-area-inset-top, 0px) + 47.6px);
+    max-width: none;
+    width: 100%;
+    height: 100dvh;
+    min-height: 100dvh;
+    padding: 0 !important;
+    overflow: hidden;
+  }
+  .play-shell,
+  .play-stage {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .play-shell {
+    background: #141414;
+  }
+  .play-chrome {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    height: var(--play-chrome-h);
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    padding: calc(env(safe-area-inset-top, 0px) + 5px) 10px 5px;
+    box-sizing: border-box;
+  }
+  .play-chrome-stats {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    margin-left: 0;
+  }
+  .play-chrome-level,
+  .play-chrome-coins {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0;
+    padding: 7px 11px;
+    border-radius: 999px;
+    background: rgba(26, 26, 26, .82);
+    color: #fbfbfb;
+    font-size: 9.9px;
+    font-weight: 800;
+    line-height: 1;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    white-space: nowrap;
+  }
+  .play-chrome-level {
+    border: 1px solid rgba(77, 107, 245, .7);
+  }
+  .play-chrome-coins {
+    border: 1px solid rgba(255, 203, 5, .55);
+    color: var(--accent);
+  }
+  .play-chrome-coins .coin-dot {
+    width: 8.8px;
+    height: 8.8px;
+    border-width: 1.5px;
+    flex-shrink: 0;
+  }
+  .play-chrome-level.reward-pop,
+  .play-chrome-coins.reward-pop {
+    animation: reward-chrome-pop .45s ease;
+  }
+  @keyframes reward-chrome-pop {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.16); }
+    100% { transform: scale(1); }
+  }
+  .reward-fly {
+    position: fixed;
+    z-index: 80;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 7px 11px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 900;
+    line-height: 1;
+    white-space: nowrap;
+    transform: translate(-50%, -50%) scale(1);
+    transition: transform .7s cubic-bezier(.2, .8, .2, 1), opacity .7s ease;
+    will-change: transform, opacity;
+  }
+  .reward-fly-xp {
+    background: rgba(26, 26, 26, .92);
+    color: #9ff0db;
+    border: 1px solid rgba(77, 107, 245, .8);
+  }
+  .reward-fly-coin {
+    background: rgba(26, 26, 26, .92);
+    color: var(--accent);
+    border: 1px solid rgba(255, 203, 5, .7);
+  }
+  .reward-fly-coin .coin-dot {
+    width: 9px;
+    height: 9px;
+    border-width: 1.5px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .reward-fly { display: none; }
+    .play-chrome-level.reward-pop,
+    .play-chrome-coins.reward-pop { animation: none; }
+  }
+  .play-stage {
+    overflow: auto;
+    background: #141414;
+  }
+  .play-stage:has(.game-frame) { overflow: hidden; }
+  .play-stage .game-frame {
+    position: absolute;
+    top: var(--play-chrome-h);
+    left: 0;
+    width: 100%;
+    height: calc(100% - var(--play-chrome-h));
+    border: 0;
+  }
+  .play-stage:not(:has(.game-frame)) {
+    padding: var(--play-chrome-h) 16px calc(env(safe-area-inset-bottom) + 16px);
+  }
+  .play-back {
+    position: relative;
+    z-index: 50;
+    margin: 0 0 0 10%;
+    padding: 8px 13px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 203, 5, .55);
+    background: rgba(26, 26, 26, .82);
+    color: #fbfbfb;
+    font-size: 11.4px;
+    font-weight: 800;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    animation: play-back-pulse 1.6s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+  .play-back:active {
+    animation: none;
+    transform: scale(.96);
+  }
+  @keyframes play-back-pulse {
+    0%, 100% {
+      transform: scale(1);
+      box-shadow: 0 0 0 0 rgba(255, 203, 5, .55);
+    }
+    50% {
+      transform: scale(1.06);
+      box-shadow: 0 0 0 8px rgba(255, 203, 5, 0);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .play-back { animation: none; }
+  }
+  .play-status {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
 
   .menu-page {
     position: relative;
@@ -421,6 +609,7 @@
     min-height: 100dvh;
     padding-bottom: calc(env(safe-area-inset-bottom) + 24px) !important;
   }
+
 
   .hub-page { position: relative; overflow-x: hidden; }
   .hub-page > :not(.menu-bg):not(.bottom-nav):not(.unlock-overlay) { position: relative; z-index: 1; }
@@ -468,6 +657,10 @@
   }
   @media (prefers-reduced-motion: reduce) {
     .menu-band-track { animation: none; }
+    .menu-page.is-loading .menu-load-fill {
+      animation: none;
+      transform: scaleX(1);
+    }
   }
 
   .menu-brand, .menu-actions, .menu-version { position: relative; z-index: 1; }
@@ -478,7 +671,63 @@
   .menu-actions { margin-top: 170px; display: grid; gap: 10px; }
   .menu-actions button { min-height: 54px; font-size: 16px; }
   .menu-actions .secondary-action { background: var(--surface-2); color: var(--text); }
+  .menu-page.is-loading .menu-actions button {
+    visibility: hidden;
+    pointer-events: none;
+  }
+  .menu-page.is-loading .menu-actions button[disabled] { opacity: 1; }
   .menu-version { margin-top: 18px; text-align: center; color: var(--text-3); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
+  .menu-load {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    padding: 0 4px;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+  .menu-page.is-loading .menu-load {
+    opacity: 1;
+    visibility: visible;
+  }
+  .menu-load-track {
+    position: relative;
+    width: 100%;
+    height: 42px;
+    border-radius: 12px;
+    background: #141414;
+    border: 1px solid var(--line);
+    overflow: hidden;
+  }
+  .menu-load-fill {
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: left center;
+  }
+  .menu-load-label {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: var(--text);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, .85);
+    pointer-events: none;
+  }
+  .menu-page.is-loading .menu-load-fill {
+    animation: menu-load-fill 2s linear forwards;
+  }
+  @keyframes menu-load-fill {
+    from { transform: scaleX(0.06); }
+    to { transform: scaleX(1); }
+  }
 
   .howto-page { padding-bottom: calc(env(safe-area-inset-bottom) + 28px) !important; }
   .howto-hero { margin: 18px 0 22px; }
@@ -573,25 +822,33 @@
    * Catalog
    * ------------------------------------------------------------------ */
 
+  var CATALOG_TIMEOUT_MS = 8000;
+  var GAMES_ORIGIN = "https://davidgiraldo7.github.io/kwalee-game-hub";
+  var GAMES_CATALOG_URL = GAMES_ORIGIN + "/games/catalog.json";
+  var GAMES_BRIDGE_URL = GAMES_ORIGIN + "/games/catalog-bridge.html";
+
+  /* Fallback if the GitHub catalog cannot be fetched (Canvas srcdoc, file://, CSP).
+     Heat order matches games/catalog.json so Game of the week still ranks correctly. */
   var BUILTIN_GAMES = [
-    { id: "tap-rush",     title: "Tap Rush",     genre: "Reflex", heat: 98, tagline: "10 seconds. Hit the pad as hard as you can." },
-    { id: "reaction-lab", title: "Reaction Lab", genre: "Timing", heat: 91, tagline: "Wait for green. Not a millisecond early.", lowerIsBetter: true, unit: "ms" },
-    { id: "snake-sprint", title: "Snake Sprint", genre: "Arcade", heat: 87, tagline: "Classic snake with portrait controls." },
-    { id: "bubble-pop",   title: "Bubble Pop",   genre: "Casual", heat: 84, tagline: "Clear rising bubbles before they escape." },
-    { id: "memory-match", title: "Memory Match", genre: "Puzzle", heat: 76, tagline: "Flip eight pairs. Fewer moves score higher." },
-    { id: "orbit-dodge",  title: "Orbit Dodge",  genre: "Action", heat: 72, tagline: "Drag to steer. Survive the falling orbit." }
+    { id: "hexiword",       title: "Hexiword",       genre: "Word",   heat: 100, tagline: "Swipe hex letters, capture 7 hexicons, beat other players.", src: GAMES_ORIGIN + "/games/hexiword.html", cover: GAMES_ORIGIN + "/games/covers/hexiword.png" },
+    { id: "stretch-block",  title: "Stretch Block",  genre: "Puzzle", heat: 99,  tagline: "Stretch colorful blocks until every tile on the grid is filled.", src: GAMES_ORIGIN + "/games/stretch-block/index.html", cover: GAMES_ORIGIN + "/games/covers/stretch-block.png" },
+    { id: "grid-filler",    title: "Grid Filler",    genre: "Puzzle", heat: 98,  tagline: "Divide the grid into tiles. Each number is the size of its rectangle.", src: GAMES_ORIGIN + "/games/grid-filler/index.html", cover: GAMES_ORIGIN + "/games/covers/grid-filler.jpg" },
+    { id: "pixel-blocks",   title: "Pixel Blocks",   genre: "Puzzle", heat: 97,  tagline: "Sort colors, collect blocks, and keep the waiting tray clear.", src: GAMES_ORIGIN + "/games/pixel-blocks/index.html", cover: GAMES_ORIGIN + "/games/covers/pixel-blocks.jpg" },
+    { id: "link-flow",      title: "Link Flow",      genre: "Puzzle", heat: 96,  tagline: "Connect matching colors, tiles, and paths without crossing the flow.", src: GAMES_ORIGIN + "/games/link-flow/index.html", cover: GAMES_ORIGIN + "/games/covers/link-flow.jpg" },
+    { id: "blade-flow",     title: "Blade Flow",     genre: "Puzzle", heat: 95,  tagline: "Grind the cubes, carve a path, and clear every colorful slice.", src: GAMES_ORIGIN + "/games/blade-flow/index.html", cover: GAMES_ORIGIN + "/games/covers/blade-flow.jpg" },
+    { id: "colour-smash",   title: "Colour Smash",   genre: "Puzzle", heat: 94,  tagline: "Connect the dots and smash matching color blocks off the board.", src: GAMES_ORIGIN + "/games/colour-smash/index.html", cover: GAMES_ORIGIN + "/games/covers/colour-smash.jpg" },
+    { id: "sausage-sort",   title: "Sausage Sort",   genre: "Puzzle", heat: 93,  tagline: "Sort sausages by color before the tray jams.", src: GAMES_ORIGIN + "/games/sausage-sort/index.html", cover: GAMES_ORIGIN + "/games/covers/sausage-sort.jpg" },
+    { id: "aqua-block-jam", title: "Aqua Block Jam", genre: "Puzzle", heat: 92,  tagline: "Slide the water blocks and sort every drop into its tube.", src: GAMES_ORIGIN + "/games/aqua-block-jam/index.html", cover: GAMES_ORIGIN + "/games/covers/aqua-block-jam.jpg" },
+    { id: "claw-sort",      title: "Claw Sort",      genre: "Puzzle", heat: 91,  tagline: "Grab, sort, and clear the claw machine one color at a time.", src: GAMES_ORIGIN + "/games/claw-sort/index.html", cover: GAMES_ORIGIN + "/games/covers/claw-sort.jpg" },
+    { id: "flock-feast",    title: "Flock Feast",    genre: "Casual", heat: 90,  tagline: "Feed the flock in the right order and keep the line moving.", src: GAMES_ORIGIN + "/games/flock-feast/index.html", cover: GAMES_ORIGIN + "/games/covers/flock-feast.jpg" }
   ];
   var GAMES = BUILTIN_GAMES.slice();
-  var FEATURED_ID = null;
+  var EMBEDDED_GAMES = {};
 
   function game(id) {
     for (var i = 0; i < GAMES.length; i++) if (GAMES[i].id === id) return GAMES[i];
     return null;
   }
-
-  var CATALOG_TIMEOUT_MS = 8000;
-  var GAMES_ORIGIN = "https://davidgiraldo7.github.io/kwalee-game-hub";
-  var GAMES_CATALOG_URL = GAMES_ORIGIN + "/games/catalog.json";
 
   function isLocalDevHost() {
     var host = location.hostname;
@@ -638,7 +895,7 @@
       if (query) add(query);
     } catch (err) { /* ignore */ }
 
-    if (location.protocol === "http:" || location.protocol === "https:") add(GAMES_CATALOG_URL);
+    add(GAMES_CATALOG_URL);
     return urls;
   }
 
@@ -686,7 +943,6 @@
     }
     if (!cleaned.length) return false;
     GAMES = cleaned;
-    FEATURED_ID = (!Array.isArray(data) && data.featuredId) ? String(data.featuredId) : null;
     progress = loadProgress();
     return true;
   }
@@ -705,10 +961,42 @@
     });
   }
 
+  function loadCatalogViaBridge() {
+    return new Promise(function (resolve) {
+      var settled = false;
+      var frame = null;
+      function finish(ok) {
+        if (settled) return;
+        settled = true;
+        window.removeEventListener("message", onMsg);
+        if (frame && frame.parentNode) frame.parentNode.removeChild(frame);
+        resolve(!!ok);
+      }
+      function onMsg(ev) {
+        if (ev.origin !== GAMES_ORIGIN) return;
+        var payload = ev.data;
+        if (!payload || payload.type !== "kwalee.catalog") return;
+        finish(payload.data && applyCatalog(payload.data, GAMES_CATALOG_URL));
+      }
+      window.addEventListener("message", onMsg);
+      frame = document.createElement("iframe");
+      frame.title = "catalog";
+      frame.setAttribute("aria-hidden", "true");
+      frame.style.cssText = "position:absolute;width:0;height:0;border:0;visibility:hidden";
+      frame.src = withCacheBust(GAMES_BRIDGE_URL);
+      (document.body || document.documentElement).appendChild(frame);
+      setTimeout(function () { finish(false); }, CATALOG_TIMEOUT_MS);
+    });
+  }
+
+  function catalogFetchSupported() {
+    return location.protocol === "http:" || location.protocol === "https:";
+  }
+
   function loadCatalog() {
-    var urls = catalogCandidates();
+    var urls = catalogFetchSupported() ? catalogCandidates() : [];
     function next(i) {
-      if (i >= urls.length) return Promise.resolve(false);
+      if (i >= urls.length) return loadCatalogViaBridge();
       return fetchWithTimeout(withCacheBust(urls[i]), CATALOG_TIMEOUT_MS).then(function (res) {
         if (!res.ok) throw new Error("catalog " + res.status);
         var base = res.url || urls[i];
@@ -751,6 +1039,17 @@
     return { highScore: 0, plays: 0, bestStreak: 0, lastPlayedAt: null };
   }
 
+  var WALLET_KEY = "kwalee-game-hub.wallet.v1";
+  var XP_PER_CLEAR = 10;
+  var COINS_PER_CLEAR = 1;
+  var XP_PER_LEVEL = 100;
+  var STARTING_COINS = 100;
+  var lastClearAt = 0;
+
+  function blankWallet() {
+    return { xp: 0, coins: STARTING_COINS };
+  }
+
   function loadProgress() {
     var out = {};
     GAMES.forEach(function (g) { out[g.id] = blankEntry(); });
@@ -773,6 +1072,33 @@
   }
 
   var progress = loadProgress();
+
+  function loadWallet() {
+    try {
+      var raw = storage.getItem(WALLET_KEY);
+      if (raw) {
+        var saved = JSON.parse(raw);
+        return {
+          xp: Math.max(0, Number(saved.xp) || 0),
+          coins: Math.max(0, Number(saved.coins) || 0)
+        };
+      }
+    } catch (err) { /* corrupt payload */ }
+    var plays = 0;
+    Object.keys(progress).forEach(function (id) {
+      if (id.charAt(0) === "_") return;
+      plays += (progress[id] && progress[id].plays) || 0;
+    });
+    if (plays > 0) return { xp: plays * 25, coins: plays * 25 + STARTING_COINS };
+    return blankWallet();
+  }
+
+  var wallet = loadWallet();
+
+  function saveWallet() {
+    try { storage.setItem(WALLET_KEY, JSON.stringify(wallet)); } catch (err) { /* quota/private mode */ }
+  }
+  try { if (!storage.getItem(WALLET_KEY)) saveWallet(); } catch (err) { /* ignore */ }
 
   function saveProgress() {
     try { storage.setItem(STORAGE_KEY, JSON.stringify(progress)); } catch (err) { /* quota/private mode */ }
@@ -812,15 +1138,29 @@
     return Math.floor(hours / 24) + "d ago";
   }
 
-  /* Rotates weekly so the featured slot changes on its own. Catalog can pin one. */
+  /* Highest catalog heat is Game of the week; the next four are Trending now. */
+  function gamesByHeat() {
+    return GAMES.slice().sort(function (a, b) {
+      var diff = (Number(b.heat) || 0) - (Number(a.heat) || 0);
+      if (diff) return diff;
+      return GAMES.indexOf(a) - GAMES.indexOf(b);
+    });
+  }
+
   function gameOfTheWeek() {
-    if (FEATURED_ID) {
-      var pinned = game(FEATURED_ID);
-      if (pinned) return pinned;
-    }
-    if (!GAMES.length) return BUILTIN_GAMES[0];
-    var weeks = Math.floor(Date.now() / 604800000);
-    return GAMES[weeks % GAMES.length];
+    return gamesByHeat()[0] || BUILTIN_GAMES[0];
+  }
+
+  function trendingNow() {
+    return gamesByHeat().slice(1, 5);
+  }
+
+  function allGamesList() {
+    var skip = {};
+    var featured = gameOfTheWeek();
+    if (featured) skip[featured.id] = true;
+    trendingNow().forEach(function (g) { skip[g.id] = true; });
+    return GAMES.filter(function (g) { return !skip[g.id]; });
   }
 
   /* ------------------------------------------------------------------ *
@@ -838,6 +1178,7 @@
     if (opts.attrs) Object.keys(opts.attrs).forEach(function (k) { node.setAttribute(k, opts.attrs[k]); });
     if (opts.style) Object.keys(opts.style).forEach(function (k) { node.style[k] = opts.style[k]; });
     if (opts.onClick) node.addEventListener("click", opts.onClick);
+    if (opts.disabled) node.disabled = true;
     (kids || []).forEach(function (kid) { if (kid) node.appendChild(kid); });
     return node;
   }
@@ -901,6 +1242,120 @@
   }
 
   /* ------------------------------------------------------------------ *
+   * Hub audio (clicks + quiet menu bed). Games play their own SFX once
+   * the iframe is allowed to autoplay.
+   * ------------------------------------------------------------------ */
+
+  var HubAudio = (function () {
+    var ctx = null;
+    var bedGain = null;
+    var bedTimer = null;
+    var bedOn = false;
+    var unlocked = false;
+
+    function ensure() {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      if (!ctx) ctx = new AC();
+      if (ctx.state === "suspended") ctx.resume().catch(function () { /* wait for a gesture */ });
+      unlocked = true;
+      return ctx;
+    }
+
+    function tone(freq, dur, type, vol, delay) {
+      var c = ensure();
+      if (!c) return;
+      var t0 = c.currentTime + (delay || 0);
+      var osc = c.createOscillator();
+      var gain = c.createGain();
+      osc.type = type || "triangle";
+      osc.frequency.setValueAtTime(freq, t0);
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(Math.max(vol || 0.1, 0.0002), t0 + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      osc.connect(gain);
+      gain.connect(c.destination);
+      osc.start(t0);
+      osc.stop(t0 + dur + 0.02);
+    }
+
+    function click() {
+      tone(920, 0.055, "triangle", 0.11);
+      tone(1380, 0.04, "sine", 0.05, 0.012);
+    }
+
+    function confirm() {
+      tone(660, 0.07, "triangle", 0.12);
+      tone(990, 0.09, "sine", 0.08, 0.04);
+    }
+
+    function stopBed() {
+      bedOn = false;
+      if (bedTimer) {
+        clearTimeout(bedTimer);
+        bedTimer = null;
+      }
+      if (bedGain && ctx) {
+        try {
+          bedGain.gain.cancelScheduledValues(ctx.currentTime);
+          bedGain.gain.setTargetAtTime(0.0001, ctx.currentTime, 0.08);
+        } catch (err) { /* ignore */ }
+      }
+    }
+
+    function startBed() {
+      if (bedOn) return;
+      var c = ensure();
+      if (!c) return;
+      bedOn = true;
+      if (!bedGain) {
+        bedGain = c.createGain();
+        bedGain.gain.value = 0.0001;
+        bedGain.connect(c.destination);
+      }
+      bedGain.gain.setTargetAtTime(0.045, c.currentTime, 0.25);
+      var notes = [262, 330, 392, 494, 392, 330];
+      var step = 0;
+      function pluck() {
+        if (!bedOn || !ctx) return;
+        var t0 = ctx.currentTime;
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = notes[step % notes.length];
+        step += 1;
+        gain.gain.setValueAtTime(0.0001, t0);
+        gain.gain.exponentialRampToValueAtTime(0.55, t0 + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.55);
+        osc.connect(gain);
+        gain.connect(bedGain);
+        osc.start(t0);
+        osc.stop(t0 + 0.58);
+        bedTimer = setTimeout(pluck, 640);
+      }
+      pluck();
+    }
+
+    function unlockIframe(frame) {
+      if (!frame || !frame.contentWindow) return;
+      try { frame.contentWindow.postMessage({ type: "kwalee.unlockAudio" }, "*"); } catch (err) { /* ignore */ }
+      try {
+        if (frame.contentWindow.KwaleeUnlockAudio) frame.contentWindow.KwaleeUnlockAudio();
+      } catch (err) { /* cross-origin */ }
+    }
+
+    return {
+      unlock: ensure,
+      click: click,
+      confirm: confirm,
+      startBed: startBed,
+      stopBed: stopBed,
+      unlockIframe: unlockIframe,
+      isUnlocked: function () { return unlocked; }
+    };
+  })();
+
+  /* ------------------------------------------------------------------ *
    * Router
    * ------------------------------------------------------------------ */
 
@@ -917,10 +1372,16 @@
     app.innerHTML = "";
     app.className = view + "-page";
     window.scrollTo(0, 0);
-    if (view === "menu") renderMenu();
+    if (view === "menu") renderMenu(false);
+    else if (view === "loading") {
+      app.className = "menu-page is-loading";
+      renderMenu(true);
+    }
     else if (view === "howto") renderHowTo();
     else if (view === "hub") renderHub();
     else renderGame(arg);
+    if (view === "game") HubAudio.stopBed();
+    else if (HubAudio.isUnlocked()) HubAudio.startBed();
   }
 
   function openMenu() { show("menu"); }
@@ -930,6 +1391,72 @@
   function openHubTab(tab) {
     hubTab = tab;
     openHub();
+  }
+
+  var catalogPromise = null;
+  function ensureCatalog() {
+    if (!catalogPromise) catalogPromise = loadCatalog();
+    return catalogPromise;
+  }
+
+  function preloadCovers() {
+    var urls = [];
+    GAMES.forEach(function (g) {
+      if (g.cover && urls.indexOf(g.cover) === -1) urls.push(g.cover);
+    });
+    if (!urls.length) return Promise.resolve();
+    return Promise.all(urls.map(function (src) {
+      return new Promise(function (resolve) {
+        var img = new Image();
+        var done = false;
+        function finish() {
+          if (done) return;
+          done = true;
+          resolve();
+        }
+        img.onload = finish;
+        img.onerror = finish;
+        img.src = src;
+        setTimeout(finish, 4000);
+      });
+    }));
+  }
+
+  var HUB_LOAD_MIN_MS = 2000;
+
+  function startMenuLoading() {
+    currentView = "loading";
+    closeUnlockPopup();
+    if (app.classList.contains("menu-page") && app.querySelector(".menu-actions")) {
+      app.classList.add("is-loading");
+      var buttons = app.querySelectorAll(".menu-actions button");
+      for (var i = 0; i < buttons.length; i++) buttons[i].disabled = true;
+      var bar = app.querySelector(".menu-load");
+      if (bar) bar.setAttribute("aria-hidden", "false");
+      return;
+    }
+    show("loading");
+  }
+
+  function enterHub() {
+    var started = Date.now();
+    startMenuLoading();
+    ensureCatalog()
+      .then(preloadCovers)
+      .then(function () {
+        var wait = Math.max(0, HUB_LOAD_MIN_MS - (Date.now() - started));
+        return new Promise(function (resolve) { setTimeout(resolve, wait); });
+      })
+      .then(function () {
+        if (currentView !== "loading") return;
+        hubTab = "games";
+        show("hub");
+      })
+      .catch(function () {
+        if (currentView !== "loading") return;
+        hubTab = "games";
+        show("hub");
+      });
   }
 
   /* ------------------------------------------------------------------ *
@@ -961,7 +1488,7 @@
     ]);
   }
 
-  function renderMenu() {
+  function renderMenu(loading) {
     app.appendChild(menuBackground());
 
     app.appendChild(el("div", { className: "menu-brand" }, [
@@ -974,13 +1501,28 @@
       el("button", {
         className: "primary block",
         text: "Enter Hub",
-        onClick: function () { openHubTab("games"); }
+        disabled: !!loading,
+        onClick: loading ? null : enterHub
       }),
       el("button", {
         className: "block secondary-action",
         text: "How to Play",
-        onClick: openHowTo
-      })
+        disabled: !!loading,
+        onClick: loading ? null : openHowTo
+      }),
+      el("div", {
+        className: "menu-load",
+        attrs: {
+          role: "progressbar",
+          "aria-label": "Loading games",
+          "aria-hidden": loading ? "false" : "true"
+        }
+      }, [
+        el("div", { className: "menu-load-track" }, [
+          el("div", { className: "menu-load-fill" }),
+          el("span", { className: "menu-load-label", text: "Loading..." })
+        ])
+      ])
     ]));
 
     app.appendChild(el("p", { className: "menu-version", text: "Play anywhere · progress saves locally" }));
@@ -1029,7 +1571,7 @@
         el("div", { className: "howto-icon", text: "4" }),
         el("div", null, [
           el("strong", { text: "Coins for the shop" }),
-          el("p", { text: "Collect coins across all the games and spend them in the shop." })
+          el("p", { text: "Clear a level or finish a round to earn 10 XP and 1 coin, then spend coins in the shop." })
         ])
       ])
     ]));
@@ -1038,7 +1580,7 @@
       className: "primary block",
       style: { marginTop: "24px" },
       text: "Enter Hub",
-      onClick: openHub
+      onClick: enterHub
     }));
   }
 
@@ -1061,7 +1603,29 @@
       "orbit-dodge":
         '<svg viewBox="0 0 360 190" aria-hidden="true"><rect width="360" height="190" fill="#1032cf"/><circle cx="54" cy="34" r="2" fill="#fbfbfb"/><circle cx="303" cy="55" r="3" fill="#fbfbfb"/><circle cx="86" cy="153" r="3" fill="#fbfbfb"/><circle cx="245" cy="151" r="2" fill="#fbfbfb"/><ellipse cx="180" cy="96" rx="129" ry="56" fill="none" stroke="#2a4eef" stroke-width="3"/><circle cx="180" cy="96" r="47" fill="#ffcb05"/><path d="M141 91c18 9 37-7 52 2 11 7 14 24 26 28-9 14-23 22-39 22-26 0-47-21-47-47 0-2 0-4 1-6z" fill="#d9a904"/><circle cx="302" cy="80" r="18" fill="#9ff0db"/><circle cx="75" cy="118" r="11" fill="#fbfbfb"/></svg>',
       "star-tap":
-        '<svg viewBox="0 0 360 190" aria-hidden="true"><rect width="360" height="190" fill="#ffcb05"/><circle cx="48" cy="36" r="14" fill="#fbfbfb"/><circle cx="312" cy="44" r="9" fill="#fbfbfb"/><circle cx="86" cy="154" r="8" fill="#fbfbfb"/><path d="m180 28 22 48 52 8-38 37 9 52-45-24-45 24 9-52-38-37 52-8z" fill="#1032cf"/><path d="m180 48 14 32 34 5-25 24 6 34-29-16-29 16 6-34-25-24 34-5z" fill="#fbfbfb"/></svg>'
+        '<svg viewBox="0 0 360 190" aria-hidden="true"><rect width="360" height="190" fill="#ffcb05"/><circle cx="48" cy="36" r="14" fill="#fbfbfb"/><circle cx="312" cy="44" r="9" fill="#fbfbfb"/><circle cx="86" cy="154" r="8" fill="#fbfbfb"/><path d="m180 28 22 48 52 8-38 37 9 52-45-24-45 24 9-52-38-37 52-8z" fill="#1032cf"/><path d="m180 48 14 32 34 5-25 24 6 34-29-16-29 16 6-34-25-24 34-5z" fill="#fbfbfb"/></svg>',
+      "hexiword":
+        '<svg viewBox="0 0 360 190" aria-hidden="true"><rect width="360" height="190" fill="#3b82f6"/><path d="M0 0h360v110H0z" fill="#38bdf8"/><polygon points="180,82 197,92 197,112 180,122 163,112 163,92" fill="#0ea5e9" stroke="#0f172a" stroke-width="2"/><polygon points="199,49 216,59 216,79 199,89 182,79 182,59" fill="#38bdf8" stroke="#0f172a" stroke-width="2"/><polygon points="218,82 235,92 235,112 218,122 201,112 201,92" fill="#f43f5e" stroke="#0f172a" stroke-width="2"/><polygon points="199,115 216,125 216,145 199,155 182,145 182,125" fill="#38bdf8" stroke="#0f172a" stroke-width="2"/><polygon points="161,115 178,125 178,145 161,155 144,145 144,125" fill="#f43f5e" stroke="#0f172a" stroke-width="2"/><polygon points="142,82 159,92 159,112 142,122 125,112 125,92" fill="#38bdf8" stroke="#0f172a" stroke-width="2"/><polygon points="161,49 178,59 178,79 161,89 144,79 144,59" fill="#0284c7" stroke="#0f172a" stroke-width="2"/><path d="m180 93 2.6 5.4 6 .7-4.4 4.1 1.1 5.8-5.3-2.9-5.3 2.9 1.1-5.8-4.4-4.1 6-.7z" fill="#fde047"/></svg>',
+      "stretch-block":
+        '<svg viewBox="0 0 360 190" aria-hidden="true"><rect width="360" height="190" fill="#7c3aed"/><rect x="28" y="78" width="86" height="36" rx="8" fill="#c4b5fd"/><rect x="122" y="78" width="132" height="36" rx="8" fill="#fde047"/><rect x="262" y="54" width="70" height="84" rx="8" fill="#fb7185"/><rect x="48" y="128" width="180" height="28" rx="8" fill="#67e8f9"/></svg>',
+      "grid-filler":
+        '<svg viewBox="0 0 360 190" aria-hidden="true"><rect width="360" height="190" fill="#1d4ed8"/><g fill="none" stroke="#93c5fd" stroke-width="2"><path d="M40 30h280v130H40z"/><path d="M80 30v130M120 30v130M160 30v130M200 30v130M240 30v130M280 30v130M40 62h280M40 94h280M40 126h280"/></g><rect x="40" y="30" width="80" height="64" fill="#fde047" opacity=".9"/><rect x="120" y="94" width="120" height="66" fill="#67e8f9" opacity=".85"/><text x="68" y="70" fill="#1e1505" font-size="22" font-weight="800" font-family="sans-serif">8</text><text x="168" y="136" fill="#0f172a" font-size="22" font-weight="800" font-family="sans-serif">12</text></svg>',
+      "pixel-blocks":
+        '<svg viewBox="0 0 360 190" aria-hidden="true"><rect width="360" height="190" fill="#0f172a"/><g><rect x="48" y="40" width="36" height="36" fill="#38bdf8"/><rect x="88" y="40" width="36" height="36" fill="#f43f5e"/><rect x="128" y="40" width="36" height="36" fill="#fde047"/><rect x="48" y="80" width="36" height="36" fill="#22c55e"/><rect x="88" y="80" width="36" height="36" fill="#a78bfa"/><rect x="128" y="80" width="36" height="36" fill="#fb923c"/><rect x="48" y="120" width="36" height="36" fill="#f472b6"/><rect x="88" y="120" width="36" height="36" fill="#38bdf8"/><rect x="128" y="120" width="36" height="36" fill="#fde047"/></g><ellipse cx="268" cy="96" rx="54" ry="22" fill="#64748b"/><circle cx="268" cy="70" r="28" fill="#e2e8f0"/><circle cx="268" cy="70" r="12" fill="#38bdf8"/></svg>',
+      "link-flow":
+        '<svg viewBox="0 0 360 190" aria-hidden="true"><rect width="360" height="190" fill="#064e3b"/><path d="M48 48h70v28H76v66h42v28H48z" fill="#34d399"/><path d="M150 48h90v28h-62v28h62v38h-90z" fill="#fde047"/><path d="M262 48h50v94h-50V112h22V76h-22z" fill="#fb7185"/><circle cx="62" cy="62" r="8" fill="#ecfdf5"/><circle cx="168" cy="62" r="8" fill="#1e1505"/><circle cx="287" cy="62" r="8" fill="#fff1f2"/></svg>',
+      "blade-flow":
+        '<svg viewBox="0 0 360 190" aria-hidden="true"><rect width="360" height="190" fill="#1e1b4b"/><g transform="translate(70 40)"><rect width="52" height="52" fill="#818cf8"/><rect x="56" width="52" height="52" fill="#f472b6"/><rect y="56" width="52" height="52" fill="#22d3ee"/><rect x="56" y="56" width="52" height="52" fill="#fde047"/></g><path d="M220 36l92 59-92 59z" fill="#e2e8f0"/><path d="M232 70l48 25-48 25z" fill="#64748b"/></svg>',
+      "colour-smash":
+        '<svg viewBox="0 0 360 190" aria-hidden="true"><rect width="360" height="190" fill="#9f1239"/><circle cx="70" cy="60" r="28" fill="#fb7185"/><circle cx="150" cy="60" r="28" fill="#fb7185"/><circle cx="70" cy="130" r="28" fill="#fde047"/><circle cx="150" cy="130" r="28" fill="#38bdf8"/><circle cx="230" cy="60" r="28" fill="#4ade80"/><circle cx="230" cy="130" r="28" fill="#a78bfa"/><path d="M268 40l22 38 42 4-32 28 9 40-41-22-41 22 9-40-32-28 42-4z" fill="#ffcb05"/></svg>',
+      "sausage-sort":
+        '<svg viewBox="0 0 360 190" aria-hidden="true"><rect width="360" height="190" fill="#7c2d12"/><rect x="40" y="48" rx="18" width="130" height="36" fill="#fb7185"/><rect x="190" y="48" rx="18" width="130" height="36" fill="#fde047"/><rect x="40" y="100" rx="18" width="90" height="36" fill="#38bdf8"/><rect x="150" y="100" rx="18" width="170" height="36" fill="#4ade80"/><rect x="36" y="44" width="8" height="100" rx="3" fill="#fed7aa"/><rect x="316" y="44" width="8" height="100" rx="3" fill="#fed7aa"/></svg>',
+      "aqua-block-jam":
+        '<svg viewBox="0 0 360 190" aria-hidden="true"><rect width="360" height="190" fill="#0e7490"/><rect x="50" y="28" width="44" height="134" rx="8" fill="#e0f2fe"/><rect x="50" y="78" width="44" height="84" fill="#38bdf8"/><rect x="114" y="28" width="44" height="134" rx="8" fill="#e0f2fe"/><rect x="114" y="50" width="44" height="112" fill="#22d3ee"/><rect x="178" y="28" width="44" height="134" rx="8" fill="#e0f2fe"/><rect x="178" y="110" width="44" height="52" fill="#2563eb"/><rect x="250" y="70" width="70" height="70" rx="10" fill="#67e8f9"/><rect x="266" y="86" width="38" height="38" rx="6" fill="#0284c7"/></svg>',
+      "claw-sort":
+        '<svg viewBox="0 0 360 190" aria-hidden="true"><rect width="360" height="190" fill="#ea580c"/><rect x="168" y="18" width="24" height="52" fill="#fed7aa"/><path d="M140 70h80l-18 28h-44z" fill="#fde047"/><circle cx="96" cy="142" r="26" fill="#fb7185"/><circle cx="180" cy="148" r="26" fill="#38bdf8"/><circle cx="264" cy="140" r="26" fill="#4ade80"/><rect x="40" y="168" width="280" height="14" rx="4" fill="#7c2d12"/></svg>',
+      "flock-feast":
+        '<svg viewBox="0 0 360 190" aria-hidden="true"><rect width="360" height="190" fill="#166534"/><ellipse cx="180" cy="160" rx="160" ry="28" fill="#4ade80"/><circle cx="90" cy="110" r="28" fill="#fef08a"/><circle cx="180" cy="96" r="32" fill="#fde047"/><circle cx="270" cy="114" r="26" fill="#facc15"/><circle cx="78" cy="102" r="6" fill="#1a1a1a"/><circle cx="168" cy="88" r="6" fill="#1a1a1a"/><circle cx="258" cy="106" r="6" fill="#1a1a1a"/><path d="M108 118l18 8-18 6z" fill="#fb923c"/><path d="M204 106l20 8-20 6z" fill="#fb923c"/><path d="M288 122l16 7-16 5z" fill="#fb923c"/></svg>'
     };
     return art[id] || art["tap-rush"];
   }
@@ -1138,16 +1702,18 @@
       totalPlays += entry.plays;
       if (entry.highScore) scored += 1;
     });
-    var playerLevel = Math.max(1, Math.floor(totalPlays / 4) + 1);
-    var xpInLevel = (totalPlays % 4) * 25;
-    var xpPerLevel = 100;
-    var xpToNext = xpPerLevel - xpInLevel;
+    var xp = wallet.xp;
+    var playerLevel = Math.max(1, Math.floor(xp / XP_PER_LEVEL) + 1);
+    var xpInLevel = xp % XP_PER_LEVEL;
+    var xpToNext = xpInLevel === 0 && xp > 0 ? XP_PER_LEVEL : XP_PER_LEVEL - xpInLevel;
     return {
       totalPlays: totalPlays,
       scored: scored,
       playerLevel: playerLevel,
-      coins: totalPlays * 25 + 100,
-      levelProgress: (xpInLevel / xpPerLevel) * 100,
+      coins: wallet.coins,
+      xp: xp,
+      xpInLevel: xpInLevel,
+      levelProgress: (xpInLevel / XP_PER_LEVEL) * 100,
       xpToNext: xpToNext,
       nextLevel: playerLevel + 1
     };
@@ -1281,7 +1847,7 @@
 
   function renderGames() {
     var featured = gameOfTheWeek();
-    var trending = GAMES.slice().sort(function (a, b) { return b.heat - a.heat; }).slice(0, 3);
+    var trending = trendingNow();
     var stats = playerStats();
 
     app.appendChild(el("div", { className: "hero-copy" }, [
@@ -1322,13 +1888,16 @@
     hot.appendChild(hotList);
     app.appendChild(hot);
 
+    var rest = allGamesList();
+    if (!rest.length) return;
+
     var all = el("div", { className: "section" }, [
       el("div", { className: "section-head" }, [
         el("h2", { text: "All games" }),
-        el("span", { className: "muted", text: GAMES.length + " games" })
+        el("span", { className: "muted", text: rest.length + " games" })
       ])
     ]);
-    all.appendChild(el("div", { className: "game-grid" }, GAMES.map(gameTile)));
+    all.appendChild(el("div", { className: "game-grid" }, rest.map(gameTile)));
     app.appendChild(all);
   }
 
@@ -1350,31 +1919,109 @@
     var meta = game(id);
     if (!meta) { openHub(); return; }
 
-    app.appendChild(el("div", { className: "row" }, [
-      el("button", { className: "ghost", text: "\u2039  Hub", onClick: openHub }),
-      el("div", { className: "grow" }),
-      el("span", { className: "muted", text: "Best " + bestLabel(id) })
-    ]));
+    var stats = playerStats();
+    var chromeLevel = el("div", {
+      className: "play-chrome-level",
+      text: "Lv " + stats.playerLevel,
+      attrs: { "aria-label": "Player level " + stats.playerLevel }
+    });
+    var chromeCoinsN = el("span", { text: String(stats.coins) });
+    var chromeCoins = el("div", {
+      className: "play-chrome-coins",
+      attrs: { "aria-label": stats.coins + " coins" }
+    }, [
+      el("span", { className: "coin-dot" }),
+      chromeCoinsN
+    ]);
+    var shell = el("div", { className: "play-shell" }, [
+      el("div", { className: "play-chrome" }, [
+        el("button", {
+          className: "play-back",
+          text: "Return To Hub",
+          attrs: { type: "button", "aria-label": "Return To Hub" },
+          onClick: openHub
+        }),
+        el("div", { className: "play-chrome-stats" }, [chromeLevel, chromeCoins])
+      ])
+    ]);
+    var mount = el("div", { className: "play-stage stack-14" });
+    var status = el("p", { className: "play-status", attrs: { "aria-live": "polite" }, text: "" });
+    shell.appendChild(mount);
+    shell.appendChild(status);
+    app.appendChild(shell);
 
-    app.appendChild(el("div", { style: { marginTop: "10px" } }, [
-      el("h1", { style: { fontSize: "22px" }, text: meta.title }),
-      el("p", { className: "sub", style: { marginTop: "6px" }, text: meta.tagline })
-    ]));
+    function refreshPlayChrome() {
+      var next = playerStats();
+      chromeLevel.textContent = "Lv " + next.playerLevel;
+      chromeLevel.setAttribute("aria-label", "Player level " + next.playerLevel);
+      chromeCoinsN.textContent = String(next.coins);
+      chromeCoins.setAttribute("aria-label", next.coins + " coins");
+    }
 
-    var mount = el("div", { className: "card stack-14", style: { marginTop: "18px" } });
-    app.appendChild(mount);
+    function popChrome(node) {
+      node.classList.remove("reward-pop");
+      void node.offsetWidth;
+      node.classList.add("reward-pop");
+    }
 
-    var status = el("p", { className: "muted", style: { marginTop: "14px", textAlign: "center" }, text: "" });
-    app.appendChild(status);
+    function flyRewardChip(target, className, kids) {
+      var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (!target) return;
+      if (reduce) {
+        popChrome(target);
+        return;
+      }
+      var origin = document.querySelector(".play-stage") || app;
+      var from = origin.getBoundingClientRect();
+      var to = target.getBoundingClientRect();
+      var node = el("div", { className: "reward-fly " + className }, kids);
+      document.body.appendChild(node);
+      var startX = from.left + from.width / 2;
+      var startY = from.top + from.height * 0.42;
+      var endX = to.left + to.width / 2;
+      var endY = to.top + to.height / 2;
+      node.style.left = startX + "px";
+      node.style.top = startY + "px";
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          node.style.transform = "translate(calc(-50% + " + (endX - startX) + "px), calc(-50% + " + (endY - startY) + "px)) scale(.55)";
+          node.style.opacity = "0.15";
+        });
+      });
+      setTimeout(function () {
+        if (node.parentNode) node.parentNode.removeChild(node);
+        popChrome(target);
+      }, 720);
+    }
+
+    function grantClear(score, streak) {
+      var now = Date.now();
+      if (now - lastClearAt < 1200) return;
+      lastClearAt = now;
+      var isBest = recordResult(id, score, streak || 0);
+      wallet.xp += XP_PER_CLEAR;
+      wallet.coins += COINS_PER_CLEAR;
+      saveWallet();
+      flyRewardChip(chromeLevel, "reward-fly-xp", [
+        el("span", { text: "+" + XP_PER_CLEAR + " XP" })
+      ]);
+      flyRewardChip(chromeCoins, "reward-fly-coin", [
+        el("span", { className: "coin-dot" }),
+        el("span", { text: "+" + COINS_PER_CLEAR })
+      ]);
+      setTimeout(refreshPlayChrome, 700);
+      var shown = meta.unit ? score + " " + meta.unit : score;
+      if (score) {
+        status.textContent = isBest
+          ? "New personal best: " + shown + " · saved"
+          : "Run saved: " + shown + " · best " + bestLabel(id);
+      }
+    }
 
     var api = {
       /** Persist a finished run and surface whether it beat the record. */
       submit: function (score, streak) {
-        var isBest = recordResult(id, score, streak || 0);
-        var shown = meta.unit ? score + " " + meta.unit : score;
-        status.textContent = isBest
-          ? "New personal best: " + shown + " · saved"
-          : "Run saved: " + shown + " · best " + bestLabel(id);
+        grantClear(score, streak || 0);
       },
       note: function (text) { status.textContent = text; }
     };
@@ -1390,30 +2037,86 @@
     teardown = BUILDERS[id](mount, api) || null;
   }
 
+  function inlineGameAssets(html, baseHref, cssText, jsText) {
+    var base = '<base href="' + baseHref + '">';
+    if (/<head[^>]*>/i.test(html)) html = html.replace(/<head[^>]*>/i, function (tag) { return tag + base; });
+    else html = base + html;
+    if (cssText) {
+      html = html.replace(/<link\s+rel="stylesheet"\s+href="arcade\.css">/i, "<style>\n" + cssText + "\n</style>");
+    }
+    if (jsText) {
+      html = html.replace(
+        /<script\s+src="arcade\.js"><\/script>/i,
+        "<script>\n" + jsText + "\n<" + "/script>"
+      );
+    }
+    return html;
+  }
+
+  function loadGameSrcdoc(meta, frame) {
+    var src = withCacheBust(meta.src);
+    var baseHref = new URL(".", meta.src).href;
+    return fetch(src, { credentials: "omit", cache: "no-store", mode: "cors" }).then(function (res) {
+      if (!res.ok) throw new Error("html " + res.status);
+      return res.text();
+    }).then(function (html) {
+      var needCss = /href="arcade\.css"/i.test(html);
+      var needJs = /src="arcade\.js"/i.test(html);
+      if (!needCss && !needJs) {
+        frame.src = src;
+        return null;
+      }
+      var jobs = [Promise.resolve(html)];
+      jobs.push(needCss
+        ? fetch(new URL("arcade.css", meta.src).href, { credentials: "omit", cache: "no-store", mode: "cors" }).then(function (r) { return r.ok ? r.text() : ""; })
+        : Promise.resolve(""));
+      jobs.push(needJs
+        ? fetch(new URL("arcade.js", meta.src).href, { credentials: "omit", cache: "no-store", mode: "cors" }).then(function (r) { return r.ok ? r.text() : ""; })
+        : Promise.resolve(""));
+      return Promise.all(jobs);
+    }).then(function (parts) {
+      if (!parts) return;
+      frame.srcdoc = inlineGameAssets(parts[0], baseHref, parts[1], parts[2]);
+    }).catch(function () {
+      frame.src = src;
+    });
+  }
+
   function mountRemoteGame(root, meta, api) {
-    api.note("Loaded from the catalog.");
     var frame = el("iframe", {
-      className: "game-frame",
+      className: "game-frame " + meta.id,
       attrs: {
-        src: meta.src,
         title: meta.title,
-        sandbox: "allow-scripts",
-        allow: "fullscreen",
-        loading: "eager",
-        referrerpolicy: "no-referrer"
+        sandbox: "allow-scripts allow-same-origin",
+        allow: "autoplay; fullscreen",
+        loading: "eager"
       }
     });
+    var html = EMBEDDED_GAMES[meta.id];
+    if (html) frame.setAttribute("srcdoc", html);
+    else loadGameSrcdoc(meta, frame);
     frame.addEventListener("error", function () {
       api.note("This game did not load. Check your connection and try again.");
     });
     function onMsg(e) {
       if (e.source !== frame.contentWindow) return;
       var data = e.data;
-      if (!data || data.type !== "kwalee.score") return;
+      if (!data || typeof data !== "object") return;
+      if (data.type !== "kwalee.reward" && data.type !== "kwalee.score") return;
       api.submit(Number(data.score) || 0, Number(data.streak) || 0);
     }
     window.addEventListener("message", onMsg);
+    function pingUnlock() {
+      HubAudio.unlockIframe(frame);
+    }
+    frame.addEventListener("load", function () {
+      pingUnlock();
+      setTimeout(pingUnlock, 150);
+      setTimeout(pingUnlock, 500);
+      setTimeout(pingUnlock, 1200);
+    });
     root.appendChild(frame);
+    pingUnlock();
     return function () { window.removeEventListener("message", onMsg); };
   }
 
@@ -2018,10 +2721,25 @@
     return function () { cancelAnimationFrame(frame); };
   };
 
-  openMenu();
-  loadCatalog().then(function (changed) {
-    if (changed) refreshFromCatalog();
+  app.addEventListener("pointerdown", function () {
+    HubAudio.unlock();
+  }, true);
+  app.addEventListener("click", function (e) {
+    var t = e.target.closest("button, .game-tile, .trend-card, .nav-item, .card.featured, .shop-item");
+    if (!t || t.disabled) return;
+    if (t.classList.contains("primary") || t.classList.contains("play-back") || t.classList.contains("game-tile")) {
+      HubAudio.confirm();
+    } else {
+      HubAudio.click();
+    }
+  }, true);
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden) HubAudio.stopBed();
+    else if (currentView !== "game" && HubAudio.isUnlocked()) HubAudio.startBed();
   });
+
+  openMenu();
+  ensureCatalog();
 })();
 </script>
 </body>

@@ -162,6 +162,7 @@
 
         #splash-screen { position: fixed; inset: 0; background: var(--bg); z-index: 200; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
     </style>
+    <script src="../hub-reward.js"></script>
 </head>
 <body>
 
@@ -655,6 +656,5 @@
         function clearBoard() { if (!currentLevel) return; board = JSON.parse(JSON.stringify(currentLevel.initialBoard)); placedShapes = []; rowOverflow = Array(gridSizeY).fill(false); colOverflow = Array(gridSizeX).fill(false); renderInventory(); updateLogic(); updateBoardUI(); }
         window.onresize = () => { if (currentLevel) { renderBoard(); updateBoardUI(); updateLogic(); } };
     </script>
-<script src="../hub-reward.js"></script>
 </body>
 </html>
