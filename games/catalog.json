@@ -8,7 +8,7 @@
       "heat": 100,
       "description": "Swipe hex letters, capture 7 hexicons, beat other players.",
       "cover": "covers/hexiword.png",
-      "src": "hexiword.html"
+      "src": "hexiword/index.html"
     },
     {
       "id": "stretch-block",

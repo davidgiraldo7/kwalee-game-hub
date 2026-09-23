@@ -92,8 +92,38 @@ export default function KwaleeGameHubPreview() {{
 '''
 
 
+def inline_game_html(path: Path) -> str:
+    text = path.read_text()
+    games_dir = path.parent
+    swaps = (
+        ('<link rel="stylesheet" href="play.css">', games_dir / "play.css", "style"),
+        ('<link rel="stylesheet" href="arcade.css">', games_dir / "arcade.css", "style"),
+        ('<link rel="stylesheet" href="hexiword.css">', games_dir / "hexiword.css", "style"),
+        ('<script src="play.js"></script>', games_dir / "play.js", "script"),
+        ('<script src="arcade.js"></script>', games_dir / "arcade.js", "script"),
+        ('<script src="hexiword-words.js"></script>', games_dir / "hexiword-words.js", "script"),
+    )
+    for needle, asset, tag in swaps:
+        if needle in text and asset.exists():
+            text = text.replace(needle, f"<{tag}>\n{asset.read_text()}\n</{tag}>", 1)
+    return text
+
+
+def embedded_games_js() -> str:
+    catalog = json.loads((ROOT / "games" / "catalog.json").read_text())
+    wanted = {item["id"] for item in catalog.get("games", [])}
+    games = {}
+    skip = {"catalog-bridge.html"} | {item["id"] + ".html" for item in catalog.get("games", []) if item.get("id") != "hexiword"}
+    for path in sorted((ROOT / "games").glob("*.html")):
+        if path.name in skip or path.stem not in wanted:
+            continue
+        games[path.stem] = inline_game_html(path)
+    payload = json.dumps(games).replace("<", "\\u003c")
+    return "var EMBEDDED_GAMES = " + payload + ";"
+
+
 def main():
-    html = HTML.read_text()
+    html = HTML.read_text().replace("var EMBEDDED_GAMES = {};", embedded_games_js(), 1)
 
     out = TEMPLATE.format(
         # json.dumps yields a valid JS string literal and escapes non-ASCII,

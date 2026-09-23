@@ -1,0 +1,18 @@
+// Data/levelOrder.json
+//
+// Progression order for levels defined in Data/levels.json.
+// Keep play order and endless-loop tuning here — not hard-coded in index.html.
+//
+// Load with the full project-root path: "assets/Data/levelOrder.json"
+// (JSON with // comments — strip comments before JSON.parse, or use a JSONC loader.)
+//
+// order        — array of levelId strings (must match levelId values in Data/levels.json),
+//                in play sequence
+// loopAfterX   — 0-based index into `order`. After the last entry is completed, jump back
+//                to this index and keep playing forever. Use 0 to restart from the first
+//                level; use a later index to skip early tutorial levels on replay.
+
+{
+  "order": [],
+  "loopAfterX": 0
+}

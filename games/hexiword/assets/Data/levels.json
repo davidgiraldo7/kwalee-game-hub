@@ -1,0 +1,20 @@
+// Data/levels.json
+//
+// All level definitions for any game built on this KPF template belong here.
+// Keep layouts, objectives, spawns, and per-level tuning in this file —
+// do not hard-code level content in index.html.
+// Play order and endless looping live in Data/levelOrder.json (references levelId).
+//
+// Load with the full project-root path: "assets/Data/levels.json"
+// (JSON with // comments — strip comments before JSON.parse, or use a JSONC loader.)
+//
+// Each level object MUST include a unique string levelId so order, saves, and
+// analytics can identify which level is which. Example shape:
+//
+//   { "levelId": "level_01", /* layouts, objectives, spawns, tuning… */ }
+//
+// Replace the empty levels array with your level objects as the game is implemented.
+
+{
+  "levels": []
+}

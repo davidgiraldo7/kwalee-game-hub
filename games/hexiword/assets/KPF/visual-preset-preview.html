@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>KPF Visual Preset Preview</title>
+  <base href="../../" />
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      font-family: "Trebuchet MS", system-ui, sans-serif;
+      background: #f3f6fb;
+      color: #1f2430;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      height: 100vh;
+    }
+    .sidebar {
+      padding: 20px;
+      border-right: 1px solid #d8deea;
+      background: #fff;
+      overflow-y: auto;
+    }
+    h1 {
+      margin: 0 0 6px;
+      font-size: 22px;
+    }
+    .subtitle {
+      margin: 0 0 18px;
+      color: #5c6478;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .preset-card {
+      display: block;
+      width: 100%;
+      text-align: left;
+      border: 2px solid #e2e8f3;
+      background: #fafcff;
+      border-radius: 14px;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: border-color .15s ease, box-shadow .15s ease;
+    }
+    .preset-card:hover {
+      border-color: #9cc7ff;
+    }
+    .preset-card.active {
+      border-color: #4d9bff;
+      box-shadow: 0 0 0 3px rgba(77, 155, 255, 0.18);
+      background: #f5f9ff;
+    }
+    .preset-card h2 {
+      margin: 0 0 4px;
+      font-size: 16px;
+    }
+    .preset-card p {
+      margin: 0;
+      font-size: 12px;
+      color: #5c6478;
+      line-height: 1.4;
+    }
+    .tier {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 10px;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      color: #4d9bff;
+      font-weight: 700;
+    }
+    .stage-wrap {
+      position: relative;
+      min-height: 0;
+    }
+    #previewStage {
+      position: absolute;
+      inset: 0;
+      background: #eceff5;
+    }
+    .badge {
+      position: absolute;
+      left: 16px;
+      top: 16px;
+      z-index: 2;
+      background: rgba(20, 27, 40, 0.82);
+      color: #f6f8fc;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 12px;
+      letter-spacing: 0.2px;
+    }
+    .hint {
+      margin-top: 16px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: #f0f4fa;
+      font-size: 12px;
+      line-height: 1.45;
+      color: #4d566c;
+    }
+    code {
+      background: #e8eef8;
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+    @media (max-width: 860px) {
+      .layout {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+      }
+      .sidebar {
+        border-right: none;
+        border-bottom: 1px solid #d8deea;
+      }
+      .stage-wrap {
+        min-height: 60vh;
+      }
+    }
+  </style>
+  <script>
+    window.KPF_VISUAL_PRESET = "none";
+  </script>
+  <script src="assets/KPF/js/visual-preset-bridge.js"></script>
+  <script src="assets/KPF/visual-presets/none.js"></script>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <h1>Visual Presets</h1>
+      <p class="subtitle">Phase 1 preview. Pick a preset to see the art-direction frame. Serve this folder over HTTP.</p>
+      <div id="presetList"></div>
+      <div class="hint">
+        Enable in <code>index.html</code>:<br>
+        <code>window.KPF_VISUAL_PRESET = "soft-3d-v1";</code>
+      </div>
+    </aside>
+    <section class="stage-wrap">
+      <div id="previewStage"></div>
+      <div class="badge" id="activeBadge">Loading…</div>
+    </section>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      const stage = document.getElementById('previewStage');
+      const listEl = document.getElementById('presetList');
+      const badgeEl = document.getElementById('activeBadge');
+      let runner = null;
+      let raf = 0;
+      let last = performance.now();
+
+      function disposeRunner() {
+        if (runner) {
+          runner.dispose();
+          runner = null;
+        }
+      }
+
+      function tick(now) {
+        const dt = now - last;
+        last = now;
+        if (runner) runner.step(dt);
+        raf = requestAnimationFrame(tick);
+      }
+
+      function renderCards(catalog) {
+        listEl.innerHTML = '';
+        catalog.presets.forEach(function (preset) {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'preset-card';
+          btn.dataset.id = preset.id;
+          btn.innerHTML =
+            '<h2>' + preset.label + '</h2>' +
+            '<p>' + preset.description + '</p>' +
+            '<span class="tier">' + preset.tier + '</span>';
+          btn.addEventListener('click', function () {
+            selectPreset(preset.id, catalog);
+          });
+          listEl.appendChild(btn);
+        });
+      }
+
+      function setActiveCard(id) {
+        listEl.querySelectorAll('.preset-card').forEach(function (card) {
+          card.classList.toggle('active', card.dataset.id === id);
+        });
+      }
+
+      function selectPreset(id, catalog) {
+        disposeRunner();
+        window.KPF_VISUAL_PRESET = id;
+        setActiveCard(id);
+        badgeEl.textContent = id;
+
+        KPFVisualBridge.createActive({ container: stage, THREE: window.THREE }).then(function (nextRunner) {
+          runner = nextRunner;
+          if (runner) {
+            runner.mount();
+            runner.resize();
+          }
+        }).catch(function (err) {
+          badgeEl.textContent = 'Error: ' + err.message;
+          console.error(err);
+        });
+      }
+
+      function onResize() {
+        if (runner) runner.resize();
+      }
+
+      KPFVisualBridge.loadCatalog().then(function (catalog) {
+        renderCards(catalog);
+        const params = new URLSearchParams(location.search);
+        const initial = params.get('preset') || catalog.presets[0].id;
+        selectPreset(initial, catalog);
+        raf = requestAnimationFrame(tick);
+      });
+
+      window.addEventListener('resize', onResize);
+      window.addEventListener('beforeunload', function () {
+        cancelAnimationFrame(raf);
+        disposeRunner();
+      });
+    })();
+  </script>
+</body>
+</html>

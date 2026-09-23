@@ -1,0 +1,80 @@
+{
+  "presets": [
+    {
+      "id": "none",
+      "label": "2D Scene",
+      "tier": "none",
+      "description": "Flat 2D play area — no WebGL scene is created, keeping the DOM/canvas pipeline at its lightest.",
+      "deps": [],
+      "script": "assets/KPF/visual-presets/none.js"
+    },
+    {
+      "id": "vector-minimalistic-v1",
+      "label": "Clean Grid",
+      "tier": "2d",
+      "description": "Clean warm canvas with a crisp, finely drawn grid and adjustable 2D styling.",
+      "deps": [],
+      "script": "assets/KPF/visual-presets/vector-minimalistic-v1.js"
+    },
+    {
+      "id": "casual-stylised-v1",
+      "label": "Casual Stylised",
+      "tier": "2d",
+      "description": "Polished jewel board with bright gem pieces and a warm, playful match-three feel.",
+      "deps": [],
+      "script": "assets/KPF/visual-presets/casual-stylised-v1.js"
+    },
+    {
+      "id": "none-3d",
+      "label": "3D Scene",
+      "tier": "3d",
+      "description": "Empty WebGL stage with a camera, lighting rig and ground plane, ready for 3D gameplay objects.",
+      "deps": [
+        {
+          "url": "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js",
+          "global": "THREE"
+        }
+      ],
+      "script": "assets/KPF/visual-presets/none-3d.js"
+    },
+    {
+      "id": "soft-3d-v1",
+      "label": "Soft 3D",
+      "tier": "3d",
+      "description": "Warm soft-plastic look with tuned lighting, soft shadows, and starter scale props.",
+      "deps": [
+        {
+          "url": "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js",
+          "global": "THREE"
+        }
+      ],
+      "script": "assets/KPF/visual-presets/soft-3d-v1.js"
+    },
+    {
+      "id": "flow-like-v1",
+      "label": "Flow-Like",
+      "tier": "3d",
+      "description": "Warm flat-toy aesthetic with matte coin discs and three-hole collection plates.",
+      "deps": [
+        {
+          "url": "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js",
+          "global": "THREE"
+        }
+      ],
+      "script": "assets/KPF/visual-presets/flow-like-v1.js"
+    },
+    {
+      "id": "block-puzzle-v1",
+      "label": "Block Puzzle",
+      "tier": "3d",
+      "description": "Cool lavender puzzle board with four clean, tactile red, blue, and yellow tetromino pieces.",
+      "deps": [
+        {
+          "url": "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js",
+          "global": "THREE"
+        }
+      ],
+      "script": "assets/KPF/visual-presets/block-puzzle-v1.js"
+    }
+  ]
+}
