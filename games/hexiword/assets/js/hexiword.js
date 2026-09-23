@@ -582,16 +582,27 @@ function endGame() {
   }
 }
 
-function applyHubAvatar() {
+var hubIconId = "";
+
+function setPlayerIcon(id) {
+  if (SHOP_ICONS.indexOf(id) === -1) id = "male";
+  hubIconId = id;
   var img = document.getElementById("p1-avatar");
-  if (!img) return;
+  if (img) img.src = "../../assets/avatars/" + id + ".png";
+}
+
+function applyHubAvatar() {
+  if (hubIconId) {
+    setPlayerIcon(hubIconId);
+    return;
+  }
   var id = "male";
   try {
     var raw = localStorage.getItem("kwalee-game-hub.wallet.v1");
     var wallet = raw ? JSON.parse(raw) : null;
     if (wallet && SHOP_ICONS.indexOf(wallet.icon) !== -1) id = wallet.icon;
   } catch (err) { /* ignore */ }
-  img.src = "../../assets/avatars/" + id + ".png";
+  setPlayerIcon(id);
 }
 
 function beginMatch() {
@@ -638,6 +649,14 @@ function beginMatch() {
 }
 
 (function () {
+  window.addEventListener("message", function (e) {
+    var data = e.data;
+    if (typeof data === "string") {
+      try { data = JSON.parse(data); } catch (err) { return; }
+    }
+    if (!data || data.type !== "kwalee.player") return;
+    setPlayerIcon(data.icon);
+  });
   var play = document.getElementById("playBtn");
   applyHubAvatar();
   if (play && !dictLoaded) play.disabled = true;

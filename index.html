@@ -2414,9 +2414,16 @@
     window.addEventListener("message", onMsg);
     var alive = true;
     var unlockTimers = [];
+    function postPlayerIcon() {
+      if (!alive || !frame || !frame.contentWindow) return;
+      try {
+        frame.contentWindow.postMessage({ type: "kwalee.player", icon: wallet && wallet.icon }, "*");
+      } catch (err) { /* ignore */ }
+    }
     function pingUnlock() {
       if (!alive) return;
       HubAudio.unlockIframe(frame);
+      postPlayerIcon();
     }
     frame.addEventListener("load", function () {
       clearTimeout(bootTimer);
