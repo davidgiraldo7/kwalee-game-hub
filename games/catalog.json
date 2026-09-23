@@ -23,7 +23,7 @@
       "id": "grid-filler",
       "title": "Grid Filler",
       "genre": "Puzzle",
-      "heat": 98,
+      "heat": 95,
       "description": "Divide the grid into tiles. Each number is the size of its rectangle.",
       "cover": "covers/grid-filler.jpg",
       "src": "grid-filler/index.html"
@@ -32,7 +32,7 @@
       "id": "pixel-blocks",
       "title": "Pixel Blocks",
       "genre": "Puzzle",
-      "heat": 97,
+      "heat": 94,
       "description": "Sort colors, collect blocks, and keep the waiting tray clear.",
       "cover": "covers/pixel-blocks.jpg",
       "src": "pixel-blocks/index.html"
@@ -41,7 +41,7 @@
       "id": "link-flow",
       "title": "Link Flow",
       "genre": "Puzzle",
-      "heat": 96,
+      "heat": 93,
       "description": "Connect matching colors, tiles, and paths without crossing the flow.",
       "cover": "covers/link-flow.jpg",
       "src": "link-flow/index.html"
@@ -50,7 +50,7 @@
       "id": "blade-flow",
       "title": "Blade Flow",
       "genre": "Puzzle",
-      "heat": 95,
+      "heat": 92,
       "description": "Grind the cubes, carve a path, and clear every colorful slice.",
       "cover": "covers/blade-flow.jpg",
       "src": "blade-flow/index.html"
@@ -59,7 +59,7 @@
       "id": "colour-smash",
       "title": "Colour Smash",
       "genre": "Puzzle",
-      "heat": 94,
+      "heat": 98,
       "description": "Connect the dots and smash matching color blocks off the board.",
       "cover": "covers/colour-smash.jpg",
       "src": "colour-smash/index.html"
@@ -68,7 +68,7 @@
       "id": "sausage-sort",
       "title": "Sausage Sort",
       "genre": "Puzzle",
-      "heat": 93,
+      "heat": 97,
       "description": "Sort sausages by color before the tray jams.",
       "cover": "covers/sausage-sort.jpg",
       "src": "sausage-sort/index.html"
@@ -77,7 +77,7 @@
       "id": "aqua-block-jam",
       "title": "Aqua Block Jam",
       "genre": "Puzzle",
-      "heat": 92,
+      "heat": 96,
       "description": "Slide the water blocks and sort every drop into its tube.",
       "cover": "covers/aqua-block-jam.jpg",
       "src": "aqua-block-jam/index.html"

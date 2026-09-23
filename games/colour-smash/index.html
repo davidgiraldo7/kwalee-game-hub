@@ -4357,6 +4357,7 @@
   }
 
   function beginWinCelebration() {
+    if (window.KwaleeHubReward) window.KwaleeHubReward();
     csSheen = { active: true, t: 0 };
     const data = LEVELS[(level - 1) % LEVELS.length];
     csWinArt = {
