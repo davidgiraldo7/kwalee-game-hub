@@ -5446,7 +5446,7 @@
     clearTimeout(completeTimer);
     gameHeader.classList.add("exit-up");
     if (settingsBtnGame) settingsBtnGame.style.opacity = "0";
-    flavourText.querySelector("span").textContent = t("wellDone");
+    flavourText.querySelector("span").textContent = "You Win!";
     flavourText.classList.add("show");
     playSound("sfx_welldone");
     launchFireworks();
@@ -5465,9 +5465,9 @@
     overlayCard.classList.remove("fail");
     overlayCard.classList.add("win");
     overlay.classList.add("celebrate");
-    animateTitle(overlayTitle, t("completeTitle"));
-    overlaySubtitle.textContent = window.HexiwordScoreLine || t("completeSubtitle");
-    overlayBtn.textContent = t("level") + " " + (level + 1);
+    animateTitle(overlayTitle, "You Win!");
+    overlaySubtitle.textContent = window.HexiwordScoreLine || "";
+    overlayBtn.textContent = "Find New Opponent";
     overlayBtn.className = "nextbtn";
     overlay.classList.add("show");
     lockResultOverlay();
@@ -5485,7 +5485,7 @@
     stopConfetti();
 
     // 1. Show "Level Failed" text over gameplay
-    failText.querySelector("span").textContent = t("failTitle");
+    failText.querySelector("span").textContent = "You Lose";
     failText.classList.remove("settle");
     failText.classList.add("show");
     playSound("sfx_levelfail");
@@ -5500,9 +5500,9 @@
       overlay.classList.remove("celebrate");
       overlay.classList.add("backdrop-only");
       overlay.classList.remove("reveal-content");
-      overlayTitle.textContent = "";
-      overlaySubtitle.textContent = window.HexiwordScoreLine || t("failSubtitle");
-      overlayBtn.textContent = t("level") + " " + (level + 1);
+      overlayTitle.textContent = "You Lose";
+      overlaySubtitle.textContent = window.HexiwordScoreLine || "";
+      overlayBtn.textContent = "Find New Opponent";
       overlayBtn.className = "nextbtn btn-hidden";
       overlay.classList.add("show");
       lockResultOverlay();
