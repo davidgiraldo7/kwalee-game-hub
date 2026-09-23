@@ -7,6 +7,7 @@ const STATE_CAPTURED = 2;
 const WIN_SCORE = 4;
 const TURN_TIME = 30;
 const LETTERS = "EEEEEEEEEEEEAAAAAAAIIIIIIIOOOOOONNNNNNRRRRRRTTTTTTLLLLSSSSUUUUDDDDGGGBBCCMMPPFFHHVVWWYYKJXQZ";
+const OPPONENT_NAMES = ["LexiMaster", "WordNinja", "VowelOwl", "HexagonHero", "SpellyBelly", "TileTiger", "LetterLynx", "GridGhost", "SwipeSage", "AlphaAce", "BravoBee", "QuillQueen", "RuneRider", "LexiLynx", "WordWarden", "HexHunter", "SpellSpark", "VowelViper", "TileTitan", "LetterLion", "GridGuru", "SwipeShark", "AlphaArrow", "QuillKnight", "RuneRaven", "LexiLava", "WordWizard", "HexHawk", "SpellStorm", "VowelWolf", "TileTwist", "LetterLark", "GridGlider", "SwipeSwift", "AlphaAtlas", "QuillFox", "RuneRabbit", "LexiLotus", "WordWhale", "HexHopper", "SpellSmith", "VowelVixen", "TileTurtle", "LetterLeap", "GridGecko", "SwipeStar", "AlphaAnt", "QuillCub", "RuneRobin", "LexiComet", "WordWasp", "HexHerald", "SpellSail", "VowelVoyage", "TileTycoon"];
 const FALLBACK_WORDS = ["the","and","you","that","was","for","are","with","his","they","this","have","from","one","had","word","but","not","what","all","were","when","your","can","said","there","use","each","which","she","how","their","will","other","about","many","then","them","these","some","her","would","make","like","him","into","time","has","look","two","more","write","go","see","number","no","way","could","people","been","call","who","oil","its","now","find","long","down","day","did","get","come","made","may","part","hex","bot","zap","zip","qat","win","game","play","run","cat","dog"];
 
 let board = [];
@@ -619,8 +620,7 @@ function beginMatch() {
   if (status) status.innerText = "Searching...";
   setTimeout(function () {
     if (gen !== generation) return;
-    var names = ["LexiMaster", "WordNinja", "VowelOwl", "HexagonHero", "SpellyBelly"];
-    var fakeName = names[Math.floor(Math.random() * names.length)];
+    var fakeName = OPPONENT_NAMES[Math.floor(Math.random() * OPPONENT_NAMES.length)];
     var avatar = document.getElementById("p2-avatar");
     if (avatar) avatar.src = "../../assets/avatars/" + SHOP_ICONS[Math.floor(Math.random() * SHOP_ICONS.length)] + ".png";
     if (status) status.innerText = "Found: " + fakeName;
