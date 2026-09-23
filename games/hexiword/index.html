@@ -2331,11 +2331,9 @@
 
         <!-- ===== Game Screen ===== -->
         <div class="screen" id="gameScreen">
-            <button class="settingsbtn" id="settingsBtnGame" aria-label="Settings"></button>
             <div class="header" id="gameHeader">Level 1</div>
             <div class="play-area" id="playArea">
 <div id="hexi-root">
-  <button id="btn-rules-menu" type="button" class="btn-cartoon bg-white/20 text-white rounded-full">How to play</button>
     <div id="rules-screen" class="hidden absolute inset-0 bg-indigo-500 z-[210] flex flex-col p-6 overflow-y-auto pb-12">
       <div class="flex justify-between items-center mb-6 mt-6 shrink-0">
         <h2 class="font-cartoon text-stroke text-4xl">HOW TO PLAY</h2>
@@ -5434,7 +5432,7 @@
 
   function resetLevelCompleteState(){
     gameHeader.classList.remove("exit-up");
-    settingsBtnGame.style.opacity = "";
+    if (settingsBtnGame) settingsBtnGame.style.opacity = "";
     flavourText.classList.remove("show", "dismiss");
     failText.classList.remove("show", "settle");
   }
@@ -5447,7 +5445,7 @@
     haptic("success");
     clearTimeout(completeTimer);
     gameHeader.classList.add("exit-up");
-    settingsBtnGame.style.opacity = "0";
+    if (settingsBtnGame) settingsBtnGame.style.opacity = "0";
     flavourText.querySelector("span").textContent = t("wellDone");
     flavourText.classList.add("show");
     playSound("sfx_welldone");
@@ -5492,7 +5490,7 @@
     failText.classList.add("show");
     playSound("sfx_levelfail");
     gameHeader.classList.add("exit-up");
-    settingsBtnGame.style.opacity = "0";
+    if (settingsBtnGame) settingsBtnGame.style.opacity = "0";
 
     // 2. After 1s, slide text up and show backdrop
     completeTimer = setTimeout(() => {
@@ -6085,7 +6083,7 @@
   preloadAllAudio();
 
   settingsBtnStart.addEventListener("click", openSettings);
-  settingsBtnGame.addEventListener("click", openSettings);
+  if (settingsBtnGame) settingsBtnGame.addEventListener("click", openSettings);
   settingsClose.addEventListener("click", () => { haptic("tap"); sfxClick(); closeSettings(); });
 
   // Quit confirmation flow
