@@ -263,6 +263,23 @@
             opacity: 0;
         }
 
+        #gameHeader {
+            display: none;
+        }
+
+        #rules-screen {
+            position: fixed;
+            inset: 0;
+            z-index: 900;
+        }
+
+        #startScreen {
+            justify-content: stretch;
+            gap: 0;
+            padding: 0;
+            background: transparent;
+        }
+
         @keyframes headerIn {
             0% {
                 opacity: 0;
@@ -2287,29 +2304,29 @@
 
         <!-- ===== Start Screen ===== -->
         <div class="screen" id="startScreen">
-            <div class="bg-scroll"></div>
-            <button class="settingsbtn" id="settingsBtnStart" aria-label="Settings"></button>
-            <div class="game-logo">
-                <img src="../covers/hexiword.png" alt="Hexiword" class="logo-img" />
+            <div id="main-menu" class="flex flex-col items-center justify-center p-6">
+                <div class="absolute inset-0 opacity-20 pointer-events-none" style="background-image: radial-gradient(circle at center, white 2px, transparent 2px); background-size: 30px 30px;"></div>
+                <div class="mb-10 relative flex justify-center items-center w-full h-48">
+                    <div class="absolute inset-0 flex justify-center items-center opacity-40 z-0 pointer-events-none scale-125">
+                        <div class="absolute w-[44px] h-[50px] flex justify-center items-center" style="clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); background-color: #0284c7;">
+                            <svg class="w-5 h-5 text-white drop-shadow-md" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+                        </div>
+                        <div class="absolute w-[44px] h-[50px] bg-sky-400" style="clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); transform: translate(0, -52px);"></div>
+                        <div class="absolute w-[44px] h-[50px] bg-sky-400" style="clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); transform: translate(45px, -26px);"></div>
+                        <div class="absolute w-[44px] h-[50px] bg-rose-500" style="clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); transform: translate(45px, 26px);"></div>
+                        <div class="absolute w-[44px] h-[50px] bg-sky-400" style="clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); transform: translate(0, 52px);"></div>
+                        <div class="absolute w-[44px] h-[50px] bg-rose-500" style="clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); transform: translate(-45px, 26px);"></div>
+                        <div class="absolute w-[44px] h-[50px] bg-sky-400" style="clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); transform: translate(-45px, -26px);"></div>
+                    </div>
+                    <h1 class="font-cartoon text-5xl text-stroke-yellow z-10 text-center w-full rotate-[-2deg] scale-110">HEXIWORD</h1>
+                </div>
+                <p class="text-white font-black tracking-widest uppercase mb-8 text-sm z-10 text-center drop-shadow-md bg-black/20 px-4 py-2 rounded-full">Multiplayer Territory Word Battle Game</p>
+                <div id="loading-dict" class="w-full text-center text-white font-bold text-sm mb-4 animate-pulse">Connecting to dictionary...</div>
+                <button id="playBtn" type="button" disabled class="btn-cartoon w-full max-w-[250px] bg-green-400 text-white rounded-full p-4 text-2xl mb-5 z-10">PLAY GAME</button>
+                <button id="btn-rules-home" type="button" class="btn-cartoon w-full max-w-[250px] bg-sky-300 text-slate-900 rounded-full p-4 text-xl z-10">HOW TO PLAY</button>
             </div>
-            <button class="playbtn" id="playBtn">
-        <span class="play-level" id="playLevel">Level 1</span>
-      </button>
-
-            <nav class="home-bar">
-                <button class="tab locked" aria-label="Locked">
-          <span class="tab-icon" style="--icon: url('assets/UI/Icon-Lock.png')"></span>
-          <span class="tab-label" data-i18n="tabLocked">Locked</span>
-        </button>
-                <button class="tab active" aria-current="page">
-          <span class="tab-icon" style="--icon: url('assets/UI/Icon-Home.png')"></span>
-          <span class="tab-label" data-i18n="tabHome">Home</span>
-        </button>
-                <button class="tab locked" aria-label="Locked">
-          <span class="tab-icon" style="--icon: url('assets/UI/Icon-Lock.png')"></span>
-          <span class="tab-label" data-i18n="tabLocked">Locked</span>
-        </button>
-            </nav>
+            <span id="playLevel" hidden>Level 1</span>
+            <button class="settingsbtn" id="settingsBtnStart" hidden aria-label="Settings"></button>
         </div>
 
         <!-- ===== Game Screen ===== -->
@@ -5263,11 +5280,7 @@
       // Hand off through startGame() so a fresh boot straight into level 1 still
       // mounts the visual preset, starts the game loop, and fires the analytics
       // hooks. Showing gameScreen directly skips all three.
-      if (level === 1) {
-        startGame();
-      } else {
-        showScreen(startScreen);
-      }
+      showScreen(startScreen);
     }, 2200);
   }
 

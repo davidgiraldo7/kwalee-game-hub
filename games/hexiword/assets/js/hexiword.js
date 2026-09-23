@@ -55,8 +55,10 @@ function sendHubScore() {
 }
 
 function loadDictionary() {
-  function ready() {
+  function ready(label) {
     dictLoaded = true;
+    var loading = document.getElementById("loading-dict");
+    if (loading) loading.innerText = label || "Dictionary Loaded!";
     var play = document.getElementById("playBtn");
     if (play) play.disabled = false;
   }
@@ -588,16 +590,24 @@ function beginMatch() {
 (function () {
   var play = document.getElementById("playBtn");
   if (play && !dictLoaded) play.disabled = true;
+  function openRules() {
+    buzz("tap");
+    var rules = document.getElementById("rules-screen");
+    if (!rules) return;
+    if (rules.parentElement !== document.body) document.body.appendChild(rules);
+    rules.classList.remove("hidden");
+  }
+  function closeRules() {
+    buzz("tap");
+    var rules = document.getElementById("rules-screen");
+    if (rules) rules.classList.add("hidden");
+  }
   var rulesBtn = document.getElementById("btn-rules-menu");
-  var closeRules = document.getElementById("btn-close-rules");
-  if (rulesBtn) rulesBtn.addEventListener("click", function () {
-    buzz("tap");
-    document.getElementById("rules-screen").classList.remove("hidden");
-  });
-  if (closeRules) closeRules.addEventListener("click", function () {
-    buzz("tap");
-    document.getElementById("rules-screen").classList.add("hidden");
-  });
+  var rulesHome = document.getElementById("btn-rules-home");
+  var closeRulesBtn = document.getElementById("btn-close-rules");
+  if (rulesBtn) rulesBtn.addEventListener("click", openRules);
+  if (rulesHome) rulesHome.addEventListener("click", openRules);
+  if (closeRulesBtn) closeRulesBtn.addEventListener("click", closeRules);
   loadDictionary();
 })();
 
