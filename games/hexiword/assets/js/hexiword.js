@@ -570,7 +570,7 @@ function beginMatch() {
       if (gen !== generation) return;
       if (screen) screen.classList.add("hidden");
       scores = { 1: 0, 2: 0 };
-      currentPlayer = 1;
+      currentPlayer = Math.random() < 0.5 ? 1 : 2;
       isProcessing = false;
       hintsRemaining = 1;
       hasSwappedThisTurn = false;
@@ -583,6 +583,12 @@ function beginMatch() {
       initGame();
       updateUI();
       startTimer();
+      if (currentPlayer === 2) {
+        setTimeout(function () {
+          if (gen !== generation || !matchLive) return;
+          playAI();
+        }, 1000);
+      }
     }, 1500);
   }, 1200);
 }
