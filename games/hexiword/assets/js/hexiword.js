@@ -453,15 +453,6 @@ function updateUI() {
   if (p2Ring) p2Ring.classList.toggle("turn-glow", currentPlayer === 2);
 }
 
-function passAI(gen) {
-  showToast("Opponent passes!");
-  setTimeout(function () {
-    if (gen !== generation || !matchLive) return;
-    isProcessing = false;
-    switchTurn();
-  }, 1500);
-}
-
 function chooseAIMove(moves) {
   var roll = Math.random();
   if (roll < 0.2) return null;
@@ -475,15 +466,12 @@ function chooseAIMove(moves) {
 
 function playAI() {
   if (!matchLive || currentPlayer !== 2) return;
-  isProcessing = true;
-  pauseTimer();
   var gen = generation;
   var moves = findAllValidWords(2);
   var bestMove = moves.length ? chooseAIMove(moves) : null;
-  if (!bestMove) {
-    passAI(gen);
-    return;
-  }
+  if (!bestMove) return;
+  isProcessing = true;
+  pauseTimer();
   selectedPath = [];
   bestMove.forEach(function (hex, i) {
     setTimeout(function () {
