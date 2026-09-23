@@ -1238,6 +1238,11 @@
         }
 
         /* ---------- Result Overlay ---------- */
+        .flavour-text,
+        .fail-text {
+            display: none !important;
+        }
+
         .overlay {
             position: absolute;
             inset: 0;
@@ -1246,8 +1251,8 @@
             align-items: center;
             justify-content: center;
             gap: 16px;
-            background: rgba(9, 6, 20, .72);
-            backdrop-filter: blur(3px);
+            background: rgba(15, 23, 42, .55);
+            backdrop-filter: blur(8px);
             z-index: 10;
             padding: 24px;
             text-align: center;
@@ -1293,19 +1298,38 @@
         }
 
         .overlay-card {
-            background: transparent;
-            box-shadow: none;
-            padding: 24px;
-            width: 100%;
-            height: 100%;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+            border: 4px solid #0f172a;
+            border-radius: 28px;
+            box-shadow: 0 10px 0 #0f172a, 0 22px 40px rgba(15, 23, 42, .28);
+            padding: 28px 22px 22px;
+            width: min(340px, 92%);
+            height: auto;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 10px;
+            gap: 8px;
             position: relative;
             z-index: 2;
             animation: pop .35s ease;
+        }
+
+        .result-mark {
+            width: 88px;
+            height: 88px;
+            margin-bottom: 6px;
+            border-radius: 28px;
+            border: 4px solid #0f172a;
+            box-shadow: 0 6px 0 #0f172a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(180deg, #fef08a 0%, #facc15 100%);
+        }
+
+        .overlay-card.fail .result-mark {
+            background: linear-gradient(180deg, #fecdd3 0%, #fb7185 100%);
         }
 
         @keyframes pop {
@@ -1321,44 +1345,49 @@
         }
 
         .overlay-card h2 {
-            margin: 0 0 4px;
-            font-size: 46px;
-            font-weight: 800;
+            margin: 0;
+            font-family: Impact, "Arial Black", "Trebuchet MS", sans-serif;
+            font-size: 52px;
+            font-weight: 400;
+            letter-spacing: 1px;
             text-align: center;
             line-height: 1.05;
+            -webkit-text-stroke: 3px #0f172a;
+            paint-order: stroke fill;
+            text-shadow: 0 5px 0 #0f172a;
         }
 
         .overlay-card.win h2 {
-            color: #38dc85;
+            color: #4ade80;
         }
 
         .overlay-card.fail h2 {
-            color: #ff6b70;
+            color: #fb7185;
         }
 
         .overlay-card p {
-            margin: 0;
-            opacity: .85;
-            font-size: 22px;
+            display: none;
         }
 
         .nextbtn {
-            border: none;
+            border: 4px solid #0f172a;
             cursor: pointer;
-            color: #fff;
-            font-family: inherit;
-            font-weight: 500;
-            font-size: 18px;
-            padding: 12px 34px;
-            border-radius: 999px;
-            background: #28c76f;
-            box-shadow: 0 5px 0 #1fa459;
-            margin-top: 36px;
+            color: #713f12;
+            font-family: Impact, "Arial Black", "Trebuchet MS", sans-serif;
+            font-weight: 400;
+            font-size: 22px;
+            letter-spacing: .4px;
+            padding: 14px 16px;
+            border-radius: 18px;
+            background: #facc15;
+            box-shadow: 0 6px 0 #0f172a;
+            margin-top: 16px;
+            width: 100%;
         }
 
         .nextbtn:active {
-            transform: translateY(2px);
-            box-shadow: 0 3px 0 #1fa459;
+            transform: translateY(6px);
+            box-shadow: 0 0 0 #0f172a;
         }
 
         .retrybtn {
@@ -1447,8 +1476,12 @@
             z-index: 0;
         }
 
-        .overlay.celebrate .burst {
+        .overlay.show .burst {
             animation: burst .7s ease-out forwards;
+        }
+
+        .overlay:not(.celebrate) .burst {
+            background: radial-gradient(circle, rgba(251, 113, 133, .55) 0%, rgba(251, 113, 133, 0) 65%);
         }
 
         @keyframes burst {
@@ -2435,9 +2468,10 @@
             <!-- Result overlay -->
             <div class="overlay" id="overlay">
                 <div class="burst"></div>
-                <div class="overlay-card" id="overlayCard">
+                <div class="overlay-card win" id="overlayCard">
+                    <div class="result-mark" id="overlayMark" aria-hidden="true"></div>
                     <h2 id="overlayTitle">You Won!</h2>
-                    <p id="overlaySubtitle"></p>
+                    <p id="overlaySubtitle" hidden></p>
                     <button class="nextbtn" id="overlayBtn">Find new Oponent</button>
                 </div>
                 <canvas class="confetti" id="confetti"></canvas>
@@ -2785,9 +2819,12 @@
 
   const overlay        = document.getElementById("overlay");
   const overlayCard    = document.getElementById("overlayCard");
+  const overlayMark    = document.getElementById("overlayMark");
   const overlayTitle   = document.getElementById("overlayTitle");
   const overlaySubtitle= document.getElementById("overlaySubtitle");
   const overlayBtn     = document.getElementById("overlayBtn");
+  const WIN_MARK = '<svg viewBox="0 0 64 64" width="52" height="52" aria-hidden="true"><polygon points="32,4 39.5,24 60,24 43.5,36.5 50,56 32,44.5 14,56 20.5,36.5 4,24 24.5,24" fill="#fff" stroke="#0f172a" stroke-width="3" stroke-linejoin="round"/></svg>';
+  const LOSE_MARK = '<svg viewBox="0 0 64 64" width="44" height="44" aria-hidden="true"><path d="M14 14 L50 50 M50 14 L14 50" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round"/></svg>';
 
   const debugWin  = document.getElementById("debugWin");
   const debugFail = document.getElementById("debugFail");
@@ -3572,13 +3609,13 @@
     if (overlay.classList.contains("show")){
       if (overlayCard.classList.contains("win")){
         animateTitle(overlayTitle, "You Won!");
-        overlaySubtitle.textContent = window.HexiwordScoreLine || "";
-        overlayBtn.textContent = "Find new Oponent";
+        overlayMark.innerHTML = WIN_MARK;
       } else {
         overlayTitle.textContent = "You Lost";
-        overlaySubtitle.textContent = window.HexiwordScoreLine || "";
-        overlayBtn.textContent = "Find new Oponent";
+        overlayMark.innerHTML = LOSE_MARK;
       }
+      overlaySubtitle.textContent = "";
+      overlayBtn.textContent = "Find new Oponent";
     }
   }
 
@@ -5438,44 +5475,38 @@
   }
 
   // ▶ ANALYTICS HOOK: trackLevelComplete(level)
+  function showMatchResult(won){
+    flavourText.classList.remove("show", "dismiss");
+    failText.classList.remove("show", "settle");
+    overlayCard.classList.toggle("win", won);
+    overlayCard.classList.toggle("fail", !won);
+    overlay.classList.toggle("celebrate", won);
+    overlay.classList.remove("backdrop-only");
+    overlay.classList.add("reveal-content");
+    overlayMark.innerHTML = won ? WIN_MARK : LOSE_MARK;
+    overlaySubtitle.textContent = "";
+    overlayBtn.textContent = "Find new Oponent";
+    overlayBtn.className = "nextbtn btn-visible";
+    if (won) animateTitle(overlayTitle, "You Won!");
+    else overlayTitle.textContent = "You Lost";
+    overlay.classList.add("show");
+    lockResultOverlay();
+  }
+
   function levelComplete(){
     savePendingCompletion();
     stopLoop();
-    // 1. Slide header out, hide settings, show flavour text, launch fireworks immediately
     haptic("success");
     clearTimeout(completeTimer);
     gameHeader.classList.add("exit-up");
     if (settingsBtnGame) settingsBtnGame.style.opacity = "0";
-    flavourText.querySelector("span").textContent = "You Won!";
-    flavourText.classList.add("show");
     playSound("sfx_welldone");
     launchFireworks();
-
-    // 2. Dismiss flavour text
-    completeTimer = setTimeout(() => {
-      flavourText.classList.add("dismiss");
-    }, 1400);
-
-    // 3. Show the full level-complete UI
-    setTimeout(showLevelCompleteUI, 2100);
-  }
-
-  function showLevelCompleteUI(){
-    savePendingCompletion();
-    overlayCard.classList.remove("fail");
-    overlayCard.classList.add("win");
-    overlay.classList.add("celebrate");
-    animateTitle(overlayTitle, "You Won!");
-    overlaySubtitle.textContent = window.HexiwordScoreLine || "";
-    overlayBtn.textContent = "Find new Oponent";
-    overlayBtn.className = "nextbtn";
-    overlay.classList.add("show");
-    lockResultOverlay();
+    showMatchResult(true);
     playSound("sfx_levelcomplete");
     launchConfetti();
   }
 
-  // ▶ ANALYTICS HOOK: (level failed tracking)
   function levelFailed(){
     savePendingCompletion();
     stopLoop();
@@ -5483,42 +5514,10 @@
     clearTimeout(completeTimer);
     stopFireworks();
     stopConfetti();
-
-    // 1. Show "Level Failed" text over gameplay
-    failText.querySelector("span").textContent = "You Lost";
-    failText.classList.remove("settle");
-    failText.classList.add("show");
     playSound("sfx_levelfail");
     gameHeader.classList.add("exit-up");
     if (settingsBtnGame) settingsBtnGame.style.opacity = "0";
-
-    // 2. After 1s, slide text up and show backdrop
-    completeTimer = setTimeout(() => {
-      failText.classList.add("settle");
-      overlayCard.classList.remove("win");
-      overlayCard.classList.add("fail");
-      overlay.classList.remove("celebrate");
-      overlay.classList.add("backdrop-only");
-      overlay.classList.remove("reveal-content");
-      overlayTitle.textContent = "You Lost";
-      overlaySubtitle.textContent = window.HexiwordScoreLine || "";
-      overlayBtn.textContent = "Find new Oponent";
-      overlayBtn.className = "nextbtn btn-hidden";
-      overlay.classList.add("show");
-      lockResultOverlay();
-    }, 1000);
-
-    // 3. After text settles, reveal the subtitle
-    setTimeout(() => {
-      overlay.classList.remove("backdrop-only");
-      overlay.classList.add("reveal-content");
-    }, 1500);
-
-    // 4. After subtitle appears, reveal the button
-    setTimeout(() => {
-      overlayBtn.classList.remove("btn-hidden");
-      overlayBtn.classList.add("btn-visible");
-    }, 2000);
+    showMatchResult(false);
   }
 
   function hideOverlay(){
