@@ -2427,18 +2427,18 @@
             </div>
 
             <!-- Flavour text (shown briefly on level complete) -->
-            <div class="flavour-text" id="flavourText"><span>Well Done!</span></div>
+            <div class="flavour-text" id="flavourText"><span>You Won!</span></div>
 
             <!-- Fail text (shown briefly on level failed) -->
-            <div class="fail-text" id="failText"><span></span></div>
+            <div class="fail-text" id="failText"><span>You Lost</span></div>
 
             <!-- Result overlay -->
             <div class="overlay" id="overlay">
                 <div class="burst"></div>
                 <div class="overlay-card" id="overlayCard">
-                    <h2 id="overlayTitle">Level Complete!</h2>
-                    <p id="overlaySubtitle">Great job.</p>
-                    <button class="nextbtn" id="overlayBtn">Next Level</button>
+                    <h2 id="overlayTitle">You Won!</h2>
+                    <p id="overlaySubtitle"></p>
+                    <button class="nextbtn" id="overlayBtn">Find new Oponent</button>
                 </div>
                 <canvas class="confetti" id="confetti"></canvas>
             </div>
@@ -2453,7 +2453,7 @@
                 <button class="debug-icon-btn" id="debugCameraEditorToggle" title="Camera Editor">&#x1F4F7;</button>
             </div>
             <button class="debugbtn debug-win" id="debugWin" data-i18n="debugComplete">Level Complete</button>
-            <button class="debugbtn debug-fail" id="debugFail" data-i18n="debugFail">Level Failed</button>
+            <button class="debugbtn debug-fail" id="debugFail" data-i18n="debugFail">You Lost</button>
             <div class="debug-skip">
                 <input type="number" id="debugLevelInput" min="1" placeholder="#" />
                 <button class="debugbtn debug-lang" id="debugSkipLevel" data-i18n="debugGo">Go</button>
@@ -3571,13 +3571,13 @@
     // Refresh the result overlay if it is currently on screen
     if (overlay.classList.contains("show")){
       if (overlayCard.classList.contains("win")){
-        animateTitle(overlayTitle, dict.completeTitle);
-        overlaySubtitle.textContent = dict.completeSubtitle;
-        overlayBtn.textContent = dict.nextLevel;
+        animateTitle(overlayTitle, "You Won!");
+        overlaySubtitle.textContent = window.HexiwordScoreLine || "";
+        overlayBtn.textContent = "Find new Oponent";
       } else {
-        overlayTitle.textContent = dict.failTitle;
-        overlaySubtitle.textContent = dict.failSubtitle;
-        overlayBtn.textContent = dict.retry;
+        overlayTitle.textContent = "You Lost";
+        overlaySubtitle.textContent = window.HexiwordScoreLine || "";
+        overlayBtn.textContent = "Find new Oponent";
       }
     }
   }
@@ -5446,7 +5446,7 @@
     clearTimeout(completeTimer);
     gameHeader.classList.add("exit-up");
     if (settingsBtnGame) settingsBtnGame.style.opacity = "0";
-    flavourText.querySelector("span").textContent = "You Win!";
+    flavourText.querySelector("span").textContent = "You Won!";
     flavourText.classList.add("show");
     playSound("sfx_welldone");
     launchFireworks();
@@ -5465,9 +5465,9 @@
     overlayCard.classList.remove("fail");
     overlayCard.classList.add("win");
     overlay.classList.add("celebrate");
-    animateTitle(overlayTitle, "You Win!");
+    animateTitle(overlayTitle, "You Won!");
     overlaySubtitle.textContent = window.HexiwordScoreLine || "";
-    overlayBtn.textContent = "Find New Opponent";
+    overlayBtn.textContent = "Find new Oponent";
     overlayBtn.className = "nextbtn";
     overlay.classList.add("show");
     lockResultOverlay();
@@ -5485,7 +5485,7 @@
     stopConfetti();
 
     // 1. Show "Level Failed" text over gameplay
-    failText.querySelector("span").textContent = "You Lose";
+    failText.querySelector("span").textContent = "You Lost";
     failText.classList.remove("settle");
     failText.classList.add("show");
     playSound("sfx_levelfail");
@@ -5500,9 +5500,9 @@
       overlay.classList.remove("celebrate");
       overlay.classList.add("backdrop-only");
       overlay.classList.remove("reveal-content");
-      overlayTitle.textContent = "You Lose";
+      overlayTitle.textContent = "You Lost";
       overlaySubtitle.textContent = window.HexiwordScoreLine || "";
-      overlayBtn.textContent = "Find New Opponent";
+      overlayBtn.textContent = "Find new Oponent";
       overlayBtn.className = "nextbtn btn-hidden";
       overlay.classList.add("show");
       lockResultOverlay();
