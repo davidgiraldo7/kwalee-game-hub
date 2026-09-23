@@ -233,6 +233,11 @@
       50% { transform: scale(1.1) rotate(3deg); }
     }
     .anim-avatar { animation: liveAvatar 3s ease-in-out infinite; }
+    .avatar-ring.turn-glow { animation: turnGlow 1.1s ease-in-out infinite; }
+    @keyframes turnGlow {
+      0%, 100% { box-shadow: 0 0 0 3px #fff, 0 0 0 6px #facc15, 0 0 16px 4px #fde047; }
+      50% { box-shadow: 0 0 0 3px #fff, 0 0 0 8px #fef08a, 0 0 22px 8px #facc15; }
+    }
     .hidden { display: none !important; }
     .hud-card { border: 4px solid #0f172a; box-shadow: 0 4px 0 #0f172a; }
 

@@ -39,6 +39,7 @@ let eventsBound = false;
 let matchLive = false;
 let generation = 0;
 let timerAcc = 0;
+let aiTimer = 0;
 
 function buzz(kind) {
   if (typeof window.haptic === "function") window.haptic(kind || "tap");
@@ -371,13 +372,30 @@ function checkHexicons() {
   });
 }
 
+function clearAI() {
+  clearTimeout(aiTimer);
+  aiTimer = 0;
+}
+
+function scheduleAI() {
+  clearAI();
+  var gen = generation;
+  var delay = 3000 + Math.floor(Math.random() * 7001);
+  aiTimer = setTimeout(function () {
+    aiTimer = 0;
+    if (gen !== generation || !matchLive || currentPlayer !== 2) return;
+    playAI();
+  }, delay);
+}
+
 function switchTurn() {
   if (!matchLive) return;
+  clearAI();
   currentPlayer = currentPlayer === 1 ? 2 : 1;
   hasSwappedThisTurn = false;
   updateUI();
   startTimer();
-  if (currentPlayer === 2) setTimeout(playAI, 1000);
+  if (currentPlayer === 2) scheduleAI();
 }
 
 function startTimer() {
@@ -400,6 +418,7 @@ function tickTimer(dt) {
     if (timeLeft <= 5) timerDisplay.classList.add("text-rose-500");
     if (timeLeft <= 0) {
       pauseTimer();
+      clearAI();
       showToast("Time's Up!");
       clearSelection();
       isProcessing = true;
@@ -414,6 +433,8 @@ function tickTimer(dt) {
   }
 }
 
+var SHOP_ICONS = ["male", "female", "dog", "cat", "male-shades", "female-shades"];
+
 function updateUI() {
   document.getElementById("p1-score").innerText = scores[1];
   document.getElementById("p2-score").innerText = scores[2];
@@ -426,16 +447,25 @@ function updateUI() {
     p2Card.classList.replace("bg-slate-300", "bg-rose-400");
     p1Card.classList.replace("bg-sky-400", "bg-slate-300");
   }
+  var p1Ring = p1Card.querySelector(".avatar-ring");
+  var p2Ring = p2Card.querySelector(".avatar-ring");
+  if (p1Ring) p1Ring.classList.toggle("turn-glow", currentPlayer === 1);
+  if (p2Ring) p2Ring.classList.toggle("turn-glow", currentPlayer === 2);
 }
 
 function playAI() {
-  if (!matchLive) return;
+  if (!matchLive || currentPlayer !== 2) return;
   isProcessing = true;
   pauseTimer();
+  var gen = generation;
   var moves = findAllValidWords(2);
   if (moves.length === 0) {
     showToast("Opponent passes!");
-    setTimeout(function () { isProcessing = false; switchTurn(); }, 1500);
+    setTimeout(function () {
+      if (gen !== generation || !matchLive) return;
+      isProcessing = false;
+      switchTurn();
+    }, 1500);
     return;
   }
   moves.sort(function (a, b) { return b.score - a.score; });
@@ -443,8 +473,14 @@ function playAI() {
   selectedPath = [];
   bestMove.forEach(function (hex, i) {
     setTimeout(function () {
+      if (gen !== generation || !matchLive) return;
       addToSelection(hex);
-      if (i === bestMove.length - 1) setTimeout(playSelectedWord, 500);
+      if (i === bestMove.length - 1) {
+        setTimeout(function () {
+          if (gen !== generation || !matchLive) return;
+          playSelectedWord();
+        }, 500);
+      }
     }, i * 300);
   });
 }
@@ -531,6 +567,7 @@ function endGame() {
   if (!matchLive) return;
   matchLive = false;
   generation++;
+  clearAI();
   isProcessing = true;
   pauseTimer();
   window.HexiwordScoreLine = scores[1] + " to " + scores[2];
@@ -538,19 +575,31 @@ function endGame() {
   if (won) {
     if (typeof window.levelComplete === "function") window.levelComplete();
     else sendHubScore();
-  } else {
-    if (typeof window.KwaleeHubReward === "function") window.KwaleeHubReward();
-    else sendHubScore();
-    if (typeof window.levelFailed === "function") window.levelFailed();
+  } else if (typeof window.levelFailed === "function") {
+    window.levelFailed();
   }
+}
+
+function applyHubAvatar() {
+  var img = document.getElementById("p1-avatar");
+  if (!img) return;
+  var id = "male";
+  try {
+    var raw = localStorage.getItem("kwalee-game-hub.wallet.v1");
+    var wallet = raw ? JSON.parse(raw) : null;
+    if (wallet && SHOP_ICONS.indexOf(wallet.icon) !== -1) id = wallet.icon;
+  } catch (err) { /* ignore */ }
+  img.src = "../../assets/avatars/" + id + ".png";
 }
 
 function beginMatch() {
   if (!dictLoaded) return;
   generation++;
+  clearAI();
   var gen = generation;
   matchLive = false;
   pauseTimer();
+  applyHubAvatar();
   var screen = document.getElementById("matchmaking-screen");
   var status = document.getElementById("match-status");
   if (screen) screen.classList.remove("hidden");
@@ -559,10 +608,8 @@ function beginMatch() {
     if (gen !== generation) return;
     var names = ["LexiMaster", "WordNinja", "VowelOwl", "HexagonHero", "SpellyBelly"];
     var fakeName = names[Math.floor(Math.random() * names.length)];
-    var rType = Math.random() < 0.5 ? "men" : "women";
-    var rNum = Math.floor(Math.random() * 90) + 1;
     var avatar = document.getElementById("p2-avatar");
-    if (avatar) avatar.src = "https://randomuser.me/api/portraits/" + rType + "/" + rNum + ".jpg";
+    if (avatar) avatar.src = "../../assets/avatars/" + SHOP_ICONS[Math.floor(Math.random() * SHOP_ICONS.length)] + ".png";
     if (status) status.innerText = "Found: " + fakeName;
     var nameEl = document.getElementById("p2-name");
     if (nameEl) nameEl.innerText = fakeName;
@@ -583,18 +630,14 @@ function beginMatch() {
       initGame();
       updateUI();
       startTimer();
-      if (currentPlayer === 2) {
-        setTimeout(function () {
-          if (gen !== generation || !matchLive) return;
-          playAI();
-        }, 1000);
-      }
+      if (currentPlayer === 2) scheduleAI();
     }, 1500);
   }, 1200);
 }
 
 (function () {
   var play = document.getElementById("playBtn");
+  applyHubAvatar();
   if (play && !dictLoaded) play.disabled = true;
   function openRules() {
     buzz("tap");
